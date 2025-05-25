@@ -96,6 +96,9 @@ from data_stuff import test_items, test_highlights
  - add colour for selected column
  - highlighting doesn't disappear when columns are hidden
  - add scroll bar
+ - add different selection styles
+    - row highlighted   
+    - selection indicator
 
 COPY:
 
@@ -354,7 +357,7 @@ def list_picker(
                 item = indexed_items[idx]
                 x = 0
 
-                # Check item selection
+                # Set colour based on state of item (e.g., selected, unselected)
                 if idx == cursor_pos:
                     color_pair = curses.color_pair(5) | curses.A_BOLD  # Selected item
                 else:
@@ -439,16 +442,14 @@ def list_picker(
                     stdscr.attroff(color_pair)
                     # os.system(f"notify-send 'match: {y}, {highlight_start}'")
 
+            ## Display scrollbar
             if scroll_bar and len(indexed_items) and len(indexed_items) > (items_per_page):
-                
-                scroll_bar_middle = int(((end_index-start_index)/len(indexed_items))*items_per_page)+top_space+1
-                scroll_bar_start = int(((cursor_pos)/len(indexed_items))*items_per_page)+top_space+1
                 scroll_bar_length = int(items_per_page*items_per_page/len(indexed_items))
-                scroll_bar_length = min(scroll_bar_length, (h-4)-scroll_bar_start)
-                scroll_bar_end = scroll_bar_start + scroll_bar_length
-                # subprocess.run(f"notify-send '{scroll_bar_middle},{scroll_bar_length},{scroll_bar_start}'", shell=True)
-
+                if cursor_pos <= items_per_page//2: scroll_bar_start=top_space+1
+                elif cursor_pos + items_per_page//2 >= len(indexed_items): scroll_bar_start = h - 3 - scroll_bar_length
+                else: scroll_bar_start = int(((cursor_pos)/len(indexed_items))*items_per_page)+top_space+1 - scroll_bar_length//2
                 for i in range(scroll_bar_length):
+                    v = max(top_space+int(bool(header)), scroll_bar_start-scroll_bar_length//2)
                     stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(5))
 
             # Display page number and count
@@ -1863,158 +1864,6 @@ def list_picker(
     # return curses.wrapper(main)
     return main()
 
-# Example usage
-if __name__ == "__main__":
-    is_selecting = False
-    is_deselecting = False
-    # List of lists example
-    items = [
-        ["Title 1", "32 MB", "10 Files"],
-        ["Title 2", "12 GB", "12 Files"],
-        ["Title 3", "2 KB", "1 Files"],
-        ["Title 4", "500 B", "8 Files"],
-        ["Title 5", "1.5 MB/s", "5 Files"],
-        ["Title 6", "300 KBps", "15 Files"]
-    ]
-
-    # Define custom colors
-    custom_colors = {
-        'background': curses.COLOR_BLACK,
-        'normal_fg': curses.COLOR_WHITE,
-        'unselected_fg': curses.COLOR_WHITE,
-        'unselected_bg': curses.COLOR_BLACK,
-        'selected_fg': curses.COLOR_BLACK,
-        'selected_bg': curses.COLOR_YELLOW
-    }
-
-    # Optional header row
-    header_row = ["Title", "Size", "Files"]
-
-    items = [
-        ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaTitle 1", "32.3 MB", "10 Files", "5KBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 2", "12.3 MB", "12 Files", "12MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 3", "2.3 MB", "40 Files", "12MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 4", "2.3 KB", "5 Files", "12MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 5", "9.3 MB", "5 Files", "15MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 6", "2.3 MB", "13 Files", "15MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 7", "8.3 MB", "1 Files", "14GBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 8", "2.3 GB", "3 Files", "15MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 9", "2.2 MB", "5 Files", "15MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 10", "2.0 MB", "23 Files", "8MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 11", "2.3 MB", "1 Files", "17MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 12", "12.8 MB", "4 Files", "14MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 13", "82.1 MB", "3 Files", "3MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 14", "32.3 MB", "33 Files", "12GBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 15", "2.3 MB", "1 Files", "23MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 16", "82.13 MB", "2 Files", "25MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 17", "322.3 MB", "1 Files", "89KBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 18", "102.0 MB", "6 Files", "26MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 19", "2.3 MB", "11 Files", "21MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 20", "5.1 MB", "2 Files", "9KBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 21", "6.2 MB", "13 Files", "12MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 22", "22.1 MB", "5 Files", "31KBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 23", "0.8 MB", "51 Files", "42MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-    ]
-
-    # Define custom colors
-    custom_colors = {
-        'background': curses.COLOR_BLACK,
-        'normal_fg': curses.COLOR_WHITE,
-        'unselected_fg': curses.COLOR_WHITE,
-        'cursor_fg': curses.COLOR_WHITE,
-        'selected_fg': curses.COLOR_BLACK,
-        'header_fg': curses.COLOR_BLACK,
-        'unselected_bg': curses.COLOR_BLACK,
-        'selected_bg': curses.COLOR_BLUE,
-        'cursor_bg': curses.COLOR_BLUE,
-        'header_bg': curses.COLOR_WHITE,
-    }
-    custom_colors2 = {
-        'background': curses.COLOR_WHITE,
-        'normal_fg': curses.COLOR_BLACK,
-        'unselected_fg': curses.COLOR_BLACK,
-        'cursor_fg': curses.COLOR_WHITE,
-        'selected_fg': curses.COLOR_BLACK,
-        'header_fg': curses.COLOR_WHITE,
-        'unselected_bg': curses.COLOR_WHITE,
-        'selected_bg': curses.COLOR_BLUE,
-        'cursor_bg': curses.COLOR_BLUE,
-        'header_bg': curses.COLOR_BLACK
-    }
-    items = [
-
-            ]
-
-    # Optional header row
-    header_row = ["Title", "Size", "Files", "a"]
-    # header_row = ["Title", "Size", "Files"]
-    # header_row = ["(1) url", "(2) title", "(3) info"]
-    # header_row = ["1. url", "2. title", "3. info"]
-    # Run the list picker
-    # selected_indices = list_picker(items, custom_colors, top_gap=0, header=header_row, max_width=70)
-    # print("Final selected indices:", selected_indices)
-
-# Example usage
-if __name__ == "__main__":
-    is_selecting = False
-    is_deselecting = False
-    # List of lists example
-    items = [
-        ["Title 1", "32 MB", "10 Files"],
-        ["Title 2", "12 GB", "12 Files"],
-        ["Title 3", "2 KB", "1 Files"],
-        ["Title 4", "500 B", "8 Files"],
-        ["Title 5", "1.5 MB/s", "5 Files"],
-        ["Title 6", "300 KBps", "15 Files"]
-    ]
-
-    # Define custom colors
-    custom_colors = {
-        'background': curses.COLOR_BLACK,
-        'normal_fg': curses.COLOR_WHITE,
-        'unselected_fg': curses.COLOR_WHITE,
-        'unselected_bg': curses.COLOR_BLACK,
-        'selected_fg': curses.COLOR_BLACK,
-        'selected_bg': curses.COLOR_YELLOW
-    }
-
-    # Optional header row
-    header_row = ["Title", "Size", "Files"]
-
-    items = [
-        ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaTitle 1", "32.3 MB", "10 Files", "5KBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 2", "12.3 MB", "12 Files", "12MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 3", "2.3 MB", "40 Files", "12MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 4", "2.3 KB", "5 Files", "12MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 5", "9.3 MB", "5 Files", "15MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 6", "2.3 MB", "13 Files", "15MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 7", "8.3 MB", "1 Files", "14GBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 8", "2.3 GB", "3 Files", "15MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 9", "2.2 MB", "5 Files", "15MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 10", "2.0 MB", "23 Files", "8MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 11", "2.3 MB", "1 Files", "17MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 12", "12.8 MB", "4 Files", "14MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 13", "82.1 MB", "3 Files", "3MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 14", "32.3 MB", "33 Files", "12GBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 15", "2.3 MB", "1 Files", "23MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 16", "82.13 MB", "2 Files", "25MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 17", "322.3 MB", "1 Files", "89KBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 18", "102.0 MB", "6 Files", "26MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 19", "2.3 MB", "11 Files", "21MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 20", "5.1 MB", "2 Files", "9KBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 21", "6.2 MB", "13 Files", "12MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 22", "22.1 MB", "5 Files", "31KBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-        ["Title 23", "0.8 MB", "51 Files", "42MBps", "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"],
-    ]
-
-    # Optional header row
-    header_row = ["Title", "Size", "Files", "a"]
-    header_row = ["Title", "Size", "Files"]
-    # header_row = ["(1) url", "(2) title", "(3) info"]
-    # header_row = ["1. url", "2. title", "3. info"]
-    # Run the list picker
-    # selected_indices = list_picker(items, custom_colors, top_gap=0, header=header_row, max_width=70)
-    # print("Final selected indices:", selected_indices)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')
