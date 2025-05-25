@@ -439,8 +439,18 @@ def list_picker(
                     stdscr.attroff(color_pair)
                     # os.system(f"notify-send 'match: {y}, {highlight_start}'")
 
-            if scroll_bar:
-                pass
+            if scroll_bar and len(indexed_items) and len(indexed_items) > (items_per_page):
+                
+                scroll_bar_middle = int(((end_index-start_index)/len(indexed_items))*items_per_page)+top_space+1
+                scroll_bar_start = int(((cursor_pos)/len(indexed_items))*items_per_page)+top_space+1
+                scroll_bar_length = int(items_per_page*items_per_page/len(indexed_items))
+                scroll_bar_length = min(scroll_bar_length, (h-4)-scroll_bar_start)
+                scroll_bar_end = scroll_bar_start + scroll_bar_length
+                # subprocess.run(f"notify-send '{scroll_bar_middle},{scroll_bar_length},{scroll_bar_start}'", shell=True)
+
+                for i in range(scroll_bar_length):
+                    stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(5))
+
             # Display page number and count
             # stdscr.addstr(h - 3, 0, f"Page {current_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}", curses.color_pair(4))
 
@@ -2055,13 +2065,6 @@ if __name__ == '__main__':
     stdscr.keypad(True)
     selected_indices, opts, function_data = list_picker(
         stdscr,
-        # items,
-        # colors=custom_colors,
-        # top_gap=0,
-        # header=header_row,
-        # max_width=70,
-        # highlights=highlights,
-        # unselectable_indices=unselectable_indices
         **function_data,
     )
 
