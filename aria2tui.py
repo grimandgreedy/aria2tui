@@ -1190,14 +1190,14 @@ def begin(config):
             #     items = [[]]
 
             ## Ensure that the cursor stays on the same download (as ID'd by the gid)
-            if "indexed_items" in watch_loop_data and len(watch_loop_data["indexed_items"]) != 0 and "cursor_pos" in watch_loop_data:
-                curs = watch_loop_data["cursor_pos"]
-                indexed_items = watch_loop_data["indexed_items"]
-                gid_col = header.index("gid")
-                current_index_gid = indexed_items[curs][1][gid_col]
-                if current_index_gid in [item[gid_col] for item in items]:
-                    new_index = [item[gid_col] for item in items].index(current_index_gid)
-                    watch_loop_data["cursor_pos"] = new_index
+            # if "indexed_items" in watch_loop_data and len(watch_loop_data["indexed_items"]) != 0 and "cursor_pos" in watch_loop_data:
+            #     curs = watch_loop_data["cursor_pos"]
+            #     indexed_items = watch_loop_data["indexed_items"]
+            #     gid_col = header.index("gid")
+            #     current_index_gid = indexed_items[curs][1][gid_col]
+            #     if current_index_gid in [item[gid_col] for item in items]:
+            #         new_index = [item[gid_col] for item in items].index(current_index_gid)
+            #         watch_loop_data["cursor_pos"] = new_index
 
             ## Remove old data from dict
             watch_loop_data = {key: val for key, val in watch_loop_data.items() if key not in ["items", "indexed_items"]}

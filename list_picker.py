@@ -13,8 +13,10 @@ from sorting import *
 from filtering import *
 from data_stuff import test_items, test_highlights, test_header
 from input_field import *
+from searching import search
 
 """
+ - (!!!) fix crash when terminal is too small
 - c,y copies filtered rows but Y says out of range
 - adjust width of particular columns
 - Add a set of themes that are changeable
@@ -29,8 +31,9 @@ from input_field import *
  - show/hide col based on name; have tab auto complete
  - option to search visible columns only
  - remain on same row when resizing with +/-
+ - +/- don't work when using scroll (rather than paginate)
  - add option for padding/border
-    - stdscr.box
+    - stdscr.box??
  - disable visual selection when # is greater than max_selected
  - put help in a popup like opts
  - redo keybinds
@@ -93,6 +96,10 @@ from input_field import *
  - should require_option skip the prompt if an option has already been given?
  - force option type; show notification to user if option not appropriate
  - (!!!) When the input_field is too long the application crashes
+ - add disable options for:
+    - sort
+    - visual selection
+ - redo help
 
 COPY:
 
@@ -506,7 +513,7 @@ def list_picker(
         # Use global color settings
         nonlocal colors, top_gap, header, max_width, items, unselectable_indices
         # global is_selecting, is_deselecting
-        nonlocal current_row, current_page, cursor_pos, sort_reverse, user_opts, separator, search_query, search_count, filter_query, hidden_columns, selections, items_per_page, sort_method, sort_column, start_selection, end_selection, is_selecting, is_deselecting, indexed_items, highlights, key_chain, modes, mode_index, require_option, number_columns, scroll_bar, user_settings, columns_sort_method
+        nonlocal current_row, current_page, cursor_pos, sort_reverse, user_opts, separator, search_query, search_count, filter_query, hidden_columns, selections, items_per_page, sort_method, sort_column, start_selection, end_selection, is_selecting, is_deselecting, indexed_items, highlights, key_chain, modes, mode_index, require_option, number_columns, scroll_bar, user_settings, columns_sort_method, search_index
 
 
         if timer: initial_time = time.time()
@@ -713,123 +720,6 @@ def list_picker(
             draw_screen()
 
 
-        def search(query, reverse=False, continue_search=False):
-            nonlocal indexed_items, current_row, current_page, items_per_page, highlights, search_query, search_count, search_index, cursor_pos
-            # Clear previous search highlights
-
-            highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
-
-            def apply_filter(row):
-                for col, value in filters.items():
-                    if case_sensitive or (value != value.lower()):
-                        pattern = re.compile(value)
-                    else:
-                        pattern = re.compile(value, re.IGNORECASE)
-                    if col == -1:  # Apply filter to all columns
-                        if not any(pattern.search(str(item)) for item in row):
-                            return invert_filter
-                        # return not invert_filter
-                    elif col >= len(row) or col < 0:
-                        return False
-                    else:
-                        cell_value = str(row[col])
-                        if not pattern.search(str(cell_value)):
-                            return invert_filter
-                        # return invert_filter
-
-                return True
-
-            filters = {}
-            invert_filter = False
-            case_sensitive = False
-
-            # tokens = re.split(r'(\s+--\d+|\s+--i)', query)
-            tokens = re.split(r'((\s+|^)--\w)', query)
-            tokens = [token.strip() for token in tokens if token.strip()]  # Remove empty tokens
-            i = 0
-            while i < len(tokens):
-                token = tokens[i]
-                if token:
-                    if token.startswith("--"):
-                        flag = token
-                        if flag == '--v':
-                            invert_filter = True 
-                            i += 1
-                        elif flag == '--i':
-                            case_sensitive = True
-                            i += 1
-                        else:
-                            if i+1 >= len(tokens):
-                                print("Not enough args")
-                                break
-                            col = int(flag[2:])
-                            arg = tokens[i+1].strip()
-                            filters[col] = arg
-                            i+=2
-                            highlights.append({
-                                "match": arg,
-                                "field": col,
-                                "color": 10,
-                                "type": "search",
-                            })
-                    else:
-                        filters[-1] = token
-                        highlights.append({
-                            "match": token,
-                            "field": "all",
-                            "color": 10,
-                            "type": "search",
-                        })
-                        i += 1
-                else:
-                    i += 1
-
-            before_count = len(indexed_items)
-
-            # for i in list(range(current_row+(current_page*items_per_page)+1, len(indexed_items))) + list(range(current_row+(current_page*items_per_page)+1)):
-            searchables =  list(range(cursor_pos+1, len(indexed_items))) + list(range(cursor_pos+1))
-            if reverse:
-                searchables =  ((list(range(cursor_pos), len(indexed_items))) + list(range(cursor_pos)))[::-1]
-            # search_indices = list(range(old_pos+1, len(indexed_items))) + list(range(old_pos+1, len(indexed_items)))
-            # for i in list(range(old_pos+1, len(indexed_items))):
-            # os.system(f"notify-send '{len(indexed_items)}'")
-            found = False
-            search_count = 0
-            search_list = []
-            
-            for i in searchables:
-                # if apply_filter(indexed_items[i][1]):
-                if apply_filter(indexed_items[i][1]):
-                    new_pos = i
-                    if new_pos in unselectable_indices: continue
-                    search_count += 1
-                    search_list.append(i)
-                    
-                    if not found:
-                        cursor_pos = new_pos
-                        found = True
-                    # break
-                    # return False
-                    # for i in range(diff):
-                    #     cursor_down()
-                    # break
-            if search_list:
-                search_index = sorted(search_list).index(cursor_pos)+1
-            else:
-                search_index = 0
-
-            # number_of_pages_before = (len(indexed_items) + items_per_page - 1) // items_per_page
-            # indexed_items = [(i, item) for i, item in enumerate(items) if apply_filter(item)]
-            # after_count = len(indexed_items)
-            # number_of_pages_after = (len(indexed_items) + items_per_page - 1) // items_per_page
-            # cursor = (current_page * items_per_page) + current_row
-            # if cursor > after_count:
-            #     cursor = 0
-            #     # current_row = 0
-            #     current_page  = number_of_pages_after - 1
-            #     current_row = (len(indexed_items) +items_per_page - 1) % items_per_page
-
-            draw_screen()
 
         def open_submenu(stdscr):
             nonlocal user_opts
@@ -1216,18 +1106,7 @@ def list_picker(
                     else: break
                 cursor_pos = new_pos
                 return True
-                # elif current_page < (len(indexed_items) + items_per_page - 1) // items_per_page - 1:
 
-            # def cursor_down_old():
-            #     # Returns: whether page is turned
-            #     nonlocal current_row, current_page
-            #     if current_row < items_per_page - 1 and current_row + (current_page * items_per_page) < len(indexed_items) - 1:
-            #         current_row += 1
-            #     elif current_row == items_per_page - 1 and current_page < (len(indexed_items) + items_per_page - 1) // items_per_page - 1:
-            #         current_page += 1
-            #         current_row = 0
-            #         return True
-            #     return False
             def cursor_up():
                 # Returns: whether page is turned
                 nonlocal cursor_pos
@@ -1238,31 +1117,13 @@ def list_picker(
                     else: break
                 cursor_pos = new_pos
                 return True
-            # def cursor_up_old():
-            #     # Returns: whether page is turned
-            #     nonlocal current_row, current_page
-            #     if current_row > 0:
-            #         current_row -= 1
-            #     elif current_page > 0:
-            #         current_page -= 1
-            #         current_row = items_per_page - 1
-            #         return True
-            #     return False
             clear_screen=True
             if key == ord('?'):
                 stdscr.clear()
                 stdscr.refresh()
                 show_help()
-            # elif key == ord('['):
-            #     max_width -= 10
-            # elif key == ord(']'):
-            #     if max_width > 10:
-            #         max_width += 10
             elif key in [ord('q'), ord('h')]:
                 stdscr.clear()
-                # stdscr.addstr(0, 0, "Exited without selection.")
-                # stdscr.refresh()
-                # stdscr.getch()  # Wait for a key press before closing
                 function_data = get_function_data()
                 return [], "", function_data
             elif key == ord('`'):
@@ -1305,6 +1166,7 @@ def list_picker(
                 clear_screen = False
                 for i in range(items_per_page//2): 
                     if cursor_up(): clear_screen = True
+
             elif key == ord(' '): # Space key
                 if len(indexed_items) > 0:
                     item_index = indexed_items[cursor_pos][0]
@@ -1314,13 +1176,11 @@ def list_picker(
                 cursor_down()
             elif key == ord('m') or key == 1:  # Select all (m or ctrl-a)
                 select_all()
+
             elif key == ord('M') or key == 18:  # Deselect all (M or ctrl-r)
                 deselect_all()
-            # elif key == ord('g') or key == curses.KEY_HOME:
-            #     current_row = 0
-            #     draw_screen()
-            elif key == ord('g') or key == curses.KEY_HOME:
-                # current_row = 0
+
+            elif key in [ord('g'), curses.KEY_HOME]:
                 new_pos = 0
                 while True:
                     if new_pos in unselectable_indices: new_pos+=1
@@ -1368,11 +1228,7 @@ def list_picker(
                             user_opts = usrtxt
 
                 stdscr.clear()
-                # stdscr.addstr(0, 0, "Selected indices: " + str(selected_indices))
                 stdscr.refresh()
-                # stdscr.getch()  # Wait for a key press before closing
-                # return selected_indices
-                # NOW RETURNING SELECTED INDICES AND OPTIONS
                 function_data = get_function_data()
                 return selected_indices, user_opts, function_data
             elif key == ord('n') or key == curses.KEY_NPAGE:  # Next page
@@ -1445,23 +1301,18 @@ def list_picker(
                 handle_visual_selection(selecting=False)
                 draw_screen()
             if key == curses.KEY_RESIZE:  # Terminal resize signal
-                # if curses.is_term_resized()
-                # os.system(f"notify-send '{h}, {w}'")
                 h, w = stdscr.getmaxyx()
-                # os.system(f"notify-send '{h}, {w}'")
                 top_space = top_gap
                 if title: top_space+=1
                 if display_modes: top_space+=1
                 items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
 
             elif key == ord('r'):
+                # Refresh
                 top_space = top_gap
                 if title: top_space+=1
                 if display_modes: top_space+=1
                 items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
-                # if current_page + 1 > (len(indexed_items) + items_per_page - 1) // items_per_page:
-                #     current_page = (len(indexed_items) + items_per_page - 1) // items_per_page - 1
-                #     current_row = (len(indexed_items) +items_per_page - 1) % items_per_page
                 stdscr.refresh()
 
             elif key == ord('f'):
@@ -1502,12 +1353,39 @@ def list_picker(
                 )
                 if return_val:
                     search_query = usrtxt
-                    search(search_query)
+                    return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
+                        query=search_query,
+                        indexed_items=indexed_items,
+                        highlights=highlights,
+                        cursor_pos=cursor_pos,
+                        unselectable_indices=unselectable_indices,
+                    )
+                    if return_val:
+                        cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
 
             elif key == ord('i'):
-                search(search_query.strip(), continue_search=True)
+                return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
+                    query=search_query,
+                    indexed_items=indexed_items,
+                    highlights=highlights,
+                    cursor_pos=cursor_pos,
+                    unselectable_indices=unselectable_indices,
+                    continue_search=True,
+                )
+                if return_val:
+                    cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
             elif key == ord('I'):
-                search(search_query.strip(), reverse=True, continue_search=True)
+                return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
+                    query=search_query,
+                    indexed_items=indexed_items,
+                    highlights=highlights,
+                    cursor_pos=cursor_pos,
+                    unselectable_indices=unselectable_indices,
+                    continue_search=True,
+                    reverse=True,
+                )
+                if return_val:
+                    cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
             elif key == 27 or key == ord('e'):  # ESC key
                 # order of escapes:
                 # 1. selecting/deslecting
