@@ -1,29 +1,18 @@
 import curses
 import re
-from numpy import sort_complex
-from pandas._libs.lib import is_scalar
-from pandas.core.computation.ops import isnumeric
 from list_picker_colours import get_colours
 import pyperclip
 import os
 import subprocess
 import argparse
 from table_to_list_of_lists import *
-from math import log10
 import time
-from datetime import datetime
 from wcwidth import wcwidth, wcswidth
 from utils import *
 from sorting import *
 from filtering import *
-from data_stuff import test_items, test_highlights
+from data_stuff import test_items, test_highlights, test_header
 
-# NOTE: Look for lines like this
-# TODO: 
-# WARNING: 
-# FIX: here
-# PERF: 
-# HACK:
 """
 - c,y copies filtered rows but Y says out of range
 - adjust width of particular columns
@@ -338,15 +327,24 @@ def list_picker(
                 column_widths = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
                 # header_str = ' '.join(f"{i+1}. {header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
                 header_str = ""
+                up_to_selected_col = ""
                 for i in range(len(header)):
+                    if i == sort_column: up_to_selected_col = header_str
                     if i in hidden_columns: continue
                     number = f"{i}. " if number_columns else ""
+                    number = f"{intStringToExponentString(i)}. " if number_columns else ""
                     header_str += number
-                    header_str +=f"{header[i].ljust(column_widths[i])}"
+                    # header_str +=f"{header[i].ljust(column_widths[i])}"
+                    header_str +=f"{header[i]:^{column_widths[i]}}"
                     header_str += " "
                 # header_str = ' '.join(f"{i}. " if number_columns else "" + f"{header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
                 # header_str = format_row([f"{i+1}. {col}" for i, col in enumerate(header)])
-                stdscr.addstr(top_space, 0, header_str[:w], curses.color_pair(4) | curses.A_BOLD)
+                stdscr.addstr(top_space, 0, header_str[:w], curses.color_pair(4))
+                if sort_column != None and sort_column not in hidden_columns and len(up_to_selected_col) < w: 
+                    number = f"{sort_column}. " if number_columns else ""
+                    number = f"{intStringToExponentString(sort_column)}. " if number_columns else ""
+                    stdscr.addstr(top_space, len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)], curses.color_pair(19) | curses.A_BOLD)
+
                 # stdscr.addstr(top_gap + 1, 0, '-' * len(header_str), curses.color_pair(3))
                 # stdscr.addstr(top_gap, 0, header_str[:w], curses.color_pair(4) | curses.A_BOLD)
 
@@ -450,7 +448,7 @@ def list_picker(
                 else: scroll_bar_start = int(((cursor_pos)/len(indexed_items))*items_per_page)+top_space+1 - scroll_bar_length//2
                 for i in range(scroll_bar_length):
                     v = max(top_space+int(bool(header)), scroll_bar_start-scroll_bar_length//2)
-                    stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(5))
+                    stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(18))
 
             # Display page number and count
             # stdscr.addstr(h - 3, 0, f"Page {current_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}", curses.color_pair(4))
@@ -535,23 +533,25 @@ def list_picker(
         if curses.has_colors() and colors != None:
             # raise Exception("Terminal does not support color")
             curses.start_color()
-            curses.init_pair(1, colors['selected_fg'], colors['selected_bg'])       # selected colour
+            curses.init_pair(1, colors['selected_fg'], colors['selected_bg'])
             curses.init_pair(2, colors['unselected_fg'], colors['unselected_bg'])
             curses.init_pair(3, colors['normal_fg'], colors['background'])
             curses.init_pair(4, colors['header_fg'], colors['header_bg'])
-            curses.init_pair(5, colors['cursor_fg'], colors['cursor_bg'])             # cursor colour
-            curses.init_pair(6, colors['normal_fg'], colors['background'])  # Filter color
-            curses.init_pair(7, colors['error_fg'], colors['error_bg'])  # Filter color
-            curses.init_pair(8, colors['complete_fg'], colors['complete_bg'])  # Filter color
-            curses.init_pair(9, colors['active_fg'], colors['active_bg'])  # Filter color
-            curses.init_pair(10, colors['search_fg'], colors['search_bg'])  # Filter color
-            curses.init_pair(11, colors['waiting_fg'], colors['waiting_bg'])  # Filter color
-            curses.init_pair(12, colors['paused_fg'], colors['paused_bg'])  # Filter color
-            curses.init_pair(13, colors['active_input_fg'], colors['active_input_bg'])  # Filter color
-            curses.init_pair(14, colors['modes_selected_fg'], colors['modes_selected_bg'])  # Filter color
-            curses.init_pair(15, colors['modes_unselected_fg'], colors['modes_unselected_bg'])  # Filter color
-            curses.init_pair(16, colors['title_fg'], colors['title_bg'])  # Filter color
-            curses.init_pair(17, colors['normal_fg'], colors['title_bar'])  # Filter color
+            curses.init_pair(5, colors['cursor_fg'], colors['cursor_bg'])
+            curses.init_pair(6, colors['normal_fg'], colors['background'])
+            curses.init_pair(7, colors['error_fg'], colors['error_bg'])
+            curses.init_pair(8, colors['complete_fg'], colors['complete_bg'])
+            curses.init_pair(9, colors['active_fg'], colors['active_bg'])
+            curses.init_pair(10, colors['search_fg'], colors['search_bg'])
+            curses.init_pair(11, colors['waiting_fg'], colors['waiting_bg'])
+            curses.init_pair(12, colors['paused_fg'], colors['paused_bg'])
+            curses.init_pair(13, colors['active_input_fg'], colors['active_input_bg'])
+            curses.init_pair(14, colors['modes_selected_fg'], colors['modes_selected_bg'])
+            curses.init_pair(15, colors['modes_unselected_fg'], colors['modes_unselected_bg'])
+            curses.init_pair(16, colors['title_fg'], colors['title_bg'])
+            curses.init_pair(17, colors['normal_fg'], colors['title_bar'])
+            curses.init_pair(18, colors['normal_fg'], colors['scroll_bar_bg'])
+            curses.init_pair(19, colors['selected_header_column_fg'], colors['selected_header_column_bg'])
 
         # Set terminal background color
         stdscr.bkgd(' ', curses.color_pair(3))  # Apply background color
@@ -1375,7 +1375,6 @@ def list_picker(
                 is_deselecting = False
                 draw_screen()
 
-        # esc = False
         draw_screen()
         # Main loop
         
@@ -1804,13 +1803,8 @@ def list_picker(
                     search_query = ""
                     mode_index = 0
                     highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
-                    # esc = True
                     continue
                 draw_screen()
-            # elif esc and key == ord('j'):
-            #     for i in range(5): cursor_down()
-            # elif esc and key == ord('k'):
-            #     for i in range(5): cursor_up()
             elif key == ord(':'):
                 append_additional_text('')
             elif key == ord('o'):
@@ -1857,11 +1851,8 @@ def list_picker(
                     max_width += 10
                     column_widths[:] = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
                     draw_screen()
-            # esc = False
             draw_screen(clear_screen)
 
-    # Use curses.wrapper to handle initialization and cleanup
-    # return curses.wrapper(main)
     return main()
 
 
@@ -1890,19 +1881,18 @@ def parse_arguments():
 
 if __name__ == '__main__':
     args, items = parse_arguments()
-    header_row = ["Title", "Size", "Files"]
     
     function_data = {
         "items" : items,
         "unselectable_indices" : [],
         "colors": get_colours(0),
         "top_gap": 0,
-        "header": header_row,
         "max_width": 70,
     }
     if items == None:
         function_data["items"] = test_items
         function_data["highlights"] = test_highlights
+        function_data["header"] = test_header
         
         # unselectable_indices=[0,1,3,7,59]
 

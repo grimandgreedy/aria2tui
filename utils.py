@@ -45,3 +45,8 @@ def get_column_widths(items, header=[], max_width=70, number_columns=True):
 def get_mode_widths(item_list):
     widths = [wcswidth(str(row)) for row in item_list]
     return widths
+
+def intStringToExponentString(n):
+    n = str(n)
+    digitdict = { "0" : "⁰", "1" : "¹", "2" : "²", "3" : "³", "4" : "⁴", "5" : "⁵", "6" : "⁶", "7" : "⁷", "8" : "⁸", "9" : "⁹"}
+    return "".join([digitdict[char] for char in n])

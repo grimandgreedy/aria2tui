@@ -37,6 +37,9 @@ def get_colours(pick=0):
         'title_bar':           40,
         'title_fg': 232,
         'title_bg': 40,
+        'scroll_bar_bg': 253,
+        'selected_header_column_fg': 232,
+        'selected_header_column_bg': 247,
     },
     {
         'background': 232,
