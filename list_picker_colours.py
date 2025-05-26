@@ -213,3 +213,41 @@ def get_colours(pick=0):
         colour["paused_bg"] = colour["background"]
         # colour["search_bg"] = colour["background"]
     return colours[pick]
+
+
+help_colours = {
+        'background': 232,
+        'normal_fg': 253,
+        'unselected_fg': 253,
+        'cursor_fg': 253,
+        'cursor_bg': 232,
+        'selected_fg': 253,
+        'header_fg': 232,
+        'unselected_bg': 232,
+        'selected_bg': 25,
+        'header_bg': 253,
+        'error_bg': 232,
+        'error_fg': curses.COLOR_RED,
+        'complete_bg': 232,
+        'complete_fg': 82,
+        'waiting_bg': 232,
+        'waiting_fg': curses.COLOR_YELLOW,
+        'active_bg': 232,
+        'active_fg': 33,
+        'paused_bg': 232,
+        'paused_fg': 244,
+        'search_bg': 162,
+        'search_fg': 253,
+        'active_input_bg': 25,
+        'active_input_fg': 253,
+        'modes_selected_fg': 253,
+        'modes_selected_bg': 25,
+        'modes_unselected_fg': 232,
+        'modes_unselected_bg': 253,
+        'title_bar':           40,
+        'title_fg': 232,
+        'title_bg': 40,
+        'scroll_bar_bg': 247,
+        'selected_header_column_fg': 232,
+        'selected_header_column_bg': 247,
+    }

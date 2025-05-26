@@ -7,7 +7,7 @@ import json
 
 from sqlalchemy.engine import cursor
 from list_picker import *
-from list_picker_colours import get_colours
+from list_picker_colours import get_colours, help_colours
 from table_to_list_of_lists import *
 import time
 import multiprocessing
@@ -21,17 +21,16 @@ import tempfile
 import tomllib
 from utils import *
 
-"""
+r"""
 todo 
 
  - refresh menu with a timer
- - add retry download function by getting download data, remove it and readd it
+ - (!!!) add retry download function by getting download data, remove it and readd it
  - info is wrong for torrents. The size, % completed, etc. Might need to rework the the data scraped from the json response.
  - remove completed not working
  - fix adding uris with filename. Data is the same but it is corrupted somehow.
     - works:        https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg
     - doesn't work: https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBVWNXUrlGnx3VtnPULUE6v0EteQg
- - fix crash when terminal is too small
  - get all function
  - merge columns
  - add empty values for inapplicable cols
@@ -78,6 +77,11 @@ todo
  - add source column, showing site from which it is being downloaded
  - When I change a download to position 4, the user_option 4 will remain in the options going forward
  - (!!!) Download position jumps around when refreshing since changing the sort methods to be column-wise
+ - open files (*)
+    - open files of the same type in one instance
+ - Filter/search problems
+    - ^[^\s] matches all rows in help but only highlights the first col
+        - seems to match the expression in any col but then only show highlights based on the row_str so misses matches in the second col
 
 DONE
  - If a download is paused and it is paused again it throws an error when it should just skip it.
@@ -800,7 +804,35 @@ def openDownloadLocation(gid):
             loc = val["dir"]
 
         # val = json.loads(response.encode('utf-8'))
-        cmd = f"kitty yazi '{loc}'"
+        cmd = f"kitty yazi {repr(loc)}"
+        # subprocess.run(cmd, shell=True)
+        subprocess.Popen(cmd, shell=True)
+        os.system(f"notify-send '{type(val)}'")
+        os.system(f"notify-send '{loc}'")
+        # os.system(f'kitty yazi "{loc}"')
+
+    except:
+        pass
+
+def openFile(gid):
+    """
+
+    """
+    try:
+        req = getFiles(str(gid))
+        response = send_req(req)
+        val = json.loads(json.dumps(response))
+        files = val["result"]
+        if len(files) == 0: return None
+        loc = files[0]["path"]
+        if "/" not in loc:
+            req = getOption(str(gid))
+            response = send_req(req)
+            val = json.loads(json.dumps(response))
+            loc = val["dir"]
+
+        # val = json.loads(response.encode('utf-8'))
+        cmd = f"xdg-open {repr(loc)}"
         # subprocess.run(cmd, shell=True)
         subprocess.Popen(cmd, shell=True)
         os.system(f"notify-send '{type(val)}'")
@@ -839,6 +871,7 @@ def begin(config):
                         ["getAllInfo", getAllInfo, {}, {"view":True}],
                         # ["changeOption", changeOption, {}, {"view":True}],
                         ["openDownloadLocation", openDownloadLocation, {}, {}],
+                        ["openFile", openFile, {}, {}],
                     ],
                 }
             ],
@@ -944,6 +977,7 @@ def begin(config):
                         ["getAllInfo", getAllInfo, {}, {"view":True}],
                         # ["changeOption", changeOption, {}, {"view":True}],
                         ["openDownloadLocation", openDownloadLocation, {}, {}],
+                        ["openFile", openFile, {}, {}],
                     ],
                 },
             ],

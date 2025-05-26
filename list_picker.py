@@ -1,6 +1,6 @@
 import curses
 import re
-from list_picker_colours import get_colours
+from list_picker_colours import get_colours, help_colours
 import pyperclip
 import os
 import subprocess
@@ -14,6 +14,7 @@ from filtering import *
 from data_stuff import test_items, test_highlights, test_header
 from input_field import *
 from searching import search
+from help_screen import help_lines
 
 """
  - (!!!) fix crash when terminal is too small
@@ -62,7 +63,9 @@ from searching import search
     - Is it the delay caused by fetching the data? Maybe fetch and then refresh?
  - moving columns:
     - ruins highlighting
-    - is not preserved when in function_data
+    - is not preserved in function_data
+    - implement indexed_columns
+    - will have to put header in function_data to track location of fields
  - when visually selecting sometimes single rows above are highlighted (though not selected)
  - add key-chain support 
     - gg
@@ -100,6 +103,8 @@ from searching import search
     - sort
     - visual selection
  - redo help
+ - allow key remappings; have a dictionary to remap
+ - add indexed
 
 COPY:
 
@@ -220,6 +225,7 @@ def list_picker(
         modes=[{}],
         display_modes=False,
         require_option=[],
+        disabled_keys=[],
 ):
     """
     A simple list picker using ncurses.
@@ -242,7 +248,6 @@ def list_picker(
         opts (str): any opts that are entered
         cursor_pos (int): the cursor_pos upon exit
     """
-    def main():
 
 
         # Helper function to parse numerical values
@@ -255,1248 +260,1127 @@ def list_picker(
         # sort_items()
 
 
-        def move_column(direction):
-            nonlocal items, column_widths,sort_column, header
-            try:
-                if sort_column == None: return None
-            except:
-                return None
-            if not (0 <= sort_column + direction < len(column_widths)):
-                return
-            new_index = sort_column + direction
+    def move_column(direction):
+        nonlocal items, column_widths,sort_column, header
+        try:
+            if sort_column == None: return None
+        except:
+            return None
+        if not (0 <= sort_column + direction < len(column_widths)):
+            return
+        new_index = sort_column + direction
 
-            # Swap columns in each row
-            for row in items:
-                row[sort_column], row[new_index] = row[new_index], row[sort_column]
-            header[sort_column], header[new_index] = header[new_index], header[sort_column]
+        # Swap columns in each row
+        for row in items:
+            row[sort_column], row[new_index] = row[new_index], row[sort_column]
+        header[sort_column], header[new_index] = header[new_index], header[sort_column]
 
-            # Swap column widths
-            column_widths[sort_column], column_widths[new_index] = column_widths[new_index], column_widths[sort_column]
+        # Swap column widths
+        column_widths[sort_column], column_widths[new_index] = column_widths[new_index], column_widths[sort_column]
 
-            # Update current column index
-            sort_column = new_index
+        # Update current column index
+        sort_column = new_index
 
-            draw_screen()
+        draw_screen()
 
-        def draw_screen(clear=True):
-            nonlocal filter_query, search_query, search_count, search_index, highlights, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap
+    def draw_screen(clear=True):
+        nonlocal filter_query, search_query, search_count, search_index, highlights, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap
 
-            if clear:
-                # stdscr.clear()
-                stdscr.erase()
-            h, w = stdscr.getmaxyx()
-
-            # scroll
-            ## start: 0, current_pos-items_per_page//2, or len(indexed_items)-items_per_page
-            # start_index = max(0, current_pos - items_per_page//2)
-            
-            # paginate
-            if paginate:
-                start_index = (cursor_pos//items_per_page) * items_per_page
-                end_index = min(start_index + items_per_page, len(indexed_items))
-            # scroll
-            else:
-                scrolloff = items_per_page//2
-                start_index = max(0, min(cursor_pos - (items_per_page-scrolloff), len(indexed_items)-items_per_page))
-                end_index = min(start_index + items_per_page, len(indexed_items))
-            if len(indexed_items) == 0: start_index, end_index = 0, 0
-
-            top_space = top_gap
-            # Display title (if applicable)
-            if title:
-                stdscr.addstr(top_gap, 0, f"{' ':^{w}}", curses.color_pair(17))
-                title_x = (w-wcswidth(title))//2
-                # title = f"{title:^{w}}"
-                stdscr.addstr(top_gap, title_x, title, curses.color_pair(16) | curses.A_BOLD)
-                top_space += 1
-            if display_modes:
-                stdscr.addstr(top_space, 0, ' '*w, curses.A_REVERSE)
-                modes_list = [f"{mode['name']}" if 'name' in mode else f"{i}. " for i, mode in enumerate(modes)]
-                # mode_colours = [mode["colour"] for mode ]
-                mode_widths = get_mode_widths(modes_list)
-                split_space = (w-sum(mode_widths))//len(modes)
-                xmode = 0
-                for i, mode in enumerate(modes_list):
-                    if i == len(modes_list)-1:
-                        mode_str = f"{mode:^{mode_widths[i]+split_space+(w-sum(mode_widths))%len(modes)}}"
-                    else:
-                        mode_str = f"{mode:^{mode_widths[i]+split_space}}"
-                    # current mode
-                    if i == mode_index:
-                        stdscr.addstr(top_space, xmode, mode_str, curses.color_pair(14) | curses.A_BOLD)
-                    # other modes
-                    else:
-                        stdscr.addstr(top_space, xmode, mode_str, curses.color_pair(15) | curses.A_UNDERLINE)
-                    xmode += split_space+mode_widths[i]
-                top_space += 1
-
-                
-
-
-            # Display header
-            if header:
-                # header_str = format_row(header)
-                # stdscr.addstr(top_gap, 0, header_str, curses.color_pair(3))
-                column_widths = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
-                # header_str = ' '.join(f"{i+1}. {header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
-                header_str = ""
-                up_to_selected_col = ""
-                for i in range(len(header)):
-                    if i == sort_column: up_to_selected_col = header_str
-                    if i in hidden_columns: continue
-                    number = f"{i}. " if number_columns else ""
-                    number = f"{intStringToExponentString(i)}. " if number_columns else ""
-                    header_str += number
-                    # header_str +=f"{header[i].ljust(column_widths[i])}"
-                    header_str +=f"{header[i]:^{column_widths[i]}}"
-                    header_str += " "
-                # header_str = ' '.join(f"{i}. " if number_columns else "" + f"{header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
-                # header_str = format_row([f"{i+1}. {col}" for i, col in enumerate(header)])
-                stdscr.addstr(top_space, 0, header_str[:w], curses.color_pair(4))
-                if sort_column != None and sort_column not in hidden_columns and len(up_to_selected_col) < w: 
-                    number = f"{sort_column}. " if number_columns else ""
-                    number = f"{intStringToExponentString(sort_column)}. " if number_columns else ""
-                    stdscr.addstr(top_space, len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)], curses.color_pair(19) | curses.A_BOLD)
-
-                # stdscr.addstr(top_gap + 1, 0, '-' * len(header_str), curses.color_pair(3))
-                # stdscr.addstr(top_gap, 0, header_str[:w], curses.color_pair(4) | curses.A_BOLD)
-            stdscr.addstr(h-4, 0, ' '*w, curses.color_pair(2) | curses.A_UNDERLINE)
-
-
-            # Display items
-            for idx in range(start_index, end_index):
-                y = idx - start_index + top_space + (1 if header else 0)
-                item = indexed_items[idx]
-                x = 0
-
-                # Set colour based on state of item (e.g., selected, unselected)
-                if idx == cursor_pos:
-                    color_pair = curses.color_pair(5) | curses.A_BOLD  # Selected item
-                else:
-                    color_pair = curses.color_pair(2)  # Unselected item
-                    if selections[item[0]]:
-                        color_pair = curses.color_pair(1)  # Selected item
-                    if is_selecting and item[0] == start_selection:
-                        color_pair = curses.color_pair(1)  # Selected item
-                    ## is_selecting and cursor is above start_selection and entryinforloop between start_line and cursor
-                    elif is_selecting and idx <= cursor_pos and idx >= start_selection:
-                        color_pair = curses.color_pair(1)  # Selected item
-                    elif is_selecting and idx >= cursor_pos and idx <= start_selection:
-                        color_pair = curses.color_pair(1)  # Selected item
-                    elif is_deselecting and idx <= cursor_pos and idx >= start_selection:
-                        color_pair = curses.color_pair(2)  # Selected item
-                    # elif is_deselecting and cursor_pos <= start_selection and idx >= current_pos and idx <= start_selection:
-                    elif is_deselecting and idx >=cursor_pos and idx <= start_selection:
-                        color_pair = curses.color_pair(2)  # Selected item
-
-                    # else:
-                    #     color_pair = curses.color_pair(2)  # Unselected item
-
-                stdscr.attron(color_pair)
-
-                row_str = format_row(item[1], hidden_columns, column_widths, separator)
-                h, w = stdscr.getmaxyx()
-
-                try:
-                    # Display row with potential clipping
-                    stdscr.addstr(y, x, row_str[:w], color_pair)
-                except curses.error:
-                    pass  # Handle errors due to cursor position issues
-
-                # Display selection indicator
-                indicator = '[X]' if selections[item[0]] else '[ ]'
-                indicator = ""
-                try:
-                    # stdscr.addstr(y, x + len(row_str), indicator, curses.color_pair(1) | curses.A_BOLD)
-                    pass
-                except curses.error:
-                    pass  # Handle errors due to cursor position issues
-
-                stdscr.attroff(color_pair)
-
-                # Add color highlights
-                # if len(highlights) > 0:
-                #     os.system(f"notify-send 'match: {len(highlights)}'")
-                for highlight in highlights:
-                    try:
-                        if highlight["field"] == "all":
-                            match = re.search(highlight["match"], row_str, re.IGNORECASE)
-                            if not match: continue
-                            highlight_start = match.start()
-                            highlight_end = match.end()
-                        # elif type(highlight["field"]) == type(4) and  highlight["match"] == item[1][highlight["field"]].strip():
-                        elif type(highlight["field"]) == type(4) and highlight["field"] not in hidden_columns:
-                            match = re.search(highlight["match"], item[1][highlight["field"]][:column_widths[highlight["field"]]], re.IGNORECASE)
-                            if not match: continue
-                            field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
-                            field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
-                            field_start = sum(column_widths[:highlight["field"]]) + highlight["field"]*wcswidth(separator)
-                            field_start = sum([width for i, width in enumerate(column_widths[:highlight["field"]]) if i not in hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in hidden_columns])*wcswidth(separator)
-                            highlight_start = wcswidth(item[1][:match.start()]) + field_start
-                            highlight_end = match.end() + field_start
-                        else:
-                            continue
-                        color_pair = curses.color_pair(highlight["color"])  # Selected item
-                        if idx == cursor_pos:
-                            color_pair = curses.color_pair(highlight["color"])  | curses.A_REVERSE
-                        stdscr.attron(color_pair)
-                        # highlight_start = row_str.index(highlight["match"])
-                        # highlight_end = highlight_start + len(highlight["match"])
-                        highlight_len = highlight_start - highlight_end
-
-
-                        # stdscr.addstr(y, highlight_start, highlight["match"], color_pair)
-                        h, w = stdscr.getmaxyx()
-                        stdscr.addstr(y, highlight_start, row_str[highlight_start:min(w, highlight_end)], color_pair | curses.A_BOLD)
-                    # except curses.error:
-                    except:
-                        pass  # Handle errors due to cursor position issues
-                    stdscr.attroff(color_pair)
-                    # os.system(f"notify-send 'match: {y}, {highlight_start}'")
-
-            ## Display scrollbar
-            if scroll_bar and len(indexed_items) and len(indexed_items) > (items_per_page):
-                scroll_bar_length = int(items_per_page*items_per_page/len(indexed_items))
-                if cursor_pos <= items_per_page//2: scroll_bar_start=top_space+1
-                elif cursor_pos + items_per_page//2 >= len(indexed_items): scroll_bar_start = h - 3 - scroll_bar_length
-                else: scroll_bar_start = int(((cursor_pos)/len(indexed_items))*items_per_page)+top_space+1 - scroll_bar_length//2
-                for i in range(scroll_bar_length):
-                    v = max(top_space+int(bool(header)), scroll_bar_start-scroll_bar_length//2)
-                    stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(18))
-
-            # Display page number and count
-            # stdscr.addstr(h - 3, 0, f"Page {current_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}", curses.color_pair(4))
-
-            # Display sort information
-            sort_column_info = f"Column: {sort_column if sort_column is not None else 'None'}"
-            sort_method_info = f"Method: {SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else f"Method: NA"
-            sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
-            sort_column_info = f"{sort_column if sort_column is not None else 'None'}"
-            sort_method_info = f"{SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else "NA"
-            sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
-            # stdscr.addstr(h - 3, 0, f" Sort: {sort_column_info} | {sort_method_info} | {sort_order_info} ", curses.color_pair(4))
-            stdscr.addstr(h - 3, 0, f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) ", curses.color_pair(4))
-            # Display selection count
-            selected_count = sum(selections.values())
-            
-            # stdscr.addstr(h - 1, 0, f"Selected items: {selected_count}", curses.color_pair(3))
-            # stdscr.addstr(h - 4, 0, f"Selected items: {selected_count}/{len(indexed_items)}", curses.color_pair(3))
-            if paginate:
-                stdscr.addstr(h - 2, 0, f" {cursor_pos+1}/{len(indexed_items)}  Page {cursor_pos//items_per_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}  Selected {selected_count} ", curses.color_pair(4))
-            else:
-                stdscr.addstr(h - 2, 0, f" {cursor_pos+1}/{len(indexed_items)}  |  Selected {selected_count} ", curses.color_pair(4))
-
-            select_mode = "Cursor"
-            if is_selecting: select_mode = "Visual Selection"
-            elif is_deselecting: select_mode = "Visual deselection"
-
-            # stdscr.addstr(h - 1, 0, f" {select_mode} {int(bool(key_chain))*'    '}", curses.color_pair(4))
-            # stdscr.addstr(h - 1, 0, f" {select_mode} ", curses.color_pair(4))
-
-            try:
-                if filter_query:
-                    stdscr.addstr(h - 2, 50, f" Filter: {filter_query} ", curses.color_pair(4))  # Display filter query
-                if search_query:
-                    stdscr.addstr(h - 3, 50, f" Search: {search_query} [{search_index}/{search_count}] ", curses.color_pair(4))  # Display filter query
-            except:
-                pass
-            try:
-                if user_opts:
-                    stdscr.addstr(h-1, 50, f" Opts: {user_opts} ", curses.color_pair(4))  # Display additional text
-            except: pass
-
-            stdscr.refresh()
-            
-
-        # Function to sort indexed_items
-
-        # Use global color settings
-        nonlocal colors, top_gap, header, max_width, items, unselectable_indices
-        # global is_selecting, is_deselecting
-        nonlocal current_row, current_page, cursor_pos, sort_reverse, user_opts, separator, search_query, search_count, filter_query, hidden_columns, selections, items_per_page, sort_method, sort_column, start_selection, end_selection, is_selecting, is_deselecting, indexed_items, highlights, key_chain, modes, mode_index, require_option, number_columns, scroll_bar, user_settings, columns_sort_method, search_index
-
-
-        if timer: initial_time = time.time()
-
-        curses.curs_set(0)
-        # stdscr.nodelay(1)  # Non-blocking input
-        stdscr.timeout(2000)  # Set a timeout for getch() to ensure it does not block indefinitely
-        if not timer: stdscr.clear()
-        stdscr.refresh()
-
-        ## Ensure that items is a List[List[Str]] object
-        if items == []: items = [[]]
-        if not isinstance(items[0], list):
-            items = [[item] for item in items]
-        items = [[str(cell) for cell in row] for row in items]
-
-
-        # Ensure that header is of the same length as the rows
-        if header and len(header) != len(items[0]):
-            header = [header[i] if i < len(header) else f"" for i in range(len(items[0]))]
-
-        # Constants
+        if clear:
+            # stdscr.clear()
+            stdscr.erase()
         h, w = stdscr.getmaxyx()
-        # DEFAULT_ITEMS_PER_PAGE = os.get_terminal_size().lines - top_gap*2-2-int(bool(header))
+
+        # scroll
+        ## start: 0, current_pos-items_per_page//2, or len(indexed_items)-items_per_page
+        # start_index = max(0, current_pos - items_per_page//2)
+        
+        # paginate
+        if paginate:
+            start_index = (cursor_pos//items_per_page) * items_per_page
+            end_index = min(start_index + items_per_page, len(indexed_items))
+        # scroll
+        else:
+            scrolloff = items_per_page//2
+            start_index = max(0, min(cursor_pos - (items_per_page-scrolloff), len(indexed_items)-items_per_page))
+            end_index = min(start_index + items_per_page, len(indexed_items))
+        if len(indexed_items) == 0: start_index, end_index = 0, 0
+
         top_space = top_gap
-        if title: top_space+=1
-        if display_modes: top_space+=1
-        DEFAULT_ITEMS_PER_PAGE = h - top_space*2-2-int(bool(header))
-        HELP_LINES_PER_PAGE = h - top_space*2-2-int(bool(header))
-        state_variables = {}
-        SORT_METHODS = ['original', 'lexical', 'LEXICAL', 'alphanum', 'ALPHANUM', 'time', 'numerical', 'size']
-        
-
-        # Initialize colors
-        # Check if terminal supports color
-        if curses.has_colors() and colors != None:
-            # raise Exception("Terminal does not support color")
-            curses.start_color()
-            curses.init_pair(1, colors['selected_fg'], colors['selected_bg'])
-            curses.init_pair(2, colors['unselected_fg'], colors['unselected_bg'])
-            curses.init_pair(3, colors['normal_fg'], colors['background'])
-            curses.init_pair(4, colors['header_fg'], colors['header_bg'])
-            curses.init_pair(5, colors['cursor_fg'], colors['cursor_bg'])
-            curses.init_pair(6, colors['normal_fg'], colors['background'])
-            curses.init_pair(7, colors['error_fg'], colors['error_bg'])
-            curses.init_pair(8, colors['complete_fg'], colors['complete_bg'])
-            curses.init_pair(9, colors['active_fg'], colors['active_bg'])
-            curses.init_pair(10, colors['search_fg'], colors['search_bg'])
-            curses.init_pair(11, colors['waiting_fg'], colors['waiting_bg'])
-            curses.init_pair(12, colors['paused_fg'], colors['paused_bg'])
-            curses.init_pair(13, colors['active_input_fg'], colors['active_input_bg'])
-            curses.init_pair(14, colors['modes_selected_fg'], colors['modes_selected_bg'])
-            curses.init_pair(15, colors['modes_unselected_fg'], colors['modes_unselected_bg'])
-            curses.init_pair(16, colors['title_fg'], colors['title_bg'])
-            curses.init_pair(17, colors['normal_fg'], colors['title_bar'])
-            curses.init_pair(18, colors['normal_fg'], colors['scroll_bar_bg'])
-            curses.init_pair(19, colors['selected_header_column_fg'], colors['selected_header_column_bg'])
-
-        # Set terminal background color
-        stdscr.bkgd(' ', curses.color_pair(3))  # Apply background color
-
-        # Initial states
-        if len(selections) != len(items):
-            selections = {i : False if i not in selections else bool(selections[i]) for i in range(len(items))}
-        items_per_page = DEFAULT_ITEMS_PER_PAGE
-        if indexed_items == []:
-            indexed_items = list(enumerate(items))
-        column_widths = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
-        if require_option == []:
-            require_option = [False for x in indexed_items]
-        if columns_sort_method == [] and len(items) > 0:
-            columns_sort_method = [0 for i in items[0]]
-        if sort_reverse == [] and len(items) > 0:
-            sort_reverse = [False for i in items[0]]
-
-        # If a filter is passed then refilter
-        if filter_query:
-            # prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
-            # prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
-            indexed_items = filter_items(items, indexed_items, filter_query)
-            if cursor_pos in [x[0] for x in indexed_items]: cursor_pos = [x[0] for x in indexed_items].index(cursor_pos)
-            else: cursor_pos = 0
-        # If a sort is passed
-        if sort_column != None and columns_sort_method[sort_column] != 0:
-            sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-        if len(items[0]) == 1:
-            number_columns = False
-
-
-        h, w = stdscr.getmaxyx()
-
-        # Adjust variables to ensure correctness if errors
-        ## Move to a selectable row (if applicable)
-        if len(items) <= len(unselectable_indices): unselectable_indices = []
-        new_pos = (cursor_pos)%len(items)
-        while new_pos in unselectable_indices and new_pos != cursor_pos:
-            new_pos = (new_pos + 1) % len(items)
-
-        assert new_pos < len(items)
-        cursor_pos = new_pos
-        
-        def get_function_data():
-            function_data = {
-                "selections": selections,
-                "items_per_page":       items_per_page,
-                "current_row":          current_row,
-                "current_page":         current_page,
-                "cursor_pos":           cursor_pos,
-                "sort_column":          sort_column,
-                "sort_method":          sort_method,
-                "sort_reverse":         sort_reverse,
-                "hidden_columns":       hidden_columns,
-                "is_selecting":         is_selecting,
-                "is_deselecting":       is_deselecting,
-                "user_opts":            user_opts,
-                "user_settings":        user_settings,
-                "separator":            separator,
-                "search_query":         search_query,
-                "search_count":         search_count,
-                "search_index":         search_index,
-                "filter_query":         filter_query,
-                "indexed_items":        indexed_items,
-                "start_selection":      start_selection,
-                "end_selection":        end_selection,
-                "highlights":           highlights,
-                "max_width":            max_width,
-                "mode_index":           mode_index,
-                "modes":                modes,
-                "title":                title,
-                "display_modes":        display_modes,
-                "require_option":       require_option,
-                "top_gap":              top_gap,
-                "number_columns":       number_columns,
-                "items":                items,
-                "indexed_items":        indexed_items,
-                "scroll_bar":           scroll_bar,
-                "columns_sort_method":  columns_sort_method,
-            }
-            return function_data
-
-
-        # Function to print the list of selected indices
-        def print_selected_indices():
-            selected_indices = [x[0] for x in indexed_items if selections[x[0]]]
-            return selected_indices
-
-        # Function to print the list of selected values
-        def print_selected_values():
-            selected_values = [items[x][0] for x in print_selected_indices()]
-            return selected_values
-
-        # Function to copy selected indices to clipboard
-        def copy_indices():
-            indices = print_selected_indices()
-            pyperclip.copy(', '.join(map(str, indices)))
-
-        # Function to copy selected values to clipboard
-        def copy_values():
-            values = print_selected_values()
-            formatted_values = [format_row(item[1], hidden_columns, column_widths, separator) for item in indexed_items if item[0] in print_selected_indices()]
-            pyperclip.copy('\n'.join(formatted_values))
-
-        # Function to copy full values of selected entries to clipboard
-        def copy_full_values():
-            selected_indices = print_selected_indices()
-            full_values = [format_row_full(items[i], hidden_columns) for i in selected_indices]  # Use format_row_full for full data
-            pyperclip.copy('\n'.join(full_values))
-
-        def copy_all_to_clipboard():
-            formatted_items = [[x for i, x in enumerate(item) if i not in hidden_columns] for item in items]
-            pyperclip.copy(repr(formatted_items))
-            stdscr.addstr(h - 2, 50, f"{len(formatted_items)}R,{len(formatted_items[0])}C list copied to clipboard", curses.color_pair(6))
-            stdscr.refresh()
-            stdscr.getch()  # Wait for user input to clear the message
-
-        def copy_selected_rows_to_clipboard():
-            formatted_items = [[x for i, x in enumerate(item)] for j, item in enumerate(items) if selections[j]]  # Convert to Python list representation
-
-            pyperclip.copy(repr(formatted_items))
-            # stdscr.addstr(h - 2, 50, "Items copied to clipboard", curses.color_pair(6))
-            stdscr.addstr(h - 2, 50, f"{len(formatted_items)}R,{len(formatted_items[0])}C list copied to clipboard", curses.color_pair(6))
-            stdscr.refresh()
-            stdscr.getch()  # Wait for user input to clear the message
-
-        def copy_selected_visible_rows_to_clipboard():
-            formatted_items = [[x for i, x in enumerate(item) if i not in hidden_columns] for j, item in enumerate(items) if selections[j]]  # Convert to Python list representation
-
-            pyperclip.copy(repr(formatted_items))
-            # stdscr.addstr(h - 2, 50, f"{len(formatted_items)}R,{len(formatted_items[0])}C list copied to clipboard", curses.color_pair(6))
-            stdscr.refresh()
-            stdscr.getch()  # Wait for user input to clear the message
-
-        def delete_entries():
-            nonlocal indexed_items, selections, items
-            # Remove selected items from the list
-            selected_indices = [index for index, selected in selections.items() if selected]
-            if not selected_indices:
-                # Remove the currently focused item if nothing is selected
-                selected_indices = [indexed_items[cursor_pos][0]]
-
-            items = [item for i, item in enumerate(items) if i not in selected_indices]
-            indexed_items = [(i, item) for i, item in enumerate(items)]
-            selections = {i:False for i in range(len(indexed_items))}
-            draw_screen()
-
-
-
-        def open_submenu(stdscr):
-            nonlocal user_opts
-            h, w = stdscr.getmaxyx()
-            submenu_win = curses.newwin(6, 50, h // 2 - 2, w // 2 - 25)
-            submenu_win.box()
-            submenu_win.addstr(0, 2, "Select an option", curses.A_BOLD)
-            submenu_items = ["green", "blue", "red", "purple", "orange", "gray"]
-            current_submenu_row = 0
-            submenu_page = 0
-            items_per_page_submenu = 4
-            total_pages_submenu = (len(submenu_items) + items_per_page_submenu - 1) // items_per_page_submenu
-
-            while True:
-                submenu_win.clear()
-                submenu_win.box()
-                submenu_win.addstr(0, 2, "Select an option", curses.A_BOLD)
-                start = submenu_page * items_per_page_submenu
-                end = min(start + items_per_page_submenu, len(submenu_items))
-
-                for i in range(start, end):
-                    if i == start + current_submenu_row:
-                        submenu_win.addstr(i - start + 1, 2, f"> {submenu_items[i]}", curses.A_REVERSE)
-                    else:
-                        submenu_win.addstr(i - start + 1, 2, f"  {submenu_items[i]}")
-
-                # Show page numbers
-                submenu_win.addstr(4, 40, f"Page {submenu_page + 1}/{total_pages_submenu}", curses.color_pair(7))
-                submenu_win.refresh()
-
-                key = submenu_win.getch()
-
-                if key == ord('j'):
-                    if current_submenu_row < min(items_per_page_submenu - 1, len(submenu_items) - start - 1):
-                        current_submenu_row += 1
-                    elif submenu_page < total_pages_submenu - 1:
-                        submenu_page += 1
-                        current_submenu_row = 0
-
-                elif key == ord('k'):
-                    if current_submenu_row > 0:
-                        current_submenu_row -= 1
-                    elif submenu_page > 0:
-                        submenu_page -= 1
-                        current_submenu_row = items_per_page_submenu - 1
-
-                elif key == ord('n'):
-                    if submenu_page < total_pages_submenu - 1:
-                        submenu_page += 1
-
-
-                elif key == ord('p'):
-                    if submenu_page > 0:
-                        submenu_page -= 1
-
-                elif key == 27:  # ESC key
-                    break
-
-                elif key == 10:  # Enter key
-                    choice = submenu_items[start + current_submenu_row]
-                    user_opts = user_opts + choice
-                    stdscr.addstr(h - 1, 50, f"Selected: {choice}")
-                    stdscr.refresh()
-                    break
-
-        def notification(stdscr, message="", duration=4):
-            message = "hello there how are you today? you absolute orange chunkmuffin of a nignog"
-            nonlocal user_opts
-            h, w = stdscr.getmaxyx()
-            submenu_win = curses.newwin(6, 40, 3, w - 44)
-            submenu_win.box()
-            submenu_win.addstr(0, 2, "Select an option", curses.A_BOLD)
-            message_width = 32
-            submenu_items = [message[i*message_width:(i+1)*message_width] for i in range(len(message)//message_width+1)]
-            # submenu_items = ["green", "blue", "red", "purple", "orange", "gray"]
-            current_submenu_row = 0
-            submenu_page = 0
-            items_per_page_submenu = 3
-            total_pages_submenu = (len(submenu_items) + items_per_page_submenu - 1) // items_per_page_submenu
-
-            while True:
-                submenu_win.clear()
-                submenu_win.box()
-                # submenu_win.bkgd(curses.color_pair((1)))
-                submenu_win.addstr(0, 2, "Notification:", curses.color_pair(5) | curses.A_BOLD)
-                submenu_win.addstr(5, 2, "ESC, RET, q to dismiss", curses.color_pair(5) | curses.A_BOLD)
-                start = submenu_page * items_per_page_submenu
-                end = min(start + items_per_page_submenu, len(submenu_items))
-
-                for i in range(start, end):
-                    if i == start + current_submenu_row or True == True:
-                        submenu_win.addstr(i - start + 1, 2, f"{submenu_items[i]}", curses.A_REVERSE)
-                    else:
-                        submenu_win.addstr(i - start + 1, 2, f"  {submenu_items[i]}")
-
-                # Show page numbers
-                submenu_win.addstr(5, 30, f"Page {submenu_page + 1}/{total_pages_submenu}", curses.color_pair(4))
-                submenu_win.refresh()
-
-
-                key = submenu_win.getch()
-
-                if key == ord('j'):
-                    if current_submenu_row < min(items_per_page_submenu - 1, len(submenu_items) - start - 1):
-                        current_submenu_row += 1
-                    elif submenu_page < total_pages_submenu - 1:
-                        submenu_page += 1
-                        current_submenu_row = 0
-
-                elif key == ord('k'):
-                    if current_submenu_row > 0:
-                        current_submenu_row -= 1
-                    elif submenu_page > 0:
-                        submenu_page -= 1
-                        current_submenu_row = items_per_page_submenu - 1
-
-                elif key == ord('n'):
-                    if submenu_page < total_pages_submenu - 1:
-                        submenu_page += 1
-
-
-                elif key == ord('p'):
-                    if submenu_page > 0:
-                        submenu_page -= 1
-
-                if key in [10, 27, ord('q')]:  # Enter, escape or q
-                    break
-        
-        def toggle_column_visibility(col_index):
-            if 0 <= col_index < len(items[0]):
-                if col_index in hidden_columns:
-                    hidden_columns.remove(col_index)
+        # Display title (if applicable)
+        if title:
+            stdscr.addstr(top_gap, 0, f"{' ':^{w}}", curses.color_pair(17))
+            title_x = (w-wcswidth(title))//2
+            # title = f"{title:^{w}}"
+            stdscr.addstr(top_gap, title_x, title, curses.color_pair(16) | curses.A_BOLD)
+            top_space += 1
+        if display_modes:
+            stdscr.addstr(top_space, 0, ' '*w, curses.A_REVERSE)
+            modes_list = [f"{mode['name']}" if 'name' in mode else f"{i}. " for i, mode in enumerate(modes)]
+            # mode_colours = [mode["colour"] for mode ]
+            mode_widths = get_mode_widths(modes_list)
+            split_space = (w-sum(mode_widths))//len(modes)
+            xmode = 0
+            for i, mode in enumerate(modes_list):
+                if i == len(modes_list)-1:
+                    mode_str = f"{mode:^{mode_widths[i]+split_space+(w-sum(mode_widths))%len(modes)}}"
                 else:
-                    hidden_columns.add(col_index)
+                    mode_str = f"{mode:^{mode_widths[i]+split_space}}"
+                # current mode
+                if i == mode_index:
+                    stdscr.addstr(top_space, xmode, mode_str, curses.color_pair(14) | curses.A_BOLD)
+                # other modes
+                else:
+                    stdscr.addstr(top_space, xmode, mode_str, curses.color_pair(15) | curses.A_UNDERLINE)
+                xmode += split_space+mode_widths[i]
+            top_space += 1
 
-        def apply_settings():
             
-            nonlocal user_settings, highlights, sort_column, current_page, current_row, cursor_pos, columns_sort_method
-            # settings= usrtxt.split(' ')
-            # split settings and appy them
-            """
-            ![0-9]+ show/hide column
-            s[0-9]+ set column focus for sort
-            g[0-9]+ go to index
-            p[0-9]+ go to page
-            nohl    hide search highlights
-            """
-            if user_settings:
-                settings = re.split(r'\s+', user_settings)
-                for setting in settings:
-                    if len(setting) == 0: continue
-                    if setting[0] == "!":
-                        cols = setting[1:].split(",")
-                        for col in cols:
-                            toggle_column_visibility(int(col))
-                    elif setting in ["nhl", "nohl", "nohighlights"]:
-                        highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
-                    elif setting[0] == "s":
-                        if 0 <= int(setting[1:]) < len(items[0]):
-                            sort_column = int(setting[1:])
-                            current_pos = indexed_items[cursor_pos][0]
-                            sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-                            new_pos = [row[0] for row in indexed_items].index(current_pos)
-                            cursor_pos = new_pos
-                    elif setting[0] == "":
-                        cols = setting[1:].split(",")
-                        for col in cols:
-                            toggle_column_visibility(int(col))
 
-                user_settings = ""
 
-        # Function to display the help screen
-        def show_help():
-            help_text = (
-                "List Picker Help\n\n"
-                "Navigation:\n"
-                "  Up/Down or k/j    - Move up/down\n"
-                "  p/n               - Previous/Next page\n"
-                "  P/N               - First/Last page\n"
-                "  g or home         - Go to top of page\n"
-                "  G or end          - Go to bottom of page\n"
-                "\n"
-                "Selection:\n"
-                "  Space             - Toggle selection\n"
-                "  m or C-a          - Select all\n"
-                "  M or C-r          - Deselect all\n"
-                "  v                 - Start and stop visual selection\n"
-                "  V                 - Start and stop visual deselection\n"
-                "  l/Enter           - Submit selection\n"
-                "\n"
-                "Sorting:\n"
-                "  1-9               - Select column (1-based index)\n"
-                "  s                 - Cycle sort method\n"
-                "  t                 - Toggle sort order\n"
-                "\n"
-                "Filter or search rows (regexp):\n"
-                "  f                 - Begin filtering rows\n"
-                "  /                 - Begin searching rows\n"
-                "      --[1-9]       - Specify column\n"
-                "      --i           - Make match case sensitive\n"
-                "      --v           - Invert filter\n"
+        # Display header
+        if header:
+            # header_str = format_row(header)
+            # stdscr.addstr(top_gap, 0, header_str, curses.color_pair(3))
+            column_widths = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
+            # header_str = ' '.join(f"{i+1}. {header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
+            header_str = ""
+            up_to_selected_col = ""
+            for i in range(len(header)):
+                if i == sort_column: up_to_selected_col = header_str
+                if i in hidden_columns: continue
+                number = f"{i}. " if number_columns else ""
+                number = f"{intStringToExponentString(i)}. " if number_columns else ""
+                header_str += number
+                # header_str +=f"{header[i].ljust(column_widths[i])}"
+                header_str +=f"{header[i]:^{column_widths[i]}}"
+                header_str += " "
+            # header_str = ' '.join(f"{i}. " if number_columns else "" + f"{header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
+            # header_str = format_row([f"{i+1}. {col}" for i, col in enumerate(header)])
+            stdscr.addstr(top_space, 0, header_str[:w], curses.color_pair(4))
+            if sort_column != None and sort_column not in hidden_columns and len(up_to_selected_col) < w: 
+                number = f"{sort_column}. " if number_columns else ""
+                number = f"{intStringToExponentString(sort_column)}. " if number_columns else ""
+                stdscr.addstr(top_space, len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)], curses.color_pair(19) | curses.A_BOLD)
 
-                "Columns:\n"
-                "  Shift+1-9         - Hide/show column\n"
-                "  [/]               - Increase/Decrease column width\n"
-                "  {                 - Move column left\n"
-                "  }                 - Move column right\n"
-                "\n"
+            # stdscr.addstr(top_gap + 1, 0, '-' * len(header_str), curses.color_pair(3))
+            # stdscr.addstr(top_gap, 0, header_str[:w], curses.color_pair(4) | curses.A_BOLD)
+        stdscr.addstr(h-4, 0, ' '*w, curses.color_pair(2) | curses.A_UNDERLINE)
 
-                "Clipboard:\n"
-                "  y                 - Copy selected indices to clipboard (tsv)\n"
-                "  Y                 - Copy visible parts of selected indices to clipboard (tsv)\n"
-                "  c                 - Copy selected entries to clipboard (python list)\n"
-                "\n"
-                "Misc:\n"
-                "  ?                 - Show this help screen\n"
-                "  :                 - Specify user optios to be returned with selection\n"
-                "  `                 - Specify display option\n"
-               r"      !\d+          - Show/hide column"
-                "\n"
-               r"  \                 - Clear user options\n"
-                "  q                 - Exit without selection\n"
-                "  o                 - Open submenu\n"
-                "  +                 - Increase lines per page\n"
-                "  -                 - Decrease lines per page\n"
-                "  -                 - Decrease lines per page\n"
-            )
-            help_lines = help_text.split('\n')
-            indexed_help_lines = enumerate(help_text)
-            help_page = 0
-            line_num = 0
 
-            while True:
-                total_pages = (len(help_lines) + items_per_page - 1) // items_per_page
-                # stdscr.clear()
-                h, w = stdscr.getmaxyx()
-                
-                start_line = help_page * items_per_page + line_num
-                end_line = min(start_line + items_per_page, len(help_lines))
-                
-                # Print help text for the current page
-                for i in range(start_line, end_line):
-                    stdscr.addstr(i - start_line, 0, help_lines[i])
+        # Display items
+        for idx in range(start_index, end_index):
+            y = idx - start_index + top_space + (1 if header else 0)
+            item = indexed_items[idx]
+            x = 0
 
-                # Display page number and count
-                stdscr.addstr(h - 2, 0, f"Help Page {help_page + 1}/{total_pages}", curses.color_pair(3))
-                
-                stdscr.refresh()
-                key = stdscr.getch()
+            # Set colour based on state of item (e.g., selected, unselected)
+            if idx == cursor_pos:
+                color_pair = curses.color_pair(5) | curses.A_BOLD  # Selected item
+            else:
+                color_pair = curses.color_pair(2)  # Unselected item
+                if selections[item[0]]:
+                    color_pair = curses.color_pair(1)  # Selected item
+                if is_selecting and item[0] == start_selection:
+                    color_pair = curses.color_pair(1)  # Selected item
+                ## is_selecting and cursor is above start_selection and entryinforloop between start_line and cursor
+                elif is_selecting and idx <= cursor_pos and idx >= start_selection:
+                    color_pair = curses.color_pair(1)  # Selected item
+                elif is_selecting and idx >= cursor_pos and idx <= start_selection:
+                    color_pair = curses.color_pair(1)  # Selected item
+                elif is_deselecting and idx <= cursor_pos and idx >= start_selection:
+                    color_pair = curses.color_pair(2)  # Selected item
+                # elif is_deselecting and cursor_pos <= start_selection and idx >= current_pos and idx <= start_selection:
+                elif is_deselecting and idx >=cursor_pos and idx <= start_selection:
+                    color_pair = curses.color_pair(2)  # Selected item
 
-                if key == ord('q') or key == 27:
-                    break
-                if key == ord('j') or key == curses.KEY_DOWN:
-                    if line_num + items_per_page*(help_page+1) < len(help_lines):
-                        line_num = (line_num + 1) % items_per_page
-                        if line_num == 0: help_page += 1
-                    stdscr.clear()
-                    stdscr.refresh()
-                if key == ord('k') or key == 259:
-                    if line_num > 0: line_num -= 1
-                    if line_num == 0 and help_page > 0:
-                        line_num = items_per_page-1
-                        help_page -= 1
-                    stdscr.clear()
-                    stdscr.refresh()
+                # else:
+                #     color_pair = curses.color_pair(2)  # Unselected item
 
-                elif key == 12:  # Ctrl-l, ^l
-                    stdscr.clear()
-                    stdscr.refresh()
+            stdscr.attron(color_pair)
 
-                elif key == ord('n'):  # Next page
-                    if help_page < total_pages - 1:
-                        help_page += 1
-                    line_num = 0
-                    stdscr.clear()
-                    stdscr.refresh()
-                elif key == ord('p'):  # Previous page
-                    if help_page > 0:
-                        help_page -= 1
-                    line_num = max(0, line_num - items_per_page)
-                    stdscr.clear()
-                    stdscr.refresh()
-                elif key == ord('g'):
+            row_str = format_row(item[1], hidden_columns, column_widths, separator)
+            h, w = stdscr.getmaxyx()
 
-                    help_page = 0
-                    line_num = 0
-                    stdscr.clear()
-                    stdscr.refresh()
-                elif key == ord('G'):
-                    help_page = total_pages-1
-                        
-                    line_num = 0
-                    stdscr.clear()
-                    stdscr.refresh()
+            try:
+                # Display row with potential clipping
+                stdscr.addstr(y, x, row_str[:w], color_pair)
+            except curses.error:
+                pass  # Handle errors due to cursor position issues
 
-        def format_full_row(row):
-            return '\t'.join(row)
+            # Display selection indicator
+            indicator = '[X]' if selections[item[0]] else '[ ]'
+            indicator = ""
+            try:
+                # stdscr.addstr(y, x + len(row_str), indicator, curses.color_pair(1) | curses.A_BOLD)
+                pass
+            except curses.error:
+                pass  # Handle errors due to cursor position issues
 
-        # Function to draw the screen
+            stdscr.attroff(color_pair)
 
-        # Functions for item selection
-        def toggle_item(index):
-            selections[index] = not selections[index]
-            draw_screen()
+            # Add color highlights
+            # if len(highlights) > 0:
+            #     os.system(f"notify-send 'match: {len(highlights)}'")
+            for highlight in highlights:
+                try:
+                    if highlight["field"] == "all":
+                        match = re.search(highlight["match"], row_str, re.IGNORECASE)
+                        if not match: continue
+                        highlight_start = match.start()
+                        highlight_end = match.end()
+                    # elif type(highlight["field"]) == type(4) and  highlight["match"] == item[1][highlight["field"]].strip():
+                    elif type(highlight["field"]) == type(4) and highlight["field"] not in hidden_columns:
+                        match = re.search(highlight["match"], item[1][highlight["field"]][:column_widths[highlight["field"]]], re.IGNORECASE)
+                        if not match: continue
+                        field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
+                        field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
+                        field_start = sum(column_widths[:highlight["field"]]) + highlight["field"]*wcswidth(separator)
+                        field_start = sum([width for i, width in enumerate(column_widths[:highlight["field"]]) if i not in hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in hidden_columns])*wcswidth(separator)
+                        highlight_start = wcswidth(item[1][:match.start()]) + field_start
+                        highlight_end = match.end() + field_start
+                    else:
+                        continue
+                    color_pair = curses.color_pair(highlight["color"])  # Selected item
+                    if idx == cursor_pos:
+                        color_pair = curses.color_pair(highlight["color"])  | curses.A_REVERSE
+                    stdscr.attron(color_pair)
+                    # highlight_start = row_str.index(highlight["match"])
+                    # highlight_end = highlight_start + len(highlight["match"])
+                    highlight_len = highlight_start - highlight_end
 
-        def select_all():
-            for i in range(len(indexed_items)):
-                selections[indexed_items[i][0]] = True
-            draw_screen()
 
-        def deselect_all():
-            for i in range(len(selections)):
-                selections[i] = False
-            draw_screen()
+                    # stdscr.addstr(y, highlight_start, highlight["match"], color_pair)
+                    h, w = stdscr.getmaxyx()
+                    stdscr.addstr(y, highlight_start, row_str[highlight_start:min(w, highlight_end)], color_pair | curses.A_BOLD)
+                # except curses.error:
+                except:
+                    pass  # Handle errors due to cursor position issues
+                stdscr.attroff(color_pair)
+                # os.system(f"notify-send 'match: {y}, {highlight_start}'")
 
-        def handle_visual_selection(selecting=True):
-            nonlocal start_selection, end_selection, is_selecting, is_deselecting, cursor_pos
-            if not is_selecting and not is_deselecting:
-                # start_selection = indexed_items[current_page * items_per_page + current_row][0]
-                start_selection = cursor_pos
-                if selecting:
-                    is_selecting = True
+        ## Display scrollbar
+        if scroll_bar and len(indexed_items) and len(indexed_items) > (items_per_page):
+            scroll_bar_length = int(items_per_page*items_per_page/len(indexed_items))
+            if cursor_pos <= items_per_page//2: scroll_bar_start=top_space+1
+            elif cursor_pos + items_per_page//2 >= len(indexed_items): scroll_bar_start = h - 3 - scroll_bar_length
+            else: scroll_bar_start = int(((cursor_pos)/len(indexed_items))*items_per_page)+top_space+1 - scroll_bar_length//2
+            for i in range(scroll_bar_length):
+                v = max(top_space+int(bool(header)), scroll_bar_start-scroll_bar_length//2)
+                stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(18))
+
+        # Display page number and count
+        # stdscr.addstr(h - 3, 0, f"Page {current_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}", curses.color_pair(4))
+
+        # Display sort information
+        sort_column_info = f"Column: {sort_column if sort_column is not None else 'None'}"
+        sort_method_info = f"Method: {SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else f"Method: NA"
+        sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
+        sort_column_info = f"{sort_column if sort_column is not None else 'None'}"
+        sort_method_info = f"{SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else "NA"
+        sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
+        # stdscr.addstr(h - 3, 0, f" Sort: {sort_column_info} | {sort_method_info} | {sort_order_info} ", curses.color_pair(4))
+        stdscr.addstr(h - 3, 0, f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) ", curses.color_pair(4))
+        # Display selection count
+        selected_count = sum(selections.values())
+        
+        # stdscr.addstr(h - 1, 0, f"Selected items: {selected_count}", curses.color_pair(3))
+        # stdscr.addstr(h - 4, 0, f"Selected items: {selected_count}/{len(indexed_items)}", curses.color_pair(3))
+        if paginate:
+            stdscr.addstr(h - 2, 0, f" {cursor_pos+1}/{len(indexed_items)}  Page {cursor_pos//items_per_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}  Selected {selected_count} ", curses.color_pair(4))
+        else:
+            stdscr.addstr(h - 2, 0, f" {cursor_pos+1}/{len(indexed_items)}  |  Selected {selected_count} ", curses.color_pair(4))
+
+        select_mode = "Cursor"
+        if is_selecting: select_mode = "Visual Selection"
+        elif is_deselecting: select_mode = "Visual deselection"
+
+        # stdscr.addstr(h - 1, 0, f" {select_mode} {int(bool(key_chain))*'    '}", curses.color_pair(4))
+        # stdscr.addstr(h - 1, 0, f" {select_mode} ", curses.color_pair(4))
+
+        try:
+            if filter_query:
+                stdscr.addstr(h - 2, 50, f" Filter: {filter_query} ", curses.color_pair(4))  # Display filter query
+            if search_query:
+                stdscr.addstr(h - 3, 50, f" Search: {search_query} [{search_index}/{search_count}] ", curses.color_pair(4))  # Display filter query
+        except:
+            pass
+        try:
+            if user_opts:
+                stdscr.addstr(h-1, 50, f" Opts: {user_opts} ", curses.color_pair(4))  # Display additional text
+        except: pass
+
+        stdscr.refresh()
+        
+    if timer: initial_time = time.time()
+
+    curses.curs_set(0)
+    # stdscr.nodelay(1)  # Non-blocking input
+    stdscr.timeout(2000)  # Set a timeout for getch() to ensure it does not block indefinitely
+    if not timer: stdscr.clear()
+    stdscr.refresh()
+
+    ## Ensure that items is a List[List[Str]] object
+    if items == []: items = [[]]
+    if not isinstance(items[0], list):
+        items = [[item] for item in items]
+    items = [[str(cell) for cell in row] for row in items]
+
+
+    # Ensure that header is of the same length as the rows
+    if header and len(header) != len(items[0]):
+        header = [header[i] if i < len(header) else f"" for i in range(len(items[0]))]
+
+    # Constants
+    h, w = stdscr.getmaxyx()
+    # DEFAULT_ITEMS_PER_PAGE = os.get_terminal_size().lines - top_gap*2-2-int(bool(header))
+    top_space = top_gap
+    if title: top_space+=1
+    if display_modes: top_space+=1
+    DEFAULT_ITEMS_PER_PAGE = h - top_space*2-2-int(bool(header))
+    HELP_LINES_PER_PAGE = h - top_space*2-2-int(bool(header))
+    state_variables = {}
+    SORT_METHODS = ['original', 'lexical', 'LEXICAL', 'alphanum', 'ALPHANUM', 'time', 'numerical', 'size']
+    
+
+    # Initialize colors
+    # Check if terminal supports color
+    if curses.has_colors() and colors != None:
+        # raise Exception("Terminal does not support color")
+        curses.start_color()
+        curses.init_pair(1, colors['selected_fg'], colors['selected_bg'])
+        curses.init_pair(2, colors['unselected_fg'], colors['unselected_bg'])
+        curses.init_pair(3, colors['normal_fg'], colors['background'])
+        curses.init_pair(4, colors['header_fg'], colors['header_bg'])
+        curses.init_pair(5, colors['cursor_fg'], colors['cursor_bg'])
+        curses.init_pair(6, colors['normal_fg'], colors['background'])
+        curses.init_pair(7, colors['error_fg'], colors['error_bg'])
+        curses.init_pair(8, colors['complete_fg'], colors['complete_bg'])
+        curses.init_pair(9, colors['active_fg'], colors['active_bg'])
+        curses.init_pair(10, colors['search_fg'], colors['search_bg'])
+        curses.init_pair(11, colors['waiting_fg'], colors['waiting_bg'])
+        curses.init_pair(12, colors['paused_fg'], colors['paused_bg'])
+        curses.init_pair(13, colors['active_input_fg'], colors['active_input_bg'])
+        curses.init_pair(14, colors['modes_selected_fg'], colors['modes_selected_bg'])
+        curses.init_pair(15, colors['modes_unselected_fg'], colors['modes_unselected_bg'])
+        curses.init_pair(16, colors['title_fg'], colors['title_bg'])
+        curses.init_pair(17, colors['normal_fg'], colors['title_bar'])
+        curses.init_pair(18, colors['normal_fg'], colors['scroll_bar_bg'])
+        curses.init_pair(19, colors['selected_header_column_fg'], colors['selected_header_column_bg'])
+
+    # Set terminal background color
+    stdscr.bkgd(' ', curses.color_pair(3))  # Apply background color
+
+    # Initial states
+    if len(selections) != len(items):
+        selections = {i : False if i not in selections else bool(selections[i]) for i in range(len(items))}
+    items_per_page = DEFAULT_ITEMS_PER_PAGE
+    if indexed_items == []:
+        indexed_items = list(enumerate(items))
+    column_widths = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
+    if require_option == []:
+        require_option = [False for x in indexed_items]
+    if columns_sort_method == [] and len(items) > 0:
+        columns_sort_method = [0 for i in items[0]]
+    if sort_reverse == [] and len(items) > 0:
+        sort_reverse = [False for i in items[0]]
+
+    # If a filter is passed then refilter
+    if filter_query:
+        # prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
+        # prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
+        indexed_items = filter_items(items, indexed_items, filter_query)
+        if cursor_pos in [x[0] for x in indexed_items]: cursor_pos = [x[0] for x in indexed_items].index(cursor_pos)
+        else: cursor_pos = 0
+    # If a sort is passed
+    if sort_column != None and columns_sort_method[sort_column] != 0:
+        sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+    if len(items[0]) == 1:
+        number_columns = False
+
+
+    h, w = stdscr.getmaxyx()
+
+    # Adjust variables to ensure correctness if errors
+    ## Move to a selectable row (if applicable)
+    if len(items) <= len(unselectable_indices): unselectable_indices = []
+    new_pos = (cursor_pos)%len(items)
+    while new_pos in unselectable_indices and new_pos != cursor_pos:
+        new_pos = (new_pos + 1) % len(items)
+
+    assert new_pos < len(items)
+    cursor_pos = new_pos
+    
+    def get_function_data():
+        function_data = {
+            "selections": selections,
+            "items_per_page":       items_per_page,
+            "current_row":          current_row,
+            "current_page":         current_page,
+            "cursor_pos":           cursor_pos,
+            "sort_column":          sort_column,
+            "sort_method":          sort_method,
+            "sort_reverse":         sort_reverse,
+            "hidden_columns":       hidden_columns,
+            "is_selecting":         is_selecting,
+            "is_deselecting":       is_deselecting,
+            "user_opts":            user_opts,
+            "user_settings":        user_settings,
+            "separator":            separator,
+            "search_query":         search_query,
+            "search_count":         search_count,
+            "search_index":         search_index,
+            "filter_query":         filter_query,
+            "indexed_items":        indexed_items,
+            "start_selection":      start_selection,
+            "end_selection":        end_selection,
+            "highlights":           highlights,
+            "max_width":            max_width,
+            "mode_index":           mode_index,
+            "modes":                modes,
+            "title":                title,
+            "display_modes":        display_modes,
+            "require_option":       require_option,
+            "top_gap":              top_gap,
+            "number_columns":       number_columns,
+            "items":                items,
+            "indexed_items":        indexed_items,
+            "scroll_bar":           scroll_bar,
+            "columns_sort_method":  columns_sort_method,
+            "disabled_keys":        disabled_keys,
+        }
+        return function_data
+
+
+    # Function to print the list of selected indices
+    def print_selected_indices():
+        selected_indices = [x[0] for x in indexed_items if selections[x[0]]]
+        return selected_indices
+
+    # Function to print the list of selected values
+    def print_selected_values():
+        selected_values = [items[x][0] for x in print_selected_indices()]
+        return selected_values
+
+    # Function to copy selected indices to clipboard
+    def copy_indices():
+        indices = print_selected_indices()
+        pyperclip.copy(', '.join(map(str, indices)))
+
+    # Function to copy selected values to clipboard
+    def copy_values():
+        values = print_selected_values()
+        formatted_values = [format_row(item[1], hidden_columns, column_widths, separator) for item in indexed_items if item[0] in print_selected_indices()]
+        pyperclip.copy('\n'.join(formatted_values))
+
+    # Function to copy full values of selected entries to clipboard
+    def copy_full_values():
+        selected_indices = print_selected_indices()
+        full_values = [format_row_full(items[i], hidden_columns) for i in selected_indices]  # Use format_row_full for full data
+        pyperclip.copy('\n'.join(full_values))
+
+    def copy_all_to_clipboard():
+        formatted_items = [[x for i, x in enumerate(item) if i not in hidden_columns] for item in items]
+        pyperclip.copy(repr(formatted_items))
+        stdscr.addstr(h - 2, 50, f"{len(formatted_items)}R,{len(formatted_items[0])}C list copied to clipboard", curses.color_pair(6))
+        stdscr.refresh()
+        stdscr.getch()  # Wait for user input to clear the message
+
+    def copy_selected_rows_to_clipboard():
+        formatted_items = [[x for i, x in enumerate(item)] for j, item in enumerate(items) if selections[j]]  # Convert to Python list representation
+
+        pyperclip.copy(repr(formatted_items))
+        # stdscr.addstr(h - 2, 50, "Items copied to clipboard", curses.color_pair(6))
+        stdscr.addstr(h - 2, 50, f"{len(formatted_items)}R,{len(formatted_items[0])}C list copied to clipboard", curses.color_pair(6))
+        stdscr.refresh()
+        stdscr.getch()  # Wait for user input to clear the message
+
+    def copy_selected_visible_rows_to_clipboard():
+        formatted_items = [[x for i, x in enumerate(item) if i not in hidden_columns] for j, item in enumerate(items) if selections[j]]  # Convert to Python list representation
+
+        pyperclip.copy(repr(formatted_items))
+        # stdscr.addstr(h - 2, 50, f"{len(formatted_items)}R,{len(formatted_items[0])}C list copied to clipboard", curses.color_pair(6))
+        stdscr.refresh()
+        stdscr.getch()  # Wait for user input to clear the message
+
+    def delete_entries():
+        nonlocal indexed_items, selections, items
+        # Remove selected items from the list
+        selected_indices = [index for index, selected in selections.items() if selected]
+        if not selected_indices:
+            # Remove the currently focused item if nothing is selected
+            selected_indices = [indexed_items[cursor_pos][0]]
+
+        items = [item for i, item in enumerate(items) if i not in selected_indices]
+        indexed_items = [(i, item) for i, item in enumerate(items)]
+        selections = {i:False for i in range(len(indexed_items))}
+        draw_screen()
+
+
+
+    def open_submenu(stdscr):
+        nonlocal user_opts
+        h, w = stdscr.getmaxyx()
+        submenu_win = curses.newwin(6, 50, h // 2 - 2, w // 2 - 25)
+        submenu_win.box()
+        submenu_win.addstr(0, 2, "Select an option", curses.A_BOLD)
+        submenu_items = ["green", "blue", "red", "purple", "orange", "gray"]
+        current_submenu_row = 0
+        submenu_page = 0
+        items_per_page_submenu = 4
+        total_pages_submenu = (len(submenu_items) + items_per_page_submenu - 1) // items_per_page_submenu
+
+        while True:
+            submenu_win.clear()
+            submenu_win.box()
+            submenu_win.addstr(0, 2, "Select an option", curses.A_BOLD)
+            start = submenu_page * items_per_page_submenu
+            end = min(start + items_per_page_submenu, len(submenu_items))
+
+            for i in range(start, end):
+                if i == start + current_submenu_row:
+                    submenu_win.addstr(i - start + 1, 2, f"> {submenu_items[i]}", curses.A_REVERSE)
                 else:
-                    is_deselecting = True
-            elif is_selecting:
-                # end_selection = indexed_items[current_page * items_per_page + current_row][0]
-                end_selection = cursor_pos
-                if start_selection is not None:
-                    start = min(start_selection, end_selection)
-                    end = max(start_selection, end_selection)
-                    for i in range(start, end + 1):
-                        if indexed_items[i][0] not in unselectable_indices:
-                            selections[indexed_items[i][0]] = True
+                    submenu_win.addstr(i - start + 1, 2, f"  {submenu_items[i]}")
+
+            # Show page numbers
+            submenu_win.addstr(4, 40, f"Page {submenu_page + 1}/{total_pages_submenu}", curses.color_pair(7))
+            submenu_win.refresh()
+
+            key = submenu_win.getch()
+
+            if key == ord('j'):
+                if current_submenu_row < min(items_per_page_submenu - 1, len(submenu_items) - start - 1):
+                    current_submenu_row += 1
+                elif submenu_page < total_pages_submenu - 1:
+                    submenu_page += 1
+                    current_submenu_row = 0
+
+            elif key == ord('k'):
+                if current_submenu_row > 0:
+                    current_submenu_row -= 1
+                elif submenu_page > 0:
+                    submenu_page -= 1
+                    current_submenu_row = items_per_page_submenu - 1
+
+            elif key == ord('n'):
+                if submenu_page < total_pages_submenu - 1:
+                    submenu_page += 1
+
+
+            elif key == ord('p'):
+                if submenu_page > 0:
+                    submenu_page -= 1
+
+            elif key == 27:  # ESC key
+                break
+
+            elif key == 10:  # Enter key
+                choice = submenu_items[start + current_submenu_row]
+                user_opts = user_opts + choice
+                stdscr.addstr(h - 1, 50, f"Selected: {choice}")
+                stdscr.refresh()
+                break
+
+    def notification(stdscr, message="", duration=4):
+        message = "hello there how are you today? you absolute orange chunkmuffin of a nignog"
+        nonlocal user_opts
+        h, w = stdscr.getmaxyx()
+        submenu_win = curses.newwin(6, 40, 3, w - 44)
+        submenu_win.box()
+        submenu_win.addstr(0, 2, "Select an option", curses.A_BOLD)
+        message_width = 32
+        submenu_items = [message[i*message_width:(i+1)*message_width] for i in range(len(message)//message_width+1)]
+        # submenu_items = ["green", "blue", "red", "purple", "orange", "gray"]
+        current_submenu_row = 0
+        submenu_page = 0
+        items_per_page_submenu = 3
+        total_pages_submenu = (len(submenu_items) + items_per_page_submenu - 1) // items_per_page_submenu
+
+        while True:
+            submenu_win.clear()
+            submenu_win.box()
+            # submenu_win.bkgd(curses.color_pair((1)))
+            submenu_win.addstr(0, 2, "Notification:", curses.color_pair(5) | curses.A_BOLD)
+            submenu_win.addstr(5, 2, "ESC, RET, q to dismiss", curses.color_pair(5) | curses.A_BOLD)
+            start = submenu_page * items_per_page_submenu
+            end = min(start + items_per_page_submenu, len(submenu_items))
+
+            for i in range(start, end):
+                if i == start + current_submenu_row or True == True:
+                    submenu_win.addstr(i - start + 1, 2, f"{submenu_items[i]}", curses.A_REVERSE)
+                else:
+                    submenu_win.addstr(i - start + 1, 2, f"  {submenu_items[i]}")
+
+            # Show page numbers
+            submenu_win.addstr(5, 30, f"Page {submenu_page + 1}/{total_pages_submenu}", curses.color_pair(4))
+            submenu_win.refresh()
+
+
+            key = submenu_win.getch()
+
+            if key == ord('j'):
+                if current_submenu_row < min(items_per_page_submenu - 1, len(submenu_items) - start - 1):
+                    current_submenu_row += 1
+                elif submenu_page < total_pages_submenu - 1:
+                    submenu_page += 1
+                    current_submenu_row = 0
+
+            elif key == ord('k'):
+                if current_submenu_row > 0:
+                    current_submenu_row -= 1
+                elif submenu_page > 0:
+                    submenu_page -= 1
+                    current_submenu_row = items_per_page_submenu - 1
+
+            elif key == ord('n'):
+                if submenu_page < total_pages_submenu - 1:
+                    submenu_page += 1
+
+
+            elif key == ord('p'):
+                if submenu_page > 0:
+                    submenu_page -= 1
+
+            if key in [10, 27, ord('q')]:  # Enter, escape or q
+                break
+    
+    def toggle_column_visibility(col_index):
+        if 0 <= col_index < len(items[0]):
+            if col_index in hidden_columns:
+                hidden_columns.remove(col_index)
+            else:
+                hidden_columns.add(col_index)
+
+    def apply_settings():
+        
+        nonlocal user_settings, highlights, sort_column, current_page, current_row, cursor_pos, columns_sort_method
+        # settings= usrtxt.split(' ')
+        # split settings and appy them
+        """
+        ![0-9]+ show/hide column
+        s[0-9]+ set column focus for sort
+        g[0-9]+ go to index
+        p[0-9]+ go to page
+        nohl    hide search highlights
+        """
+        if user_settings:
+            settings = re.split(r'\s+', user_settings)
+            for setting in settings:
+                if len(setting) == 0: continue
+                if setting[0] == "!":
+                    cols = setting[1:].split(",")
+                    for col in cols:
+                        toggle_column_visibility(int(col))
+                elif setting in ["nhl", "nohl", "nohighlights"]:
+                    highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
+                elif setting[0] == "s":
+                    if 0 <= int(setting[1:]) < len(items[0]):
+                        sort_column = int(setting[1:])
+                        current_pos = indexed_items[cursor_pos][0]
+                        sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+                        new_pos = [row[0] for row in indexed_items].index(current_pos)
+                        cursor_pos = new_pos
+                elif setting[0] == "":
+                    cols = setting[1:].split(",")
+                    for col in cols:
+                        toggle_column_visibility(int(col))
+
+            user_settings = ""
+
+    # Function to display the help screen
+
+    def format_full_row(row):
+        return '\t'.join(row)
+
+    # Function to draw the screen
+
+    # Functions for item selection
+    def toggle_item(index):
+        selections[index] = not selections[index]
+        draw_screen()
+
+    def select_all():
+        for i in range(len(indexed_items)):
+            selections[indexed_items[i][0]] = True
+        draw_screen()
+
+    def deselect_all():
+        for i in range(len(selections)):
+            selections[i] = False
+        draw_screen()
+
+    def handle_visual_selection(selecting=True):
+        nonlocal start_selection, end_selection, is_selecting, is_deselecting, cursor_pos
+        if not is_selecting and not is_deselecting:
+            # start_selection = indexed_items[current_page * items_per_page + current_row][0]
+            start_selection = cursor_pos
+            if selecting:
+                is_selecting = True
+            else:
+                is_deselecting = True
+        elif is_selecting:
+            # end_selection = indexed_items[current_page * items_per_page + current_row][0]
+            end_selection = cursor_pos
+            if start_selection is not None:
+                start = min(start_selection, end_selection)
+                end = max(start_selection, end_selection)
+                for i in range(start, end + 1):
+                    if indexed_items[i][0] not in unselectable_indices:
+                        selections[indexed_items[i][0]] = True
+            start_selection = None
+            end_selection = None
+            is_selecting = False
+            draw_screen()
+        elif is_deselecting:
+            end_selection = indexed_items[cursor_pos][0]
+            end_selection = cursor_pos
+            if start_selection is not None:
+                start = min(start_selection, end_selection)
+                end = max(start_selection, end_selection)
+                for i in range(start, end + 1):
+                    # selections[i] = False
+                    selections[indexed_items[i][0]] = False
+            start_selection = None
+            end_selection = None
+            is_deselecting = False
+            draw_screen()
+
+    draw_screen()
+    # Main loop
+    
+    while True:
+        key = stdscr.getch()
+        if key in disabled_keys: continue
+        # os.system(f"notify-send '2'")
+        
+        # time.sleep(random.uniform(0.05, 0.1))
+        # os.system(f"notify-send 'Timer {timer}'")
+        # if timer:
+            # os.system(f"notify-send '{time.time() - initial_time}, {timer} {bool(timer)}, {time.time() - initial_time > timer}'")
+        if (timer and (time.time() - initial_time) > timer):
+            stdscr.clear()
+            if get_new_data and refresh_function:
+                # f = refresh_function[0]
+                # args = refresh_function[1]
+                # kwargs = refresh_function[2]
+                # items = f(*args, **kwargs)
+                items, header = refresh_function()
+
+
+            
+            function_data = get_function_data()
+            return [], "refresh", function_data
+
+        def cursor_down():
+            # Returns: whether page is turned
+            nonlocal cursor_pos
+            new_pos = cursor_pos + 1
+            while True:
+                if new_pos >= len(indexed_items): return False
+                if indexed_items[new_pos][0] in unselectable_indices: new_pos+=1
+                else: break
+            cursor_pos = new_pos
+            return True
+
+        def cursor_up():
+            # Returns: whether page is turned
+            nonlocal cursor_pos
+            new_pos = cursor_pos - 1
+            while True:
+                if new_pos < 0: return False
+                elif new_pos in unselectable_indices: new_pos -= 1
+                else: break
+            cursor_pos = new_pos
+            return True
+        clear_screen=True
+        if key == ord('?'):
+            stdscr.clear()
+            stdscr.refresh()
+            list_picker(
+                stdscr,
+                items = help_lines,
+                colors=help_colours,
+                max_selected=1,
+                top_gap=0,
+                title=f"{title} Help",
+                disabled_keys=[ord('?'), ord('v'), ord('V'), ord('m'), ord('M'), ord('l'), curses.KEY_ENTER, ord('\n')]
+            )
+
+        elif key in [ord('q'), ord('h')]:
+            stdscr.clear()
+            function_data = get_function_data()
+            return [], "", function_data
+        elif key == ord('`'):
+            usrtxt = f"{user_settings} " if user_settings else ""
+            usrtxt, return_val = input_field(
+                stdscr,
+                usrtxt=usrtxt,
+                field_name="Settings",
+                x=50,
+                y=h-1,
+            )
+            if return_val:
+                user_settings = usrtxt
+                apply_settings()
+
+        elif key == ord('{'):
+            move_column(-1)
+
+        elif key == ord('}'):
+            move_column(1)
+        elif key in [curses.KEY_DOWN, ord('j')]:
+            page_turned = cursor_down()
+            if not page_turned: clear_screen = False
+        elif key == ord('d'):
+            clear_screen = False
+            for i in range(items_per_page//2): 
+                if cursor_down(): clear_screen = True
+        elif key == ord('J'):
+            clear_screen = False
+            for i in range(5): 
+                if cursor_down(): clear_screen = True
+        elif key in [curses.KEY_UP, ord('k')]:
+            page_turned = cursor_up()
+            if not page_turned: clear_screen = False
+        elif key == ord('K'):
+            clear_screen = False
+            for i in range(5): 
+                if cursor_up(): clear_screen = True
+        elif key == ord('u'):
+            clear_screen = False
+            for i in range(items_per_page//2): 
+                if cursor_up(): clear_screen = True
+
+        elif key == ord(' '): # Space key
+            if len(indexed_items) > 0:
+                item_index = indexed_items[cursor_pos][0]
+                selected_count = sum(selections.values())
+                if max_selected == None or selected_count >= max_selected:
+                    toggle_item(item_index)
+            cursor_down()
+        elif key == ord('m') or key == 1:  # Select all (m or ctrl-a)
+            select_all()
+
+        elif key == ord('M') or key == 18:  # Deselect all (M or ctrl-r)
+            deselect_all()
+
+        elif key in [ord('g'), curses.KEY_HOME]:
+            new_pos = 0
+            while True:
+                if new_pos in unselectable_indices: new_pos+=1
+                else: break
+            if new_pos < len(indexed_items):
+                cursor_pos = new_pos
+
+            draw_screen()
+
+        elif key == ord('G') or key == curses.KEY_END:
+            new_pos = len(indexed_items)-1
+            while True:
+                if new_pos in unselectable_indices: new_pos-=1
+                else: break
+            if new_pos < len(items) and new_pos >= 0:
+                cursor_pos = new_pos
+            draw_screen()
+            # current_row = items_per_page - 1
+            # if current_page + 1 == (len(indexed_items) + items_per_page - 1) // items_per_page:
+            #
+            #     current_row = (len(indexed_items) +items_per_page - 1) % items_per_page
+            # draw_screen()
+        elif key in [curses.KEY_ENTER, ord('\n'), ord('l')]:
+            # Print the selected indices if any, otherwise print the current index
+            if is_selecting or is_deselecting: handle_visual_selection()
+            if len(indexed_items) == 0:
+                function_data = get_function_data()
+                return [], "", function_data
+            selected_indices = print_selected_indices()
+            if not selected_indices:
+                selected_indices = [indexed_items[cursor_pos][0]]
+            
+            for index in selected_indices:
+                if require_option[index]:
+                    # notification(stdscr, message=f"opt required for {index}")
+                    usrtxt = f"{user_opts} " if user_opts else ""
+                    usrtxt, return_val = input_field(
+                        stdscr,
+                        usrtxt=usrtxt,
+                        field_name="Opts",
+                        x=50,
+                        y=h-1,
+                    )
+                    if return_val:
+                        user_opts = usrtxt
+
+            stdscr.clear()
+            stdscr.refresh()
+            function_data = get_function_data()
+            return selected_indices, user_opts, function_data
+        elif key == ord('n') or key == curses.KEY_NPAGE:  # Next page
+            cursor_pos = min(len(indexed_items) - 1, cursor_pos+items_per_page)
+
+        elif key == ord('p')  or key == curses.KEY_PPAGE:  # Previous page
+            cursor_pos = max(0, cursor_pos-items_per_page)
+
+        elif key == 12:  # Ctrl-l, ^l
+            stdscr.clear()
+            stdscr.refresh()
+
+        elif key == ord('s'):  # Cycle sort method
+            columns_sort_method[sort_column] = (columns_sort_method[sort_column]+1) % len(SORT_METHODS)
+            current_index = indexed_items[cursor_pos][0]
+            sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+            cursor_pos = [row[0] for row in indexed_items].index(current_index)
+        elif key == ord('S'):  # Cycle sort method
+            columns_sort_method[sort_column] = (columns_sort_method[sort_column]-1) % len(SORT_METHODS)
+            current_index = indexed_items[cursor_pos][0]
+            sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+            cursor_pos = [row[0] for row in indexed_items].index(current_index)
+        elif key == ord('t'):  # Toggle sort order
+            sort_reverse[sort_column] = not sort_reverse[sort_column]
+            current_index = indexed_items[cursor_pos][0]
+            sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+            cursor_pos = [row[0] for row in indexed_items].index(current_index)
+        elif key in [ord('0'), ord('1'), ord('2'), ord('3'), ord('4'), ord('5'), ord('6'), ord('7'), ord('8'), ord('9')]:
+            col_index = key - ord('0')
+            if 0 <= col_index < len(items[0]):
+                sort_column = col_index
+                current_index = indexed_items[cursor_pos][0]
+                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+                cursor_pos = [row[0] for row in indexed_items].index(current_index)
+        elif key in [ord('!'), ord('@'), ord('#'), ord('$'), ord('%'), ord('^'), ord('&'), ord('*'), ord('('), ord(')')]:
+            d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
+            d = {s:i for i,s in enumerate(")!@#$%^&*(")}
+            col_index = d[chr(key)]
+            toggle_column_visibility(col_index)
+        # elif key == ord('i'):  # Copy selected indices to clipboard
+        #     copy_indices()
+        elif key == ord('Y'):  # Copy (visible) selected values to clipboard
+            copy_values()
+        elif key == ord('y'):  # Copy full values of selected entries to clipboard
+            copy_full_values()
+        elif key == ord('c'):
+            copy_selected_visible_rows_to_clipboard()
+        elif key == ord('C'):
+            # copy_items_to_clipboard()
+            copy_selected_rows_to_clipboard()
+        elif key == curses.KEY_DC:  # Delete key
+            delete_entries()
+        elif key == ord('+'):  # Increase lines per page
+            items_per_page += 1
+            draw_screen()
+        elif key == ord('-'):  # Decrease lines per page
+            if items_per_page > 1:
+                items_per_page -= 1
+            draw_screen()
+        elif key == ord('['):
+            if max_width > 10:
+                max_width -= 10
+                column_widths[:] = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
+                draw_screen()
+        elif key == ord('v'):
+            handle_visual_selection()
+            draw_screen()
+
+        elif key == ord('V'):
+            handle_visual_selection(selecting=False)
+            draw_screen()
+        if key == curses.KEY_RESIZE:  # Terminal resize signal
+            h, w = stdscr.getmaxyx()
+            top_space = top_gap
+            if title: top_space+=1
+            if display_modes: top_space+=1
+            items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
+
+        elif key == ord('r'):
+            # Refresh
+            top_space = top_gap
+            if title: top_space+=1
+            if display_modes: top_space+=1
+            items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
+            stdscr.refresh()
+
+        elif key == ord('f'):
+            draw_screen()
+            usrtxt = f" {filter_query}" if filter_query else ""
+            usrtxt, return_val = input_field(
+                stdscr,
+                usrtxt=usrtxt,
+                field_name="Filter",
+                x=50,
+                y=h-2,
+            )
+            if return_val:
+                filter_query = usrtxt
+
+                # If the current mode filter has been changed then go back to the first mode
+                if "filter" in modes[mode_index] and modes[mode_index]["filter"] not in filter_query:
+                    mode_index = 0
+                # elif "filter" in modes[mode_index] and modes[mode_index]["filter"] in filter_query:
+                #     filter_query.split(modes[mode_index]["filter"])
+
+                prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
+                indexed_items = filter_items(items, indexed_items, filter_query)
+                if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
+                else: new_index = 0
+                cursor_pos = new_index
+
+
+        elif key == ord('/'):
+            draw_screen()
+            usrtxt = f"{search_query} " if search_query else ""
+            usrtxt, return_val = input_field(
+                stdscr,
+                usrtxt=usrtxt,
+                field_name="Search",
+                x=50,
+                y=h-3,
+            )
+            if return_val:
+                search_query = usrtxt
+                return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
+                    query=search_query,
+                    indexed_items=indexed_items,
+                    highlights=highlights,
+                    cursor_pos=cursor_pos,
+                    unselectable_indices=unselectable_indices,
+                )
+                if return_val:
+                    cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
+
+        elif key == ord('i'):
+            return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
+                query=search_query,
+                indexed_items=indexed_items,
+                highlights=highlights,
+                cursor_pos=cursor_pos,
+                unselectable_indices=unselectable_indices,
+                continue_search=True,
+            )
+            if return_val:
+                cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
+        elif key == ord('I'):
+            return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
+                query=search_query,
+                indexed_items=indexed_items,
+                highlights=highlights,
+                cursor_pos=cursor_pos,
+                unselectable_indices=unselectable_indices,
+                continue_search=True,
+                reverse=True,
+            )
+            if return_val:
+                cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
+        elif key == 27 or key == ord('e'):  # ESC key
+            # order of escapes:
+            # 1. selecting/deslecting
+            # 2. search
+            # 3. filter
+            # 4. selecting
+            # nonlocal highlights
+
+            if is_selecting or is_deselecting:
                 start_selection = None
                 end_selection = None
                 is_selecting = False
-                draw_screen()
-            elif is_deselecting:
-                end_selection = indexed_items[cursor_pos][0]
-                end_selection = cursor_pos
-                if start_selection is not None:
-                    start = min(start_selection, end_selection)
-                    end = max(start_selection, end_selection)
-                    for i in range(start, end + 1):
-                        # selections[i] = False
-                        selections[indexed_items[i][0]] = False
-                start_selection = None
-                end_selection = None
                 is_deselecting = False
-                draw_screen()
+            elif search_query:
+                search_query = ""
+                highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
+            elif filter_query:
+                if "filter" in modes[mode_index] and modes[mode_index]["filter"] in filter_query and filter_query.strip() != modes[mode_index]["filter"]:
+                    filter_query = modes[mode_index]["filter"]
+                # elif "filter" in modes[mode_index]:
+                else:
+                    filter_query = ""
+                    mode_index = 0
+                prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
+                indexed_items = filter_items(items, indexed_items, filter_query)
+                if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
+                else: new_index = 0
+                cursor_pos = new_index
 
-        draw_screen()
-        # Main loop
-        
-        while True:
-            key = stdscr.getch()
-            # os.system(f"notify-send '2'")
-            
-            # time.sleep(random.uniform(0.05, 0.1))
-            # os.system(f"notify-send 'Timer {timer}'")
-            # if timer:
-                # os.system(f"notify-send '{time.time() - initial_time}, {timer} {bool(timer)}, {time.time() - initial_time > timer}'")
-            if (timer and (time.time() - initial_time) > timer):
-                stdscr.clear()
-                if get_new_data and refresh_function:
-                    # f = refresh_function[0]
-                    # args = refresh_function[1]
-                    # kwargs = refresh_function[2]
-                    # items = f(*args, **kwargs)
-                    items, header = refresh_function()
+            else:
+                search_query = ""
+                mode_index = 0
+                highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
+                continue
+            draw_screen()
+        elif key == ord(':'):
+            usrtxt = f"{user_opts} " if user_opts else ""
+            usrtxt, return_val = input_field(
+                stdscr,
+                usrtxt=usrtxt,
+                field_name="Opts",
+                x=50,
+                y=h-1,
+            )
+            if return_val:
+                user_opts = usrtxt
+        elif key == ord('o'):
+            open_submenu(stdscr)
+        elif key == ord('z'):
+            notification(stdscr)
+        elif key == 9: # tab key
+            # apply setting 
+            prev_mode_index = mode_index
+            mode_index = (mode_index+1)%len(modes)
+            mode = modes[mode_index]
+            for key, val in mode.items():
+                if key == 'filter':
+                    if 'filter' in modes[prev_mode_index]:
+                        filter_query = filter_query.replace(modes[prev_mode_index]['filter'], '')
+                    filter_query = f"{filter_query.strip()} {val.strip()}".strip()
+                    prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
 
-
-                
-                function_data = get_function_data()
-                return [], "refresh", function_data
-
-            def cursor_down():
-                # Returns: whether page is turned
-                nonlocal cursor_pos
-                new_pos = cursor_pos + 1
-                while True:
-                    if new_pos >= len(indexed_items): return False
-                    if indexed_items[new_pos][0] in unselectable_indices: new_pos+=1
-                    else: break
-                cursor_pos = new_pos
-                return True
-
-            def cursor_up():
-                # Returns: whether page is turned
-                nonlocal cursor_pos
-                new_pos = cursor_pos - 1
-                while True:
-                    if new_pos < 0: return False
-                    elif new_pos in unselectable_indices: new_pos -= 1
-                    else: break
-                cursor_pos = new_pos
-                return True
-            clear_screen=True
-            if key == ord('?'):
-                stdscr.clear()
-                stdscr.refresh()
-                show_help()
-            elif key in [ord('q'), ord('h')]:
-                stdscr.clear()
-                function_data = get_function_data()
-                return [], "", function_data
-            elif key == ord('`'):
-                usrtxt = f"{user_settings} " if user_settings else ""
-                usrtxt, return_val = input_field(
-                    stdscr,
-                    usrtxt=usrtxt,
-                    field_name="Settings",
-                    x=50,
-                    y=h-1,
-                )
-                if return_val:
-                    user_settings = usrtxt
-                    apply_settings()
-
-            elif key == ord('{'):
-                move_column(-1)
-
-            elif key == ord('}'):
-                move_column(1)
-            elif key in [curses.KEY_DOWN, ord('j')]:
-                page_turned = cursor_down()
-                if not page_turned: clear_screen = False
-            elif key == ord('d'):
-                clear_screen = False
-                for i in range(items_per_page//2): 
-                    if cursor_down(): clear_screen = True
-            elif key == ord('J'):
-                clear_screen = False
-                for i in range(5): 
-                    if cursor_down(): clear_screen = True
-            elif key in [curses.KEY_UP, ord('k')]:
-                page_turned = cursor_up()
-                if not page_turned: clear_screen = False
-            elif key == ord('K'):
-                clear_screen = False
-                for i in range(5): 
-                    if cursor_up(): clear_screen = True
-            elif key == ord('u'):
-                clear_screen = False
-                for i in range(items_per_page//2): 
-                    if cursor_up(): clear_screen = True
-
-            elif key == ord(' '): # Space key
-                if len(indexed_items) > 0:
-                    item_index = indexed_items[cursor_pos][0]
-                    selected_count = sum(selections.values())
-                    if max_selected == None or selected_count >= max_selected:
-                        toggle_item(item_index)
-                cursor_down()
-            elif key == ord('m') or key == 1:  # Select all (m or ctrl-a)
-                select_all()
-
-            elif key == ord('M') or key == 18:  # Deselect all (M or ctrl-r)
-                deselect_all()
-
-            elif key in [ord('g'), curses.KEY_HOME]:
-                new_pos = 0
-                while True:
-                    if new_pos in unselectable_indices: new_pos+=1
-                    else: break
-                if new_pos < len(indexed_items):
-                    cursor_pos = new_pos
-
-                draw_screen()
-
-            elif key == ord('G') or key == curses.KEY_END:
-                new_pos = len(indexed_items)-1
-                while True:
-                    if new_pos in unselectable_indices: new_pos-=1
-                    else: break
-                if new_pos < len(items) and new_pos >= 0:
-                    cursor_pos = new_pos
-                draw_screen()
-                # current_row = items_per_page - 1
-                # if current_page + 1 == (len(indexed_items) + items_per_page - 1) // items_per_page:
-                #
-                #     current_row = (len(indexed_items) +items_per_page - 1) % items_per_page
-                # draw_screen()
-            elif key in [curses.KEY_ENTER, ord('\n'), ord('l')]:
-                # Print the selected indices if any, otherwise print the current index
-                if is_selecting or is_deselecting: handle_visual_selection()
-                if len(indexed_items) == 0:
-                    function_data = get_function_data()
-                    return [], "", function_data
+                    indexed_items = filter_items(items, indexed_items, filter_query)
+                    if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
+                    else: new_index = 0
+                    cursor_pos = new_index
+        elif key == 353: # shift+tab key
+            # apply setting 
+            prev_mode_index = mode_index
+            mode_index = (mode_index-1)%len(modes)
+            mode = modes[mode_index]
+            for key, val in mode.items():
+                if key == 'filter':
+                    if 'filter' in modes[prev_mode_index]:
+                        filter_query = filter_query.replace(modes[prev_mode_index]['filter'], '')
+                    filter_query = f"{filter_query.strip()} {val.strip()}".strip()
+                    prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
+                    indexed_items = filter_items(items, indexed_items, filter_query)
+                    if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
+                    else: new_index = 0
+                    cursor_pos = new_index
+        elif key == ord('|'):
+            usrtxt = "xargs -d '\n' -I{}  "
+            usrtxt, return_val = input_field(
+                stdscr,
+                usrtxt=usrtxt,
+                field_name="Command",
+                x=50,
+                y=h-2,
+                literal=True,
+            )
+            if return_val:
                 selected_indices = print_selected_indices()
                 if not selected_indices:
                     selected_indices = [indexed_items[cursor_pos][0]]
-                
-                for index in selected_indices:
-                    if require_option[index]:
-                        # notification(stdscr, message=f"opt required for {index}")
-                        usrtxt = f"{user_opts} " if user_opts else ""
-                        usrtxt, return_val = input_field(
-                            stdscr,
-                            usrtxt=usrtxt,
-                            field_name="Opts",
-                            x=50,
-                            y=h-1,
-                        )
-                        if return_val:
-                            user_opts = usrtxt
+                full_values = [format_row_full(items[i], hidden_columns) for i in selected_indices]  # Use format_row_full for full data
+                if full_values:
+                    # os.system("notify-send " + "'" + '\t'.join(full_values).replace("'", "*") + "'")
+                    process = subprocess.Popen(usrtxt, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    process.communicate(input='\n'.join(full_values).encode('utf-8'))
 
-                stdscr.clear()
-                stdscr.refresh()
-                function_data = get_function_data()
-                return selected_indices, user_opts, function_data
-            elif key == ord('n') or key == curses.KEY_NPAGE:  # Next page
-                cursor_pos = min(len(indexed_items) - 1, cursor_pos+items_per_page)
-
-            elif key == ord('p')  or key == curses.KEY_PPAGE:  # Previous page
-                cursor_pos = max(0, cursor_pos-items_per_page)
-
-            elif key == 12:  # Ctrl-l, ^l
-                stdscr.clear()
-                stdscr.refresh()
-
-            elif key == ord('s'):  # Cycle sort method
-                columns_sort_method[sort_column] = (columns_sort_method[sort_column]+1) % len(SORT_METHODS)
-                current_index = indexed_items[cursor_pos][0]
-                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-                cursor_pos = [row[0] for row in indexed_items].index(current_index)
-            elif key == ord('S'):  # Cycle sort method
-                columns_sort_method[sort_column] = (columns_sort_method[sort_column]-1) % len(SORT_METHODS)
-                current_index = indexed_items[cursor_pos][0]
-                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-                cursor_pos = [row[0] for row in indexed_items].index(current_index)
-            elif key == ord('t'):  # Toggle sort order
-                sort_reverse[sort_column] = not sort_reverse[sort_column]
-                current_index = indexed_items[cursor_pos][0]
-                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-                cursor_pos = [row[0] for row in indexed_items].index(current_index)
-            elif key in [ord('0'), ord('1'), ord('2'), ord('3'), ord('4'), ord('5'), ord('6'), ord('7'), ord('8'), ord('9')]:
-                col_index = key - ord('0')
-                if 0 <= col_index < len(items[0]):
-                    sort_column = col_index
-                    current_index = indexed_items[cursor_pos][0]
-                    sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-                    cursor_pos = [row[0] for row in indexed_items].index(current_index)
-            elif key in [ord('!'), ord('@'), ord('#'), ord('$'), ord('%'), ord('^'), ord('&'), ord('*'), ord('('), ord(')')]:
-                d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
-                d = {s:i for i,s in enumerate(")!@#$%^&*(")}
-                col_index = d[chr(key)]
-                toggle_column_visibility(col_index)
-            # elif key == ord('i'):  # Copy selected indices to clipboard
-            #     copy_indices()
-            elif key == ord('Y'):  # Copy (visible) selected values to clipboard
-                copy_values()
-            elif key == ord('y'):  # Copy full values of selected entries to clipboard
-                copy_full_values()
-            elif key == ord('c'):
-                copy_selected_visible_rows_to_clipboard()
-            elif key == ord('C'):
-                # copy_items_to_clipboard()
-                copy_selected_rows_to_clipboard()
-            elif key == curses.KEY_DC:  # Delete key
-                delete_entries()
-            elif key == ord('+'):  # Increase lines per page
-                items_per_page += 1
+        elif key == ord("\\"):
+            user_opts = ""
+        elif key == ord(']'):
+            if max_width < 300:
+                max_width += 10
+                column_widths[:] = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
                 draw_screen()
-            elif key == ord('-'):  # Decrease lines per page
-                if items_per_page > 1:
-                    items_per_page -= 1
-                draw_screen()
-            elif key == ord('['):
-                if max_width > 10:
-                    max_width -= 10
-                    column_widths[:] = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
-                    draw_screen()
-            elif key == ord('v'):
-                handle_visual_selection()
-                draw_screen()
+        draw_screen(clear_screen)
 
-            elif key == ord('V'):
-                handle_visual_selection(selecting=False)
-                draw_screen()
-            if key == curses.KEY_RESIZE:  # Terminal resize signal
-                h, w = stdscr.getmaxyx()
-                top_space = top_gap
-                if title: top_space+=1
-                if display_modes: top_space+=1
-                items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
-
-            elif key == ord('r'):
-                # Refresh
-                top_space = top_gap
-                if title: top_space+=1
-                if display_modes: top_space+=1
-                items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
-                stdscr.refresh()
-
-            elif key == ord('f'):
-                draw_screen()
-                usrtxt = f" {filter_query}" if filter_query else ""
-                usrtxt, return_val = input_field(
-                    stdscr,
-                    usrtxt=usrtxt,
-                    field_name="Filter",
-                    x=50,
-                    y=h-2,
-                )
-                if return_val:
-                    filter_query = usrtxt
-
-                    # If the current mode filter has been changed then go back to the first mode
-                    if "filter" in modes[mode_index] and modes[mode_index]["filter"] not in filter_query:
-                        mode_index = 0
-                    # elif "filter" in modes[mode_index] and modes[mode_index]["filter"] in filter_query:
-                    #     filter_query.split(modes[mode_index]["filter"])
-
-                    prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
-                    indexed_items = filter_items(items, indexed_items, filter_query)
-                    if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
-                    else: new_index = 0
-                    cursor_pos = new_index
-
-
-            elif key == ord('/'):
-                draw_screen()
-                usrtxt = f"{search_query} " if search_query else ""
-                usrtxt, return_val = input_field(
-                    stdscr,
-                    usrtxt=usrtxt,
-                    field_name="Search",
-                    x=50,
-                    y=h-3,
-                )
-                if return_val:
-                    search_query = usrtxt
-                    return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
-                        query=search_query,
-                        indexed_items=indexed_items,
-                        highlights=highlights,
-                        cursor_pos=cursor_pos,
-                        unselectable_indices=unselectable_indices,
-                    )
-                    if return_val:
-                        cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
-
-            elif key == ord('i'):
-                return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
-                    query=search_query,
-                    indexed_items=indexed_items,
-                    highlights=highlights,
-                    cursor_pos=cursor_pos,
-                    unselectable_indices=unselectable_indices,
-                    continue_search=True,
-                )
-                if return_val:
-                    cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
-            elif key == ord('I'):
-                return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
-                    query=search_query,
-                    indexed_items=indexed_items,
-                    highlights=highlights,
-                    cursor_pos=cursor_pos,
-                    unselectable_indices=unselectable_indices,
-                    continue_search=True,
-                    reverse=True,
-                )
-                if return_val:
-                    cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
-            elif key == 27 or key == ord('e'):  # ESC key
-                # order of escapes:
-                # 1. selecting/deslecting
-                # 2. search
-                # 3. filter
-                # 4. selecting
-                # nonlocal highlights
-
-                if is_selecting or is_deselecting:
-                    start_selection = None
-                    end_selection = None
-                    is_selecting = False
-                    is_deselecting = False
-                elif search_query:
-                    search_query = ""
-                    highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
-                elif filter_query:
-                    if "filter" in modes[mode_index] and modes[mode_index]["filter"] in filter_query and filter_query.strip() != modes[mode_index]["filter"]:
-                        filter_query = modes[mode_index]["filter"]
-                    # elif "filter" in modes[mode_index]:
-                    else:
-                        filter_query = ""
-                        mode_index = 0
-                    prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
-                    indexed_items = filter_items(items, indexed_items, filter_query)
-                    if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
-                    else: new_index = 0
-                    cursor_pos = new_index
-
-                else:
-                    search_query = ""
-                    mode_index = 0
-                    highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
-                    continue
-                draw_screen()
-            elif key == ord(':'):
-                usrtxt = f"{user_opts} " if user_opts else ""
-                usrtxt, return_val = input_field(
-                    stdscr,
-                    usrtxt=usrtxt,
-                    field_name="Opts",
-                    x=50,
-                    y=h-1,
-                )
-                if return_val:
-                    user_opts = usrtxt
-            elif key == ord('o'):
-                open_submenu(stdscr)
-            elif key == ord('z'):
-                notification(stdscr)
-            elif key == 9: # tab key
-                # apply setting 
-                prev_mode_index = mode_index
-                mode_index = (mode_index+1)%len(modes)
-                mode = modes[mode_index]
-                for key, val in mode.items():
-                    if key == 'filter':
-                        if 'filter' in modes[prev_mode_index]:
-                            filter_query = filter_query.replace(modes[prev_mode_index]['filter'], '')
-                        filter_query = f"{filter_query.strip()} {val.strip()}".strip()
-                        prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
-
-                        indexed_items = filter_items(items, indexed_items, filter_query)
-                        if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
-                        else: new_index = 0
-                        cursor_pos = new_index
-            elif key == 353: # shift+tab key
-                # apply setting 
-                prev_mode_index = mode_index
-                mode_index = (mode_index-1)%len(modes)
-                mode = modes[mode_index]
-                for key, val in mode.items():
-                    if key == 'filter':
-                        if 'filter' in modes[prev_mode_index]:
-                            filter_query = filter_query.replace(modes[prev_mode_index]['filter'], '')
-                        filter_query = f"{filter_query.strip()} {val.strip()}".strip()
-                        prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
-                        indexed_items = filter_items(items, indexed_items, filter_query)
-                        if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
-                        else: new_index = 0
-                        cursor_pos = new_index
-            elif key == ord('|'):
-                usrtxt = "xargs -d '\n' -I{}  "
-                usrtxt, return_val = input_field(
-                    stdscr,
-                    usrtxt=usrtxt,
-                    field_name="Command",
-                    x=50,
-                    y=h-2,
-                    literal=True,
-                )
-                if return_val:
-                    selected_indices = print_selected_indices()
-                    if not selected_indices:
-                        selected_indices = [indexed_items[cursor_pos][0]]
-                    full_values = [format_row_full(items[i], hidden_columns) for i in selected_indices]  # Use format_row_full for full data
-                    if full_values:
-                        # os.system("notify-send " + "'" + '\t'.join(full_values).replace("'", "*") + "'")
-                        process = subprocess.Popen(usrtxt, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        process.communicate(input='\n'.join(full_values).encode('utf-8'))
-
-            elif key == ord("\\"):
-                user_opts = ""
-            elif key == ord(']'):
-                if max_width < 300:
-                    max_width += 10
-                    column_widths[:] = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
-                    draw_screen()
-            draw_screen(clear_screen)
-
-    return main()
 
 
 def parse_arguments():

@@ -29,7 +29,8 @@ def format_row(row, hidden_columns, column_widths, separator):
         if i in hidden_columns: continue
         val = truncate_to_display_width(cell, column_widths[i])
         row_str += val + separator
-    return row_str.strip()
+    return row_str
+    # return row_str.strip()
 
 def get_column_widths(items, header=[], max_width=70, number_columns=True):
 
