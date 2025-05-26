@@ -50,3 +50,52 @@ def intStringToExponentString(n):
     n = str(n)
     digitdict = { "0" : "⁰", "1" : "¹", "2" : "²", "3" : "³", "4" : "⁴", "5" : "⁵", "6" : "⁶", "7" : "⁷", "8" : "⁸", "9" : "⁹"}
     return "".join([digitdict[char] for char in n])
+
+def convert_seconds(seconds, long_format=False):
+    # Ensure the input is an integer
+    if isinstance(seconds, str):
+        seconds = int(seconds)
+
+    # Calculate years, days, hours, minutes, and seconds
+    years = seconds // (365 * 24 * 3600)
+    days = (seconds % (365 * 24 * 3600)) // (24 * 3600)
+    hours = (seconds % (24 * 3600)) // 3600
+    minutes = (seconds % 3600) // 60
+    remaining_seconds = seconds % 60
+
+    # Build the human-readable format
+    if long_format:
+        human_readable = []
+        if years > 0:
+            human_readable.append(f"{years} year{'s' if years > 1 else ''}")
+        if days > 0:
+            human_readable.append(f"{days} day{'s' if days > 1 else ''}")
+        if hours > 0:
+            human_readable.append(f"{hours} hour{'s' if hours > 1 else ''}")
+        if minutes > 0:
+            human_readable.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
+        if remaining_seconds > 0 or not human_readable:
+            human_readable.append(f"{remaining_seconds} second{'s' if remaining_seconds != 1 else ''}")
+        return ', '.join(human_readable)
+    else:
+        # Compact format: using abbreviated units
+        compact_parts = []
+        if years > 0:
+            compact_parts.append(f"{years}y")
+        if days > 0:
+            compact_parts.append(f"{days}d")
+        if hours > 0:
+            compact_parts.append(f"{hours}h")
+        if minutes > 0:
+            compact_parts.append(f"{minutes}m")
+        if remaining_seconds > 0 or not compact_parts:
+            compact_parts.append(f"{remaining_seconds}s")
+        return ''.join(compact_parts)
+
+def convert_percentage_to_ascii_bar(p, chars=8):
+    # Convert percentage to an ascii status bar
+
+    done = "█"
+    notdone = "▒"
+    return done * int(p / 100 * chars) + (chars-(int(p / 100 * chars)))*notdone
+    return "[" + "=" * int(p / 100 * chars) + ">" + " " * (chars - int(p / 100 * chars) - 1) + "]"

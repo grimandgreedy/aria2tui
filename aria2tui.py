@@ -19,6 +19,7 @@ from aria2c_wrapper import *
 from aria_adduri import add_download
 import tempfile
 import tomllib
+from utils import *
 
 """
 todo 
@@ -73,6 +74,10 @@ todo
  - add global stats bar
  - monitor log file
  - setup https connection
+ - add default sort method for columns
+ - add source column, showing site from which it is being downloaded
+ - When I change a download to position 4, the user_option 4 will remain in the options going forward
+ - (!!!) Download position jumps around when refreshing since changing the sort methods to be column-wise
 
 DONE
  - If a download is paused and it is paused again it throws an error when it should just skip it.
@@ -90,21 +95,10 @@ DONE
 
 
 """
-# TODO:  <14-11-24, noah> Run only one ncurses wrapper so that it doesn't flash the terminal screen when switching between menus#
 
-
-# def send_req(jsonreq, port=6800):
-#     with rq.urlopen(f'http://localhost:{port}/jsonrpc', jsonreq) as c:
-#         response = c.read()
-#
-#     js_rs = json.loads(response)
-#     return response
-
-
-def test_connection(port=6800):
-    url = f'http://localhost:{port}/jsonrpc'
+def test_connection(url="http://localhost", port=6800):
+    url = f'{url}:{port}/jsonrpc'
     try:
-        # with rq.urlopen(url, getGlobalStat()) as c:
         print(getVersion())
         with rq.urlopen(url, getVersion()) as c:
             response = c.read()
@@ -112,54 +106,6 @@ def test_connection(port=6800):
     except urllib.error.URLError:
         return False
 
-def convert_seconds(seconds, long_format=False):
-    # Ensure the input is an integer
-    if isinstance(seconds, str):
-        seconds = int(seconds)
-
-    # Calculate years, days, hours, minutes, and seconds
-    years = seconds // (365 * 24 * 3600)
-    days = (seconds % (365 * 24 * 3600)) // (24 * 3600)
-    hours = (seconds % (24 * 3600)) // 3600
-    minutes = (seconds % 3600) // 60
-    remaining_seconds = seconds % 60
-
-    # Build the human-readable format
-    if long_format:
-        human_readable = []
-        if years > 0:
-            human_readable.append(f"{years} year{'s' if years > 1 else ''}")
-        if days > 0:
-            human_readable.append(f"{days} day{'s' if days > 1 else ''}")
-        if hours > 0:
-            human_readable.append(f"{hours} hour{'s' if hours > 1 else ''}")
-        if minutes > 0:
-            human_readable.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
-        if remaining_seconds > 0 or not human_readable:
-            human_readable.append(f"{remaining_seconds} second{'s' if remaining_seconds != 1 else ''}")
-        return ', '.join(human_readable)
-    else:
-        # Compact format: using abbreviated units
-        compact_parts = []
-        if years > 0:
-            compact_parts.append(f"{years}y")
-        if days > 0:
-            compact_parts.append(f"{days}d")
-        if hours > 0:
-            compact_parts.append(f"{hours}h")
-        if minutes > 0:
-            compact_parts.append(f"{minutes}m")
-        if remaining_seconds > 0 or not compact_parts:
-            compact_parts.append(f"{remaining_seconds}s")
-        return ''.join(compact_parts)
-
-def convert_percentage_to_ascii_bar(p, chars=8):
-    # Convert percentage to an ascii status bar
-
-    done = "█"
-    notdone = "▒"
-    return done * int(p / 100 * chars) + (chars-(int(p / 100 * chars)))*notdone
-    return "[" + "=" * int(p / 100 * chars) + ">" + " " * (chars - int(p / 100 * chars) - 1) + "]"
 
 def __getQueue():
     js_rs = send_req(tellWaiting())
@@ -1179,54 +1125,36 @@ def begin(config):
     menu_persistent = False
     dl_type_list = [3]
     cursor_pos = 0
-    cursor_pos_levels = [(0,0) for i in range(4)]
-    function_data = {
-        "current_row":  cursor_pos_levels[1][0],
-        "current_page": cursor_pos_levels[1][1],
-        "highlights": highlights,
-        "paginate": paginate,
-        "title": app_name,
-        "colors": custom_colors,
-
-    }
     menu_data = {
         "top_gap": 0,
-        "current_row":  cursor_pos_levels[1][0],
-        "current_page": cursor_pos_levels[1][1],
         "highlights": menu_highlights,
         "paginate": paginate,
         "title": app_name,
         "colors": custom_colors,
-
     }
     view_loop_data = {
         "top_gap": 0,
-        "current_row":  cursor_pos_levels[1][0],
-        "current_page": cursor_pos_levels[1][1],
         "highlights": highlights,
         "paginate": paginate,
         "modes": modes,
         "title": app_name,
         "colors": custom_colors,
-        "display_modes": True,
-
+        "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1],
+        "sort_reverse": [False, False, False, True, True, True, True, True, False, False],
     }
     watch_loop_data = {
         "top_gap": 0,
-        "current_row":  cursor_pos_levels[1][0],
-        "current_page": cursor_pos_levels[1][1],
         "highlights": highlights,
         "paginate": paginate,
         "modes": modes,
         "title": app_name,
         "colors": custom_colors,
         "display_modes": True,
-
+        "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1],
+        "sort_reverse": [False, False, False, True, True, True, True, True, False, False],
     }
     dl_option_data = {
         "top_gap": 0,
-        "current_row":  cursor_pos_levels[1][0],
-        "current_page": cursor_pos_levels[1][1],
         "highlights": menu_highlights,
         "paginate": paginate,
         "title": app_name,
@@ -1246,7 +1174,6 @@ def begin(config):
                 max_selected=1,
                 **menu_data,
             )
-            cursor_pos_levels[0] = (function_data["current_row"], function_data["current_page"])
         if not dl_type_list: break
         dl_type = dl_type_list[0]
 
@@ -1287,7 +1214,6 @@ def begin(config):
                 **watch_loop_data,
             )
 
-            cursor_pos_levels[1] = (watch_loop_data["current_row"], watch_loop_data["current_page"])
             # selected_downloads, opts = list_picker(stdscr, items, custom_colors, header=header, timer=2, get_new_data=True, refresh_function=options[dl_type][1]["get_data"])
             # terminate_code = run_with_timeout(list_picker, args, kwargs, timeout=2)
             if not selected_downloads and opts == 'refresh':
@@ -1330,7 +1256,6 @@ def begin(config):
 
 
         else:
-            cursor_pos_levels[2] = (0,0)
             ## select downloads to operate upon
             items, header = options[dl_type][1]["get_data"]()
             if len(items) == 0:
@@ -1357,7 +1282,6 @@ def begin(config):
                 **view_loop_data,
 
             )
-            cursor_pos_levels[2] = (function_data["current_row"], function_data["current_page"])
             if not selected_downloads or items == [[]]: continue
         # os.system(f"notify-send {repr(selected_downloads)}")
         gid_index = header.index("gid")
@@ -1374,7 +1298,6 @@ def begin(config):
             header=header,
             **dl_option_data,
         )
-        cursor_pos_levels[3] = (function_data["current_row"], function_data["current_page"])
         if not operation_n: 
             continue
         operation = operation_n[0]

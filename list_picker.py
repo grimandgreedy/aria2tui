@@ -12,6 +12,7 @@ from utils import *
 from sorting import *
 from filtering import *
 from data_stuff import test_items, test_highlights, test_header
+from input_field import *
 
 """
 - c,y copies filtered rows but Y says out of range
@@ -88,6 +89,10 @@ from data_stuff import test_items, test_highlights, test_header
  - add different selection styles
     - row highlighted   
     - selection indicator
+ - crash when selecting column for empty list
+ - should require_option skip the prompt if an option has already been given?
+ - force option type; show notification to user if option not appropriate
+ - (!!!) When the input_field is too long the application crashes
 
 COPY:
 
@@ -180,7 +185,6 @@ def list_picker(
 
         current_row = 0,
         current_page = 0,
-        sort_reverse = False,  # Default sort order (ascending)
         is_selecting = False,
         is_deselecting = False,
         start_selection = None,
@@ -199,7 +203,9 @@ def list_picker(
         selections = {},
         items_per_page = -1,
         sort_method = 0,
-        sort_column = None,
+        sort_reverse = [],  # Default sort order (ascending)
+        sort_column = 0,
+        columns_sort_method = [],
         key_chain = "",
 
         paginate=False,
@@ -266,7 +272,7 @@ def list_picker(
             draw_screen()
 
         def draw_screen(clear=True):
-            nonlocal filter_query, search_query, search_count, search_index, highlights, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar
+            nonlocal filter_query, search_query, search_count, search_index, highlights, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap
 
             if clear:
                 # stdscr.clear()
@@ -347,6 +353,7 @@ def list_picker(
 
                 # stdscr.addstr(top_gap + 1, 0, '-' * len(header_str), curses.color_pair(3))
                 # stdscr.addstr(top_gap, 0, header_str[:w], curses.color_pair(4) | curses.A_BOLD)
+            stdscr.addstr(h-4, 0, ' '*w, curses.color_pair(2) | curses.A_UNDERLINE)
 
 
             # Display items
@@ -455,9 +462,13 @@ def list_picker(
 
             # Display sort information
             sort_column_info = f"Column: {sort_column if sort_column is not None else 'None'}"
-            sort_method_info = f"Method: {SORT_METHODS[sort_method]}"
-            sort_order_info = "Desc." if sort_reverse else "Asc."
-            stdscr.addstr(h - 3, 0, f" Sort: {sort_column_info} | {sort_method_info} | {sort_order_info} ", curses.color_pair(4))
+            sort_method_info = f"Method: {SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else f"Method: NA"
+            sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
+            sort_column_info = f"{sort_column if sort_column is not None else 'None'}"
+            sort_method_info = f"{SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else "NA"
+            sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
+            # stdscr.addstr(h - 3, 0, f" Sort: {sort_column_info} | {sort_method_info} | {sort_order_info} ", curses.color_pair(4))
+            stdscr.addstr(h - 3, 0, f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) ", curses.color_pair(4))
             # Display selection count
             selected_count = sum(selections.values())
             
@@ -495,7 +506,7 @@ def list_picker(
         # Use global color settings
         nonlocal colors, top_gap, header, max_width, items, unselectable_indices
         # global is_selecting, is_deselecting
-        nonlocal current_row, current_page, cursor_pos, sort_reverse, user_opts, separator, search_query, search_count, filter_query, hidden_columns, selections, items_per_page, sort_method, sort_column, start_selection, end_selection, is_selecting, is_deselecting, indexed_items, highlights, key_chain, modes, mode_index, require_option, number_columns, scroll_bar
+        nonlocal current_row, current_page, cursor_pos, sort_reverse, user_opts, separator, search_query, search_count, filter_query, hidden_columns, selections, items_per_page, sort_method, sort_column, start_selection, end_selection, is_selecting, is_deselecting, indexed_items, highlights, key_chain, modes, mode_index, require_option, number_columns, scroll_bar, user_settings, columns_sort_method
 
 
         if timer: initial_time = time.time()
@@ -527,6 +538,7 @@ def list_picker(
         HELP_LINES_PER_PAGE = h - top_space*2-2-int(bool(header))
         state_variables = {}
         SORT_METHODS = ['original', 'lexical', 'LEXICAL', 'alphanum', 'ALPHANUM', 'time', 'numerical', 'size']
+        
 
         # Initialize colors
         # Check if terminal supports color
@@ -565,6 +577,10 @@ def list_picker(
         column_widths = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
         if require_option == []:
             require_option = [False for x in indexed_items]
+        if columns_sort_method == [] and len(items) > 0:
+            columns_sort_method = [0 for i in items[0]]
+        if sort_reverse == [] and len(items) > 0:
+            sort_reverse = [False for i in items[0]]
 
         # If a filter is passed then refilter
         if filter_query:
@@ -574,33 +590,13 @@ def list_picker(
             if cursor_pos in [x[0] for x in indexed_items]: cursor_pos = [x[0] for x in indexed_items].index(cursor_pos)
             else: cursor_pos = 0
         # If a sort is passed
-        if sort_column != None and sort_method != 0:
-            sort_items(indexed_items, sort_method=sort_method, sort_column=sort_column, sort_reverse=sort_reverse)  # Re-sort items based on new column
+        if sort_column != None and columns_sort_method[sort_column] != 0:
+            sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
         if len(items[0]) == 1:
             number_columns = False
 
-        # current_row = cursor_pos%items_per_page if cursor_pos < len(items) else 0
-        # current_page = cursor_pos//items_per_page if cursor_pos < len(items) else 0
-
-        ## Don't need to initialise (!?)
-        # sort_column = None
-        # sort_method = 0
-        # sort_reverse = False  # Default sort order (ascending)
-        # hidden_columns = set()  # Track hidden columns
-        # is_selecting = False
-        # is_deselecting = False
-        # user_opts = ""
-        # user_settings = ""
-        # separator = "    "
-        # search_query = ""
-        # search_count = 0
-        # search_index = 0
-        # filter_query = ""
-        # start_selection = None
-        # end_selection = None
 
         h, w = stdscr.getmaxyx()
-        # assert current_page*DEFAULT_ITEMS_PER_PAGE + current_row not in unselectable_indices
 
         # Adjust variables to ensure correctness if errors
         ## Move to a selectable row (if applicable)
@@ -612,119 +608,45 @@ def list_picker(
         assert new_pos < len(items)
         cursor_pos = new_pos
         
-
-        # if not isinstance(items[0], str)
-        # Determine if items is a list of lists
-
-        # Create a list of tuples (index, item) to preserve original indices
-
         def get_function_data():
             function_data = {
                 "selections": selections,
-                "items_per_page":  items_per_page,
-                "current_row":     current_row,
-                "current_page":    current_page,
-                "cursor_pos":      cursor_pos,
-                "sort_column":     sort_column,
-                "sort_method":     sort_method,
-                "sort_reverse":    sort_reverse,
-                "hidden_columns":  hidden_columns,
-                "is_selecting":    is_selecting,
-                "is_deselecting":  is_deselecting,
-                "user_opts":       user_opts,
-                "user_settings":   user_settings,
-                "separator":       separator,
-                "search_query":    search_query,
-                "search_count":    search_count,
-                "search_index":    search_index,
-                "filter_query":    filter_query,
-                "indexed_items":   indexed_items,
-                "start_selection": start_selection,
-                "end_selection":   end_selection,
-                "highlights":      highlights,
-                "max_width":       max_width,
-                "mode_index":      mode_index,
-                "modes":           modes,
-                "title":           title,
-                "display_modes":   display_modes,
-                "require_option":  require_option,
-                "top_gap":         top_gap,
-                "number_columns":  number_columns,
-                "items":           items,
-                "indexed_items":   indexed_items,
-                "scroll_bar":      scroll_bar,
+                "items_per_page":       items_per_page,
+                "current_row":          current_row,
+                "current_page":         current_page,
+                "cursor_pos":           cursor_pos,
+                "sort_column":          sort_column,
+                "sort_method":          sort_method,
+                "sort_reverse":         sort_reverse,
+                "hidden_columns":       hidden_columns,
+                "is_selecting":         is_selecting,
+                "is_deselecting":       is_deselecting,
+                "user_opts":            user_opts,
+                "user_settings":        user_settings,
+                "separator":            separator,
+                "search_query":         search_query,
+                "search_count":         search_count,
+                "search_index":         search_index,
+                "filter_query":         filter_query,
+                "indexed_items":        indexed_items,
+                "start_selection":      start_selection,
+                "end_selection":        end_selection,
+                "highlights":           highlights,
+                "max_width":            max_width,
+                "mode_index":           mode_index,
+                "modes":                modes,
+                "title":                title,
+                "display_modes":        display_modes,
+                "require_option":       require_option,
+                "top_gap":              top_gap,
+                "number_columns":       number_columns,
+                "items":                items,
+                "indexed_items":        indexed_items,
+                "scroll_bar":           scroll_bar,
+                "columns_sort_method":  columns_sort_method,
             }
             return function_data
-        # Calculate the maximum width for each column
-        def pipe_to_command():
-            draw_screen()
-            # stdscr.addstr(h - 2, 50, "Command: ", curses.color_pair(6))
-            # curses.echo()
-            # stdscr.addstr(curses.LINES - 3, 58, " " * (curses.COLS - 8))  # Clear line
-            cursor = 0
-            # usrtxt = "sed -e 's/\\(.*\\)/new\\/\\1/' | xargs -d '\n' "
-            usrtxt = "xargs -d '\n' -I{}  "
-            # command = ""
-            while True:
-                stdscr.addstr(h - 2, 50, f"Command: {repr(usrtxt)}", curses.color_pair(13))
-                if usrtxt and cursor != 0:
-                    stdscr.addstr(h - 2, 50+len(usrtxt)-cursor+1+len("Command: "), f"{usrtxt[-(cursor)]}", curses.color_pair(13) | curses.A_REVERSE)
-                else:
-                    stdscr.addstr(h - 2, 50-cursor+len(usrtxt)+1+len("Command: "), f" ", curses.color_pair(13) | curses.A_REVERSE)
-                # stdscr.addstr(curses.LINES - 3, 58, command.ljust(curses.COLS - 8))
-                # stdscr.refresh()
-                key = stdscr.getch()
-                if key == 27:  # ESC key
-                    break
-                elif key == 10:  # Enter key
-                    # selected_data = [f"'{format_full_row(items[i])}'" for i, selected in enumerate(selections) if selected]
-                    selected_indices = print_selected_indices()
-                    if not selected_indices:
-                        selected_indices = [indexed_items[cursor_pos][0]]
-                    full_values = [format_row_full(items[i], hidden_columns) for i in selected_indices]  # Use format_row_full for full data
-                    # selected_data = [format_full_row(items[i]).strip() for i, selected in enumerate(selections) if selected and i not in hidden_columns]
-                    if full_values:
-                        # os.system("notify-send " + "'" + '\t'.join(full_values).replace("'", "*") + "'")
-                        process = subprocess.Popen(usrtxt, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        process.communicate(input='\n'.join(full_values).encode('utf-8'))
-                    break
-                elif key == curses.KEY_BACKSPACE or key == "KEY_BACKSPACE" or key == 263:
-                    if cursor == 0:
-                        usrtxt = usrtxt[:-1]
-                    else:
-                        usrtxt = usrtxt[:-(cursor+1)] + usrtxt[-cursor:]
-                elif key == 4: # ^d
-                    pass
 
-                elif key == curses.KEY_LEFT:
-                    cursor = min(len(usrtxt), cursor + 1)
-                elif key == curses.KEY_RIGHT:
-                    cursor = max(0, cursor - 1)
-                elif key == curses.KEY_UP:
-                    cursor = max(0, cursor - 1)
-                elif key == 21 or key == "^U": ## CTRL+U
-                    usrtxt = ""
-                    cursor = 0
-                elif key == 1: ## CTRL+A (beginning)
-                    cursor = len(usrtxt)
-                elif key == 5: ## CTRL+E (end)
-                    cursor = 0
-                else:
-                    if isinstance(key, int):
-                        try:
-                            val = chr(key) if chr(key).isprintable() else ''
-                        except:
-                            val = ''
-                    else: val = key
-                    if cursor == 0:
-                        usrtxt += val
-                    else:
-                        usrtxt = usrtxt[:-cursor] + val + usrtxt[-cursor:]
-            # curses.echo()
-                draw_screen()
-
-            curses.noecho()
-            draw_screen()
 
         # Function to print the list of selected indices
         def print_selected_indices():
@@ -884,7 +806,7 @@ def list_picker(
                     search_list.append(i)
                     
                     if not found:
-                        current_pos = new_pos
+                        cursor_pos = new_pos
                         found = True
                     # break
                     # return False
@@ -1035,64 +957,6 @@ def list_picker(
 
                 if key in [10, 27, ord('q')]:  # Enter, escape or q
                     break
-
-        def settings(prompt):
-            nonlocal user_settings
-            draw_screen()
-            usrtxt = ""
-            cursor = 0
-
-            while True:
-                # stdscr.addstr(curses.LINES - 2, 58, filter_query.ljust(curses.COLS - 8))
-                filter_query = usrtxt
-                stdscr.addstr(h - 1, 50, f" Settings: {usrtxt} ", curses.color_pair(13))
-                if usrtxt and cursor != 0:
-                    stdscr.addstr(h - 1, 50+len(usrtxt)-cursor+1+len("Settings: "), f"{usrtxt[-(cursor)]}", curses.color_pair(13) | curses.A_REVERSE)
-                else:
-                    stdscr.addstr(h - 1, 50-cursor+len(usrtxt)+1+len("Settings: "), f" ", curses.color_pair(13) | curses.A_REVERSE)
-                # stdscr.refresh()
-                key = stdscr.getch()
-                # os.system(f'notify-send "{key}"')
-                if key == 27 or key == "^":  # ESC key
-                    # filter_query = ""
-                    draw_screen()
-                    break
-                elif key == curses.KEY_BACKSPACE or key == "KEY_BACKSPACE":
-                    if cursor == 0:
-                        usrtxt = usrtxt[:-1]
-                    else:
-                        usrtxt = usrtxt[:-(cursor+1)] + usrtxt[-cursor:]
-                elif key == curses.KEY_LEFT:
-                    cursor = min(len(usrtxt), cursor + 1)
-                elif key == curses.KEY_RIGHT:
-                    cursor = max(0, cursor - 1)
-                elif key == curses.KEY_UP:
-                    cursor = max(0, cursor - 1)
-                elif key == 21 or key == "^U": ## CTRL+U
-                    usrtxt = ""
-                    cursor = 0
-                elif key == 1: ## CTRL+A (beginning)
-                    cursor = len(usrtxt)
-                elif key == 5: ## CTRL+E (end)
-                    cursor = 0
-                elif key in [10, curses.KEY_ENTER]:  # Enter key
-                    # filter_items(filter_query.strip())
-                    user_settings += usrtxt
-                    apply_settings()
-                    break
-                else:
-                    if isinstance(key, int):
-                        try:
-                            val = chr(key) if chr(key).isprintable() else ''
-                        except:
-                            val = ''
-                    else: val = key
-                    if cursor == 0:
-                        usrtxt += val
-                    else:
-                        usrtxt = usrtxt[:-cursor] + val + usrtxt[-cursor:]
-                draw_screen()
-            
         
         def toggle_column_visibility(col_index):
             if 0 <= col_index < len(items[0]):
@@ -1103,7 +967,7 @@ def list_picker(
 
         def apply_settings():
             
-            nonlocal user_settings, highlights, sort_column, current_page, current_row, cursor_pos
+            nonlocal user_settings, highlights, sort_column, current_page, current_row, cursor_pos, columns_sort_method
             # settings= usrtxt.split(' ')
             # split settings and appy them
             """
@@ -1127,7 +991,7 @@ def list_picker(
                         if 0 <= int(setting[1:]) < len(items[0]):
                             sort_column = int(setting[1:])
                             current_pos = indexed_items[cursor_pos][0]
-                            sort_items(indexed_items, sort_method=sort_method, sort_column=sort_column, sort_reverse=sort_reverse)  # Re-sort items based on new column
+                            sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
                             new_pos = [row[0] for row in indexed_items].index(current_pos)
                             cursor_pos = new_pos
                     elif setting[0] == "":
@@ -1136,64 +1000,6 @@ def list_picker(
                             toggle_column_visibility(int(col))
 
                 user_settings = ""
-        def append_additional_text(prompt):
-            nonlocal user_opts
-            draw_screen()
-            usrtxt = ""
-            cursor = 0
-
-            while True:
-                # stdscr.addstr(curses.LINES - 2, 58, filter_query.ljust(curses.COLS - 8))
-                filter_query = usrtxt
-                # stdscr.addstr(h - 1, 50, "Opts: " + usrtxt, curses.color_pair(6))
-                stdscr.addstr(h - 1, 50, f" Opts: {usrtxt} ", curses.color_pair(13))
-                if usrtxt and cursor != 0:
-                    stdscr.addstr(h - 1, 50+len(usrtxt)-cursor+1+len("Opts: "), f"{usrtxt[-(cursor)]}", curses.color_pair(13) | curses.A_REVERSE)
-                else:
-                    stdscr.addstr(h - 1, 50-cursor+len(usrtxt)+1+len("Opts: "), f" ", curses.color_pair(13) | curses.A_REVERSE)
-                # stdscr.refresh()
-                key = stdscr.getch()
-                if key == 27 or key == "^":  # ESC key
-                    # filter_query = ""
-                    draw_screen()
-                    break
-                elif key in [10, curses.KEY_ENTER]:  # Enter key
-                    # filter_items(filter_query.strip())
-                    user_opts += usrtxt
-                    break
-                elif key == curses.KEY_BACKSPACE or key == "KEY_BACKSPACE":
-                    if cursor == 0:
-                        usrtxt = usrtxt[:-1]
-                    else:
-                        usrtxt = usrtxt[:-(cursor+1)] + usrtxt[-cursor:]
-                elif key == curses.KEY_LEFT:
-                    cursor = min(len(usrtxt), cursor + 1)
-                elif key == curses.KEY_RIGHT:
-                    cursor = max(0, cursor - 1)
-                elif key == curses.KEY_UP:
-                    cursor = max(0, cursor - 1)
-                elif key == 4: # Ctrl+D
-                    usrtxt = usrtxt[:cursor] + usrtxt[cursor+1:]
-                    cursor = max(0, cursor - 1)
-                elif key == 21 or key == "^U": ## CTRL+U
-                    usrtxt = ""
-                    cursor = 0
-                elif key == 1: ## CTRL+A (beginning)
-                    cursor = len(usrtxt)
-                elif key == 5: ## CTRL+E (end)
-                    cursor = 0
-                else:
-                    if isinstance(key, int):
-                        try:
-                            val = chr(key) if chr(key).isprintable() else ''
-                        except:
-                            val = ''
-                    else: val = key
-                    if cursor == 0:
-                        usrtxt += val
-                    else:
-                        usrtxt = usrtxt[:-cursor] + val + usrtxt[-cursor:]
-                draw_screen()
 
         # Function to display the help screen
         def show_help():
@@ -1460,7 +1266,18 @@ def list_picker(
                 function_data = get_function_data()
                 return [], "", function_data
             elif key == ord('`'):
-                settings('')
+                usrtxt = f"{user_settings} " if user_settings else ""
+                usrtxt, return_val = input_field(
+                    stdscr,
+                    usrtxt=usrtxt,
+                    field_name="Settings",
+                    x=50,
+                    y=h-1,
+                )
+                if return_val:
+                    user_settings = usrtxt
+                    apply_settings()
+
             elif key == ord('{'):
                 move_column(-1)
 
@@ -1536,12 +1353,19 @@ def list_picker(
                 if not selected_indices:
                     selected_indices = [indexed_items[cursor_pos][0]]
                 
-                option_required = False
                 for index in selected_indices:
                     if require_option[index]:
-                        option_required = True
                         # notification(stdscr, message=f"opt required for {index}")
-                        append_additional_text("")
+                        usrtxt = f"{user_opts} " if user_opts else ""
+                        usrtxt, return_val = input_field(
+                            stdscr,
+                            usrtxt=usrtxt,
+                            field_name="Opts",
+                            x=50,
+                            y=h-1,
+                        )
+                        if return_val:
+                            user_opts = usrtxt
 
                 stdscr.clear()
                 # stdscr.addstr(0, 0, "Selected indices: " + str(selected_indices))
@@ -1562,26 +1386,26 @@ def list_picker(
                 stdscr.refresh()
 
             elif key == ord('s'):  # Cycle sort method
-                sort_method = (sort_method+1) % len(SORT_METHODS)
+                columns_sort_method[sort_column] = (columns_sort_method[sort_column]+1) % len(SORT_METHODS)
                 current_index = indexed_items[cursor_pos][0]
-                sort_items(indexed_items, sort_method=sort_method, sort_column=sort_column, sort_reverse=sort_reverse)  # Re-sort items based on new column
+                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
                 cursor_pos = [row[0] for row in indexed_items].index(current_index)
             elif key == ord('S'):  # Cycle sort method
-                sort_method = (sort_method-1) % len(SORT_METHODS)
+                columns_sort_method[sort_column] = (columns_sort_method[sort_column]-1) % len(SORT_METHODS)
                 current_index = indexed_items[cursor_pos][0]
-                sort_items(indexed_items, sort_method=sort_method, sort_column=sort_column, sort_reverse=sort_reverse)  # Re-sort items based on new column
+                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
                 cursor_pos = [row[0] for row in indexed_items].index(current_index)
             elif key == ord('t'):  # Toggle sort order
-                sort_reverse = not sort_reverse
+                sort_reverse[sort_column] = not sort_reverse[sort_column]
                 current_index = indexed_items[cursor_pos][0]
-                sort_items(indexed_items, sort_method=sort_method, sort_column=sort_column, sort_reverse=sort_reverse)  # Re-sort items based on new column
+                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
                 cursor_pos = [row[0] for row in indexed_items].index(current_index)
             elif key in [ord('0'), ord('1'), ord('2'), ord('3'), ord('4'), ord('5'), ord('6'), ord('7'), ord('8'), ord('9')]:
                 col_index = key - ord('0')
                 if 0 <= col_index < len(items[0]):
                     sort_column = col_index
                     current_index = indexed_items[cursor_pos][0]
-                    sort_items(indexed_items, sort_method=sort_method, sort_column=sort_column, sort_reverse=sort_reverse)  # Re-sort items based on new column
+                    sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
                     cursor_pos = [row[0] for row in indexed_items].index(current_index)
             elif key in [ord('!'), ord('@'), ord('#'), ord('$'), ord('%'), ord('^'), ord('&'), ord('*'), ord('('), ord(')')]:
                 d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
@@ -1640,132 +1464,46 @@ def list_picker(
                 #     current_row = (len(indexed_items) +items_per_page - 1) % items_per_page
                 stdscr.refresh()
 
-
             elif key == ord('f'):
-                # filter_query = ""
                 draw_screen()
-                usrtxt = f" {filter_query}"
-                cursor = len(filter_query)
-                # stdscr.addstr(curses.LINES - 2, 8, " " * (curses.COLS - 8))  # Clear line
+                usrtxt = f" {filter_query}" if filter_query else ""
+                usrtxt, return_val = input_field(
+                    stdscr,
+                    usrtxt=usrtxt,
+                    field_name="Filter",
+                    x=50,
+                    y=h-2,
+                )
+                if return_val:
+                    filter_query = usrtxt
 
-                # curses.echo()
-                # filter_query = stdscr.getstr(curses.LINES - 2, 58).decode("utf-8")
-                # curses.noecho()
-                # filter_items(filter_query)
-                while True:
-                    # stdscr.addstr(curses.LINES - 2, 58, filter_query.ljust(curses.COLS - 8))
-                    stdscr.addstr(h - 2, 50, f" Filter: {filter_query} ", curses.color_pair(13))
-                    if filter_query and cursor != 0:
-                        stdscr.addstr(h - 2, 50+len(filter_query)-cursor+1+len("Filter: "), f"{filter_query[-(cursor)]}", curses.color_pair(13) | curses.A_REVERSE)
-                    else:
-                        stdscr.addstr(h - 2, 50-cursor+len(filter_query)+1+len("Filter: "), f" ", curses.color_pair(13) | curses.A_REVERSE)
-                    # stdscr.refresh()
-                    key = stdscr.getch()
-                    if key == 27:  # ESC key
-                        filter_query = ""
-                        draw_screen()
-                        break
-                    elif key == 10:  # Enter key
-                        filter_query = filter_query
-                        if "filter" in modes[mode_index] and modes[mode_index]["filter"] not in filter_query:
-                            mode_index = 0
-                        # elif "filter" in modes[mode_index] and modes[mode_index]["filter"] in filter_query:
-                        #     filter_query.split(modes[mode_index]["filter"])
+                    # If the current mode filter has been changed then go back to the first mode
+                    if "filter" in modes[mode_index] and modes[mode_index]["filter"] not in filter_query:
+                        mode_index = 0
+                    # elif "filter" in modes[mode_index] and modes[mode_index]["filter"] in filter_query:
+                    #     filter_query.split(modes[mode_index]["filter"])
 
-                        prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
-                        indexed_items = filter_items(items, indexed_items, filter_query)
-                        if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
-                        else: new_index = 0
-                        cursor_pos = new_index
-                        break
-                    elif key == curses.KEY_BACKSPACE or key == "KEY_BACKSPACE":
-                        if cursor == 0:
-                            filter_query = filter_query[:-1]
-                        else:
-                            filter_query = filter_query[:-(cursor+1)] + filter_query[-cursor:]
-                    elif key == curses.KEY_LEFT:
-                        cursor = min(len(filter_query), cursor + 1)
-                    elif key == curses.KEY_RIGHT:
-                        cursor = max(0, cursor - 1)
-                    elif key == curses.KEY_UP:
-                        cursor = max(0, cursor - 1)
-                    elif key == 21 or key == "^U": ## CTRL+U
-                        filter_query = ""
-                        cursor = 0
-                    elif key == 1: ## CTRL+A (beginning)
-                        cursor = len(filter_query)
-                    elif key == 5: ## CTRL+E (end)
-                        cursor = 0
-                    else:
-                        if isinstance(key, int):
-                            try:
-                                val = chr(key) if chr(key).isprintable() else ''
-                            except:
-                                val = ''
-                        else: val = key
-                        if cursor == 0:
-                            filter_query += val
-                        else:
-                            filter_query = filter_query[:-cursor] + val + filter_query[-cursor:]
-                    draw_screen()
+                    prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
+                    indexed_items = filter_items(items, indexed_items, filter_query)
+                    if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
+                    else: new_index = 0
+                    cursor_pos = new_index
+
+
             elif key == ord('/'):
-                search_query = ""
                 draw_screen()
-                cursor = 0
-                usrtxt = ""
-                # stdscr.addstr(curses.LINES - 2, 8, " " * (curses.COLS - 8))  # Clear line
+                usrtxt = f"{search_query} " if search_query else ""
+                usrtxt, return_val = input_field(
+                    stdscr,
+                    usrtxt=usrtxt,
+                    field_name="Search",
+                    x=50,
+                    y=h-3,
+                )
+                if return_val:
+                    search_query = usrtxt
+                    search(search_query)
 
-                curses.noecho()
-                # filter_query = stdscr.getstr(curses.LINES - 2, 58).decode("utf-8")
-                # curses.noecho()
-                # filter_items(filter_query)
-                while True:
-                    # stdscr.addstr(curses.LINES - 2, 58, filter_query.ljust(curses.COLS - 8))
-                    stdscr.addstr(h - 3, 50, f" Search: {usrtxt} ", curses.color_pair(13))
-                    if usrtxt and cursor != 0:
-                        stdscr.addstr(h - 3, 50+len(usrtxt)-cursor+1+len("Search: "), f"{usrtxt[-(cursor)]}", curses.color_pair(13) | curses.A_REVERSE)
-                    else:
-                        stdscr.addstr(h - 3, 50-cursor+len(usrtxt)+1+len("Search: "), f" ", curses.color_pair(13) | curses.A_REVERSE)
-                    # stdscr.refresh()
-                    key = stdscr.getch()
-                    if key == 27:  # ESC key
-                        usrtxt = ""
-                        draw_screen()
-                        break
-                    elif key == 10:  # Enter key
-                        search_query = usrtxt
-                        search(usrtxt.strip())
-                        break
-                    elif key == curses.KEY_BACKSPACE or key == "KEY_BACKSPACE":
-                        if cursor == 0:
-                            usrtxt = usrtxt[:-1]
-                        else:
-                            usrtxt = usrtxt[:-(cursor+1)] + usrtxt[-cursor:]
-                    elif key == curses.KEY_LEFT:
-                        cursor = min(len(usrtxt), cursor + 1)
-                    elif key == curses.KEY_RIGHT:
-                        cursor = max(0, cursor - 1)
-                    elif key == curses.KEY_UP:
-                        cursor = max(0, cursor - 1)
-                    elif key == 21 or key == "^U": ## CTRL+U
-                        usrtxt = ""
-                        cursor = 0
-                    elif key == 1: ## CTRL+A (beginning)
-                        cursor = len(usrtxt)
-                    elif key == 5: ## CTRL+E (end)
-                        cursor = 0
-                    else:
-                        if isinstance(key, int):
-                            try:
-                                val = chr(key) if chr(key).isprintable() else ''
-                            except:
-                                val = ''
-                        else: val = key
-                        if cursor == 0:
-                            usrtxt += val
-                        else:
-                            usrtxt = usrtxt[:-cursor] + val + usrtxt[-cursor:]
-                    draw_screen()
             elif key == ord('i'):
                 search(search_query.strip(), continue_search=True)
             elif key == ord('I'):
@@ -1806,7 +1544,16 @@ def list_picker(
                     continue
                 draw_screen()
             elif key == ord(':'):
-                append_additional_text('')
+                usrtxt = f"{user_opts} " if user_opts else ""
+                usrtxt, return_val = input_field(
+                    stdscr,
+                    usrtxt=usrtxt,
+                    field_name="Opts",
+                    x=50,
+                    y=h-1,
+                )
+                if return_val:
+                    user_opts = usrtxt
             elif key == ord('o'):
                 open_submenu(stdscr)
             elif key == ord('z'):
@@ -1843,7 +1590,25 @@ def list_picker(
                         else: new_index = 0
                         cursor_pos = new_index
             elif key == ord('|'):
-                pipe_to_command()
+                usrtxt = "xargs -d '\n' -I{}  "
+                usrtxt, return_val = input_field(
+                    stdscr,
+                    usrtxt=usrtxt,
+                    field_name="Command",
+                    x=50,
+                    y=h-2,
+                    literal=True,
+                )
+                if return_val:
+                    selected_indices = print_selected_indices()
+                    if not selected_indices:
+                        selected_indices = [indexed_items[cursor_pos][0]]
+                    full_values = [format_row_full(items[i], hidden_columns) for i in selected_indices]  # Use format_row_full for full data
+                    if full_values:
+                        # os.system("notify-send " + "'" + '\t'.join(full_values).replace("'", "*") + "'")
+                        process = subprocess.Popen(usrtxt, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        process.communicate(input='\n'.join(full_values).encode('utf-8'))
+
             elif key == ord("\\"):
                 user_opts = ""
             elif key == ord(']'):

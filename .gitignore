@@ -1,2 +1,4 @@
 aria2tui.toml
 data_stuff.py
+*.pyc
+__pycache__/
