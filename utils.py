@@ -100,3 +100,12 @@ def convert_percentage_to_ascii_bar(p, chars=8):
     notdone = "▒"
     return done * int(p / 100 * chars) + (chars-(int(p / 100 * chars)))*notdone
     return "[" + "=" * int(p / 100 * chars) + ">" + " " * (chars - int(p / 100 * chars) - 1) + "]"
+
+
+def get_selected_indices(indexed_items, selections):
+    selected_indices = [x[0] for x in indexed_items if selections[x[0]]]
+    return selected_indices
+
+def get_selected_values(items, indexed_items, selections):
+    selected_values = [items[x][0] for x in get_selected_indices(indexed_items, selections)]
+    return selected_values

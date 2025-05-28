@@ -1,6 +1,6 @@
 import curses
 import re
-from list_picker_colours import get_colours, help_colours
+from list_picker_colours import get_colours, help_colours, notification_colours
 import pyperclip
 import os
 import subprocess
@@ -13,6 +13,7 @@ from sorting import *
 from filtering import *
 from data_stuff import test_items, test_highlights, test_header
 from input_field import *
+from clipboard_operations import *
 from searching import search
 from help_screen import help_lines
 
@@ -103,10 +104,12 @@ from help_screen import help_lines
     - sort
     - visual selection
  - redo help
- - allow key remappings; have a dictionary to remap
+ - (!!!) allow key remappings; have a dictionary to remap
  - add indexed
+ - restrict functionality of notification list_picker
+ - why does curses crash when writing to the final char on the final line?
 
-COPY:
+(!!!) COPY:
 
     copy IDs of selected rows (currently 'y')
     copy selected rows, visible values of visible cols (currently 'Y')
@@ -139,7 +142,7 @@ DONE
 - fix problems with empty lists both [] and [[],[]] 
  - fix issue where item when filtering the cursor goes to a nonexistent item
  - add unselectable_indices support for filtered rows and visual selection
- - allow a keyword match for colors in columns (error, completed)
+ - allow a keyword match for colours in columns (error, completed)
  - fix time sort
  - add colour highlighting for search and filter
  - fix highlights when columns are shortened
@@ -181,7 +184,7 @@ def list_picker(
         stdscr, 
         items,
         cursor_pos=0,
-        colors=None,
+        colours=None,
         max_selected=None,
         top_gap=1,
         title="",
@@ -226,12 +229,17 @@ def list_picker(
         display_modes=False,
         require_option=[],
         disabled_keys=[],
+
+        show_footer=True,
+        colours_start=0,
+        colours_end=-1,
+        key_remappings = {},
 ):
     """
     A simple list picker using ncurses.
     Args:
         items (list of lists): A list of rows to be displayed in the list picker.
-        colors (dict, optional): A dictionary mapping indices to color pairs. Defaults to None.
+        colours (dict, optional): A dictionary mapping indices to color pairs. Defaults to None.
         max_selected (int, optional): The maximum number of items that can be selected. Defaults to None.
         top_gap (int, optional): The number of lines to leave at the top of the screen. Defaults to 1.
         header (str, optional): A string to display as a header above the list picker. Defaults to None.
@@ -283,8 +291,30 @@ def list_picker(
 
         draw_screen()
 
+    def set_colours(colours, start=0):
+        curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
+        curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
+        curses.init_pair(start+3, colours['normal_fg'], colours['background'])
+        curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
+        curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
+        curses.init_pair(start+6, colours['normal_fg'], colours['background'])
+        curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
+        curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
+        curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
+        curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
+        curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
+        curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
+        curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
+        curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
+        curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
+        curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
+        curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
+        curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
+        curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
+        return start+19
+
     def draw_screen(clear=True):
-        nonlocal filter_query, search_query, search_count, search_index, highlights, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap
+        nonlocal filter_query, search_query, search_count, search_index, highlights, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer
 
         if clear:
             # stdscr.clear()
@@ -309,12 +339,12 @@ def list_picker(
         top_space = top_gap
         # Display title (if applicable)
         if title:
-            stdscr.addstr(top_gap, 0, f"{' ':^{w}}", curses.color_pair(17))
+            stdscr.addstr(top_gap, 0, f"{' ':^{w}}", curses.color_pair(colours_start+17))
             title_x = (w-wcswidth(title))//2
             # title = f"{title:^{w}}"
-            stdscr.addstr(top_gap, title_x, title, curses.color_pair(16) | curses.A_BOLD)
+            stdscr.addstr(top_gap, title_x, title, curses.color_pair(colours_start+16) | curses.A_BOLD)
             top_space += 1
-        if display_modes:
+        if display_modes and modes not in [[{}], []]:
             stdscr.addstr(top_space, 0, ' '*w, curses.A_REVERSE)
             modes_list = [f"{mode['name']}" if 'name' in mode else f"{i}. " for i, mode in enumerate(modes)]
             # mode_colours = [mode["colour"] for mode ]
@@ -328,10 +358,10 @@ def list_picker(
                     mode_str = f"{mode:^{mode_widths[i]+split_space}}"
                 # current mode
                 if i == mode_index:
-                    stdscr.addstr(top_space, xmode, mode_str, curses.color_pair(14) | curses.A_BOLD)
+                    stdscr.addstr(top_space, xmode, mode_str, curses.color_pair(colours_start+14) | curses.A_BOLD)
                 # other modes
                 else:
-                    stdscr.addstr(top_space, xmode, mode_str, curses.color_pair(15) | curses.A_UNDERLINE)
+                    stdscr.addstr(top_space, xmode, mode_str, curses.color_pair(colours_start+15) | curses.A_UNDERLINE)
                 xmode += split_space+mode_widths[i]
             top_space += 1
 
@@ -341,7 +371,7 @@ def list_picker(
         # Display header
         if header:
             # header_str = format_row(header)
-            # stdscr.addstr(top_gap, 0, header_str, curses.color_pair(3))
+            # stdscr.addstr(top_gap, 0, header_str, curses.color_pair(colours_start+3))
             column_widths = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
             # header_str = ' '.join(f"{i+1}. {header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
             header_str = ""
@@ -357,15 +387,14 @@ def list_picker(
                 header_str += " "
             # header_str = ' '.join(f"{i}. " if number_columns else "" + f"{header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
             # header_str = format_row([f"{i+1}. {col}" for i, col in enumerate(header)])
-            stdscr.addstr(top_space, 0, header_str[:w], curses.color_pair(4))
+            stdscr.addstr(top_space, 0, header_str[:w], curses.color_pair(colours_start+4))
             if sort_column != None and sort_column not in hidden_columns and len(up_to_selected_col) < w: 
                 number = f"{sort_column}. " if number_columns else ""
                 number = f"{intStringToExponentString(sort_column)}. " if number_columns else ""
-                stdscr.addstr(top_space, len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)], curses.color_pair(19) | curses.A_BOLD)
+                stdscr.addstr(top_space, len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)], curses.color_pair(colours_start+19) | curses.A_BOLD)
 
-            # stdscr.addstr(top_gap + 1, 0, '-' * len(header_str), curses.color_pair(3))
-            # stdscr.addstr(top_gap, 0, header_str[:w], curses.color_pair(4) | curses.A_BOLD)
-        stdscr.addstr(h-4, 0, ' '*w, curses.color_pair(2) | curses.A_UNDERLINE)
+            # stdscr.addstr(top_gap + 1, 0, '-' * len(header_str), curses.color_pair(colours_start+3))
+            # stdscr.addstr(top_gap, 0, header_str[:w], curses.color_pair(colours_start+4) | curses.A_BOLD)
 
 
         # Display items
@@ -376,26 +405,26 @@ def list_picker(
 
             # Set colour based on state of item (e.g., selected, unselected)
             if idx == cursor_pos:
-                color_pair = curses.color_pair(5) | curses.A_BOLD  # Selected item
+                color_pair = curses.color_pair(colours_start+5) | curses.A_BOLD  # Selected item
             else:
-                color_pair = curses.color_pair(2)  # Unselected item
+                color_pair = curses.color_pair(colours_start+2)  # Unselected item
                 if selections[item[0]]:
-                    color_pair = curses.color_pair(1)  # Selected item
+                    color_pair = curses.color_pair(colours_start+1)  # Selected item
                 if is_selecting and item[0] == start_selection:
-                    color_pair = curses.color_pair(1)  # Selected item
+                    color_pair = curses.color_pair(colours_start+1)  # Selected item
                 ## is_selecting and cursor is above start_selection and entryinforloop between start_line and cursor
                 elif is_selecting and idx <= cursor_pos and idx >= start_selection:
-                    color_pair = curses.color_pair(1)  # Selected item
+                    color_pair = curses.color_pair(colours_start+1)  # Selected item
                 elif is_selecting and idx >= cursor_pos and idx <= start_selection:
-                    color_pair = curses.color_pair(1)  # Selected item
+                    color_pair = curses.color_pair(colours_start+1)  # Selected item
                 elif is_deselecting and idx <= cursor_pos and idx >= start_selection:
-                    color_pair = curses.color_pair(2)  # Selected item
+                    color_pair = curses.color_pair(colours_start+2)  # Selected item
                 # elif is_deselecting and cursor_pos <= start_selection and idx >= current_pos and idx <= start_selection:
                 elif is_deselecting and idx >=cursor_pos and idx <= start_selection:
-                    color_pair = curses.color_pair(2)  # Selected item
+                    color_pair = curses.color_pair(colours_start+2)  # Selected item
 
                 # else:
-                #     color_pair = curses.color_pair(2)  # Unselected item
+                #     color_pair = curses.color_pair(colours_start+2)  # Unselected item
 
             stdscr.attron(color_pair)
 
@@ -412,7 +441,7 @@ def list_picker(
             indicator = '[X]' if selections[item[0]] else '[ ]'
             indicator = ""
             try:
-                # stdscr.addstr(y, x + len(row_str), indicator, curses.color_pair(1) | curses.A_BOLD)
+                # stdscr.addstr(y, x + len(row_str), indicator, curses.color_pair(colours_start+1) | curses.A_BOLD)
                 pass
             except curses.error:
                 pass  # Handle errors due to cursor position issues
@@ -441,9 +470,9 @@ def list_picker(
                         highlight_end = match.end() + field_start
                     else:
                         continue
-                    color_pair = curses.color_pair(highlight["color"])  # Selected item
+                    color_pair = curses.color_pair(colours_start+highlight["color"])  # Selected item
                     if idx == cursor_pos:
-                        color_pair = curses.color_pair(highlight["color"])  | curses.A_REVERSE
+                        color_pair = curses.color_pair(colours_start+highlight["color"])  | curses.A_REVERSE
                     stdscr.attron(color_pair)
                     # highlight_start = row_str.index(highlight["match"])
                     # highlight_end = highlight_start + len(highlight["match"])
@@ -462,52 +491,57 @@ def list_picker(
         ## Display scrollbar
         if scroll_bar and len(indexed_items) and len(indexed_items) > (items_per_page):
             scroll_bar_length = int(items_per_page*items_per_page/len(indexed_items))
-            if cursor_pos <= items_per_page//2: scroll_bar_start=top_space+1
-            elif cursor_pos + items_per_page//2 >= len(indexed_items): scroll_bar_start = h - 3 - scroll_bar_length
-            else: scroll_bar_start = int(((cursor_pos)/len(indexed_items))*items_per_page)+top_space+1 - scroll_bar_length//2
+            if cursor_pos <= items_per_page//2:
+                scroll_bar_start=top_space+int(bool(header))
+            elif cursor_pos + items_per_page//2 >= len(indexed_items):
+                scroll_bar_start = h - int(bool(show_footer))*3 - scroll_bar_length
+            else:
+                scroll_bar_start = int(((cursor_pos)/len(indexed_items))*items_per_page)+top_space-int(bool(header)) - scroll_bar_length//2
+            scroll_bar_length = min(scroll_bar_length, h - scroll_bar_start-1)
             for i in range(scroll_bar_length):
                 v = max(top_space+int(bool(header)), scroll_bar_start-scroll_bar_length//2)
-                stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(18))
+                stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(colours_start+18))
 
         # Display page number and count
-        # stdscr.addstr(h - 3, 0, f"Page {current_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}", curses.color_pair(4))
+        # stdscr.addstr(h - 3, 0, f"Page {current_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}", curses.color_pair(colours_start+4))
 
-        # Display sort information
-        sort_column_info = f"Column: {sort_column if sort_column is not None else 'None'}"
-        sort_method_info = f"Method: {SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else f"Method: NA"
-        sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
-        sort_column_info = f"{sort_column if sort_column is not None else 'None'}"
-        sort_method_info = f"{SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else "NA"
-        sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
-        # stdscr.addstr(h - 3, 0, f" Sort: {sort_column_info} | {sort_method_info} | {sort_order_info} ", curses.color_pair(4))
-        stdscr.addstr(h - 3, 0, f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) ", curses.color_pair(4))
-        # Display selection count
-        selected_count = sum(selections.values())
-        
-        # stdscr.addstr(h - 1, 0, f"Selected items: {selected_count}", curses.color_pair(3))
-        # stdscr.addstr(h - 4, 0, f"Selected items: {selected_count}/{len(indexed_items)}", curses.color_pair(3))
-        if paginate:
-            stdscr.addstr(h - 2, 0, f" {cursor_pos+1}/{len(indexed_items)}  Page {cursor_pos//items_per_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}  Selected {selected_count} ", curses.color_pair(4))
-        else:
-            stdscr.addstr(h - 2, 0, f" {cursor_pos+1}/{len(indexed_items)}  |  Selected {selected_count} ", curses.color_pair(4))
+        if show_footer:
+            # Display sort information
+            sort_column_info = f"Column: {sort_column if sort_column is not None else 'None'}"
+            sort_method_info = f"Method: {SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else f"Method: NA"
+            sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
+            sort_column_info = f"{sort_column if sort_column is not None else 'None'}"
+            sort_method_info = f"{SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else "NA"
+            sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
+            # stdscr.addstr(h - 3, 0, f" Sort: {sort_column_info} | {sort_method_info} | {sort_order_info} ", curses.color_pair(colours_start+4))
+            stdscr.addstr(h - 3, 0, f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) ", curses.color_pair(colours_start+4))
+            # Display selection count
+            selected_count = sum(selections.values())
+            
+            # stdscr.addstr(h - 1, 0, f"Selected items: {selected_count}", curses.color_pair(colours_start+3))
+            # stdscr.addstr(h - 4, 0, f"Selected items: {selected_count}/{len(indexed_items)}", curses.color_pair(colours_start+3))
+            if paginate:
+                stdscr.addstr(h - 2, 0, f" {cursor_pos+1}/{len(indexed_items)}  Page {cursor_pos//items_per_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}  Selected {selected_count} ", curses.color_pair(colours_start+4))
+            else:
+                stdscr.addstr(h - 2, 0, f" {cursor_pos+1}/{len(indexed_items)}  |  Selected {selected_count} ", curses.color_pair(colours_start+4))
 
-        select_mode = "Cursor"
-        if is_selecting: select_mode = "Visual Selection"
-        elif is_deselecting: select_mode = "Visual deselection"
+            select_mode = "Cursor"
+            if is_selecting: select_mode = "Visual Selection"
+            elif is_deselecting: select_mode = "Visual deselection"
 
-        # stdscr.addstr(h - 1, 0, f" {select_mode} {int(bool(key_chain))*'    '}", curses.color_pair(4))
-        # stdscr.addstr(h - 1, 0, f" {select_mode} ", curses.color_pair(4))
+        # stdscr.addstr(h - 1, 0, f" {select_mode} {int(bool(key_chain))*'    '}", curses.color_pair(colours_start+4))
+        # stdscr.addstr(h - 1, 0, f" {select_mode} ", curses.color_pair(colours_start+4))
 
         try:
             if filter_query:
-                stdscr.addstr(h - 2, 50, f" Filter: {filter_query} ", curses.color_pair(4))  # Display filter query
+                stdscr.addstr(h - 2, 50, f" Filter: {filter_query} ", curses.color_pair(colours_start+4))  # Display filter query
             if search_query:
-                stdscr.addstr(h - 3, 50, f" Search: {search_query} [{search_index}/{search_count}] ", curses.color_pair(4))  # Display filter query
+                stdscr.addstr(h - 3, 50, f" Search: {search_query} [{search_index}/{search_count}] ", curses.color_pair(colours_start+4))  # Display filter query
         except:
             pass
         try:
             if user_opts:
-                stdscr.addstr(h-1, 50, f" Opts: {user_opts} ", curses.color_pair(4))  # Display additional text
+                stdscr.addstr(h-1, 50, f" Opts: {user_opts} ", curses.color_pair(colours_start+4))  # Display additional text
         except: pass
 
         stdscr.refresh()
@@ -537,39 +571,21 @@ def list_picker(
     top_space = top_gap
     if title: top_space+=1
     if display_modes: top_space+=1
-    DEFAULT_ITEMS_PER_PAGE = h - top_space*2-2-int(bool(header))
-    HELP_LINES_PER_PAGE = h - top_space*2-2-int(bool(header))
+    DEFAULT_ITEMS_PER_PAGE = h - top_space-int(bool(header)) - 3*int(bool(show_footer))
+    HELP_LINES_PER_PAGE = h - top_space*2-2-int(bool(header)) - 3*int(bool(show_footer))
     state_variables = {}
     SORT_METHODS = ['original', 'lexical', 'LEXICAL', 'alphanum', 'ALPHANUM', 'time', 'numerical', 'size']
     
 
-    # Initialize colors
+    # Initialize colours
     # Check if terminal supports color
-    if curses.has_colors() and colors != None:
+    if curses.has_colors() and colours != None:
         # raise Exception("Terminal does not support color")
         curses.start_color()
-        curses.init_pair(1, colors['selected_fg'], colors['selected_bg'])
-        curses.init_pair(2, colors['unselected_fg'], colors['unselected_bg'])
-        curses.init_pair(3, colors['normal_fg'], colors['background'])
-        curses.init_pair(4, colors['header_fg'], colors['header_bg'])
-        curses.init_pair(5, colors['cursor_fg'], colors['cursor_bg'])
-        curses.init_pair(6, colors['normal_fg'], colors['background'])
-        curses.init_pair(7, colors['error_fg'], colors['error_bg'])
-        curses.init_pair(8, colors['complete_fg'], colors['complete_bg'])
-        curses.init_pair(9, colors['active_fg'], colors['active_bg'])
-        curses.init_pair(10, colors['search_fg'], colors['search_bg'])
-        curses.init_pair(11, colors['waiting_fg'], colors['waiting_bg'])
-        curses.init_pair(12, colors['paused_fg'], colors['paused_bg'])
-        curses.init_pair(13, colors['active_input_fg'], colors['active_input_bg'])
-        curses.init_pair(14, colors['modes_selected_fg'], colors['modes_selected_bg'])
-        curses.init_pair(15, colors['modes_unselected_fg'], colors['modes_unselected_bg'])
-        curses.init_pair(16, colors['title_fg'], colors['title_bg'])
-        curses.init_pair(17, colors['normal_fg'], colors['title_bar'])
-        curses.init_pair(18, colors['normal_fg'], colors['scroll_bar_bg'])
-        curses.init_pair(19, colors['selected_header_column_fg'], colors['selected_header_column_bg'])
+        colours_end = set_colours(colours, start=colours_start)
 
     # Set terminal background color
-    stdscr.bkgd(' ', curses.color_pair(3))  # Apply background color
+    stdscr.bkgd(' ', curses.color_pair(colours_start+3))  # Apply background color
 
     # Initial states
     if len(selections) != len(items):
@@ -648,60 +664,12 @@ def list_picker(
             "scroll_bar":           scroll_bar,
             "columns_sort_method":  columns_sort_method,
             "disabled_keys":        disabled_keys,
+            "show_footer":          show_footer,
         }
         return function_data
 
 
-    # Function to print the list of selected indices
-    def print_selected_indices():
-        selected_indices = [x[0] for x in indexed_items if selections[x[0]]]
-        return selected_indices
 
-    # Function to print the list of selected values
-    def print_selected_values():
-        selected_values = [items[x][0] for x in print_selected_indices()]
-        return selected_values
-
-    # Function to copy selected indices to clipboard
-    def copy_indices():
-        indices = print_selected_indices()
-        pyperclip.copy(', '.join(map(str, indices)))
-
-    # Function to copy selected values to clipboard
-    def copy_values():
-        values = print_selected_values()
-        formatted_values = [format_row(item[1], hidden_columns, column_widths, separator) for item in indexed_items if item[0] in print_selected_indices()]
-        pyperclip.copy('\n'.join(formatted_values))
-
-    # Function to copy full values of selected entries to clipboard
-    def copy_full_values():
-        selected_indices = print_selected_indices()
-        full_values = [format_row_full(items[i], hidden_columns) for i in selected_indices]  # Use format_row_full for full data
-        pyperclip.copy('\n'.join(full_values))
-
-    def copy_all_to_clipboard():
-        formatted_items = [[x for i, x in enumerate(item) if i not in hidden_columns] for item in items]
-        pyperclip.copy(repr(formatted_items))
-        stdscr.addstr(h - 2, 50, f"{len(formatted_items)}R,{len(formatted_items[0])}C list copied to clipboard", curses.color_pair(6))
-        stdscr.refresh()
-        stdscr.getch()  # Wait for user input to clear the message
-
-    def copy_selected_rows_to_clipboard():
-        formatted_items = [[x for i, x in enumerate(item)] for j, item in enumerate(items) if selections[j]]  # Convert to Python list representation
-
-        pyperclip.copy(repr(formatted_items))
-        # stdscr.addstr(h - 2, 50, "Items copied to clipboard", curses.color_pair(6))
-        stdscr.addstr(h - 2, 50, f"{len(formatted_items)}R,{len(formatted_items[0])}C list copied to clipboard", curses.color_pair(6))
-        stdscr.refresh()
-        stdscr.getch()  # Wait for user input to clear the message
-
-    def copy_selected_visible_rows_to_clipboard():
-        formatted_items = [[x for i, x in enumerate(item) if i not in hidden_columns] for j, item in enumerate(items) if selections[j]]  # Convert to Python list representation
-
-        pyperclip.copy(repr(formatted_items))
-        # stdscr.addstr(h - 2, 50, f"{len(formatted_items)}R,{len(formatted_items[0])}C list copied to clipboard", curses.color_pair(6))
-        stdscr.refresh()
-        stdscr.getch()  # Wait for user input to clear the message
 
     def delete_entries():
         nonlocal indexed_items, selections, items
@@ -744,7 +712,7 @@ def list_picker(
                     submenu_win.addstr(i - start + 1, 2, f"  {submenu_items[i]}")
 
             # Show page numbers
-            submenu_win.addstr(4, 40, f"Page {submenu_page + 1}/{total_pages_submenu}", curses.color_pair(7))
+            submenu_win.addstr(4, 40, f"Page {submenu_page + 1}/{total_pages_submenu}", curses.color_pair(colours_start+7))
             submenu_win.refresh()
 
             key = submenu_win.getch()
@@ -783,15 +751,52 @@ def list_picker(
                 break
 
     def notification(stdscr, message="", duration=4):
-        message = "hello there how are you today? you absolute orange chunkmuffin of a nignog"
-        nonlocal user_opts
+        notification_width, notification_height = 50, 7
+        message_width = notification_width-5
+
+        if not message: message = "!!"
+        submenu_items = ["  "+message[i*message_width:(i+1)*message_width] for i in range(len(message)//message_width+1)]
+
+        notification_remap_keys = { 
+            curses.KEY_RESIZE: curses.KEY_F5,
+            27: ord('q')
+        }
+        while True:
+            h, w = stdscr.getmaxyx()
+
+            submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
+            s, o, f = list_picker(
+                submenu_win,
+                submenu_items,
+                colours=notification_colours,
+                title="Notification",
+                show_footer=False,
+                colours_start=colours_end+1,
+                disabled_keys=[ord('z'), ord('c')],
+                top_gap=0,
+                # scroll_bar=False,
+                key_remappings = notification_remap_keys,
+            )
+            if o != "refresh": break
+            submenu_win.clear()
+            submenu_win.refresh()
+            del submenu_win
+            stdscr.clear()
+            stdscr.refresh()
+            draw_screen()
+
+    def notification2(stdscr, message="", duration=4):
+
+        notification_width, notification_height = 50, 7
+        message_width = notification_width-8
+
         h, w = stdscr.getmaxyx()
-        submenu_win = curses.newwin(6, 40, 3, w - 44)
-        submenu_win.box()
-        submenu_win.addstr(0, 2, "Select an option", curses.A_BOLD)
-        message_width = 32
+
+        submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
+
+        if not message: message = "!!"
         submenu_items = [message[i*message_width:(i+1)*message_width] for i in range(len(message)//message_width+1)]
-        # submenu_items = ["green", "blue", "red", "purple", "orange", "gray"]
+
         current_submenu_row = 0
         submenu_page = 0
         items_per_page_submenu = 3
@@ -800,31 +805,33 @@ def list_picker(
         while True:
             submenu_win.clear()
             submenu_win.box()
-            # submenu_win.bkgd(curses.color_pair((1)))
-            submenu_win.addstr(0, 2, "Notification:", curses.color_pair(5) | curses.A_BOLD)
-            submenu_win.addstr(5, 2, "ESC, RET, q to dismiss", curses.color_pair(5) | curses.A_BOLD)
-            start = submenu_page * items_per_page_submenu
-            end = min(start + items_per_page_submenu, len(submenu_items))
+            # submenu_win.bkgd(curses.color_pair(colours_start+(1)))
+            submenu_win.addstr(0, 2, "Notification:", curses.color_pair(colours_start+5) | curses.A_BOLD)
+            submenu_win.addstr(notification_height-1, 2, "ESC, RET, q to dismiss", curses.color_pair(colours_start+5) | curses.A_BOLD)
+            start = max(min(current_submenu_row, len(submenu_items)-items_per_page_submenu), 0)
+            end = min(current_submenu_row+items_per_page_submenu, len(submenu_items)-1)
 
             for i in range(start, end):
                 if i == start + current_submenu_row or True == True:
-                    submenu_win.addstr(i - start + 1, 2, f"{submenu_items[i]}", curses.A_REVERSE)
+                    submenu_win.addstr(i - start + 2, 2, f"{submenu_items[i]}", curses.A_REVERSE)
                 else:
-                    submenu_win.addstr(i - start + 1, 2, f"  {submenu_items[i]}")
+                    submenu_win.addstr(i - start + 2, 2, f"  {submenu_items[i]}")
 
             # Show page numbers
-            submenu_win.addstr(5, 30, f"Page {submenu_page + 1}/{total_pages_submenu}", curses.color_pair(4))
+            # submenu_win.addstr(notification_height-1, notification_width-10, f"Page {submenu_page + 1}/{total_pages_submenu}", curses.color_pair(colours_start+4))
+            submenu_win.addstr(notification_height-1, notification_width-10, f"Row {current_submenu_row + 1}/{len(submenu_items)}", curses.color_pair(colours_start+4))
             submenu_win.refresh()
 
 
             key = submenu_win.getch()
 
             if key == ord('j'):
-                if current_submenu_row < min(items_per_page_submenu - 1, len(submenu_items) - start - 1):
-                    current_submenu_row += 1
-                elif submenu_page < total_pages_submenu - 1:
-                    submenu_page += 1
-                    current_submenu_row = 0
+                current_submenu_row = min(current_submenu_row+1, len(submenu_items)-1)
+                # if current_submenu_row < min(items_per_page_submenu - 1, len(submenu_items) - start - 1):
+                #     current_submenu_row += 1
+                # elif submenu_page < total_pages_submenu - 1:
+                #     submenu_page += 1
+                #     current_submenu_row = 0
 
             elif key == ord('k'):
                 if current_submenu_row > 0:
@@ -842,8 +849,22 @@ def list_picker(
                 if submenu_page > 0:
                     submenu_page -= 1
 
-            if key in [10, 27, ord('q')]:  # Enter, escape or q
+            elif key in [10, 27, ord('q')]:  # Enter, escape or q
                 break
+            elif key == curses.KEY_RESIZE:  # Terminal resize signal
+                submenu_win.clear()
+                submenu_win.refresh()
+                del submenu_win
+                h, w = stdscr.getmaxyx()
+                stdscr.clear()
+                stdscr.refresh()
+                draw_screen()
+                submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
+                # h, w = stdscr.getmaxyx()
+                # top_space = top_gap
+                # if title: top_space+=1
+                # if display_modes: top_space+=1
+                # items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
     
     def toggle_column_visibility(col_index):
         if 0 <= col_index < len(items[0]):
@@ -945,8 +966,38 @@ def list_picker(
             end_selection = None
             is_deselecting = False
             draw_screen()
+    def cursor_down():
+        # Returns: whether page is turned
+        nonlocal cursor_pos
+        new_pos = cursor_pos + 1
+        while True:
+            if new_pos >= len(indexed_items): return False
+            if indexed_items[new_pos][0] in unselectable_indices: new_pos+=1
+            else: break
+        cursor_pos = new_pos
+        return True
+
+    def cursor_up():
+        # Returns: whether page is turned
+        nonlocal cursor_pos
+        new_pos = cursor_pos - 1
+        while True:
+            if new_pos < 0: return False
+            elif new_pos in unselectable_indices: new_pos -= 1
+            else: break
+        cursor_pos = new_pos
+        return True
 
     draw_screen()
+    def remapped_key(key, val, key_remappings):
+        """
+        if key has been remapped to val in key_remappings
+        """
+        if key in key_remappings:
+            if key_remappings[key] == val or (isinstance(key_remappings[key], list) and val in key_remappings[key]):
+                return True
+        return False
+
     # Main loop
     
     while True:
@@ -958,7 +1009,7 @@ def list_picker(
         # os.system(f"notify-send 'Timer {timer}'")
         # if timer:
             # os.system(f"notify-send '{time.time() - initial_time}, {timer} {bool(timer)}, {time.time() - initial_time > timer}'")
-        if (timer and (time.time() - initial_time) > timer):
+        if key == curses.KEY_F5 or remapped_key(key, curses.KEY_F5, key_remappings) or (timer and (time.time() - initial_time) > timer):
             stdscr.clear()
             if get_new_data and refresh_function:
                 # f = refresh_function[0]
@@ -967,47 +1018,25 @@ def list_picker(
                 # items = f(*args, **kwargs)
                 items, header = refresh_function()
 
-
-            
             function_data = get_function_data()
             return [], "refresh", function_data
 
-        def cursor_down():
-            # Returns: whether page is turned
-            nonlocal cursor_pos
-            new_pos = cursor_pos + 1
-            while True:
-                if new_pos >= len(indexed_items): return False
-                if indexed_items[new_pos][0] in unselectable_indices: new_pos+=1
-                else: break
-            cursor_pos = new_pos
-            return True
-
-        def cursor_up():
-            # Returns: whether page is turned
-            nonlocal cursor_pos
-            new_pos = cursor_pos - 1
-            while True:
-                if new_pos < 0: return False
-                elif new_pos in unselectable_indices: new_pos -= 1
-                else: break
-            cursor_pos = new_pos
-            return True
         clear_screen=True
-        if key == ord('?'):
+        if key == ord('?') or remapped_key(key, ord('?'), key_remappings):
             stdscr.clear()
             stdscr.refresh()
             list_picker(
                 stdscr,
                 items = help_lines,
-                colors=help_colours,
+                colours=help_colours,
                 max_selected=1,
                 top_gap=0,
                 title=f"{title} Help",
-                disabled_keys=[ord('?'), ord('v'), ord('V'), ord('m'), ord('M'), ord('l'), curses.KEY_ENTER, ord('\n')]
+                disabled_keys=[ord('?'), ord('v'), ord('V'), ord('m'), ord('M'), ord('l'), curses.KEY_ENTER, ord('\n')],
+                colours_start=colours_end+1,
             )
 
-        elif key in [ord('q'), ord('h')]:
+        elif key in [ord('q'), ord('h')]  or remapped_key(key, ord('q'), key_remappings):
             stdscr.clear()
             function_data = get_function_data()
             return [], "", function_data
@@ -1094,7 +1123,7 @@ def list_picker(
             if len(indexed_items) == 0:
                 function_data = get_function_data()
                 return [], "", function_data
-            selected_indices = print_selected_indices()
+            selected_indices = get_selected_indices(indexed_items, selections)
             if not selected_indices:
                 selected_indices = [indexed_items[cursor_pos][0]]
             
@@ -1153,17 +1182,19 @@ def list_picker(
             d = {s:i for i,s in enumerate(")!@#$%^&*(")}
             col_index = d[chr(key)]
             toggle_column_visibility(col_index)
-        # elif key == ord('i'):  # Copy selected indices to clipboard
-        #     copy_indices()
         elif key == ord('Y'):  # Copy (visible) selected values to clipboard
-            copy_values()
+            copy_values(indexed_items, selections, hidden_columns, column_widths, separator)
+            notification(stdscr, f"{sum(selections.values())} full rows copied to clipboard")
         elif key == ord('y'):  # Copy full values of selected entries to clipboard
-            copy_full_values()
+            copy_full_values(indexed_items, selections, hidden_columns)
+            notification(stdscr, f"{sum(selections.values())} full rows copied to clipboard")
         elif key == ord('c'):
-            copy_selected_visible_rows_to_clipboard()
+            copy_selected_visible_rows_to_clipboard(items, selections, hidden_columns)
+            notification(stdscr, f"{sum(selections.values())} visible rows copied to clipboard")
         elif key == ord('C'):
             # copy_items_to_clipboard()
-            copy_selected_rows_to_clipboard()
+            copy_selected_rows_to_clipboard(items, selections)
+            notification(stdscr, f"{sum(selections.values())} full rows copied to clipboard")
         elif key == curses.KEY_DC:  # Delete key
             delete_entries()
         elif key == ord('+'):  # Increase lines per page
@@ -1191,6 +1222,9 @@ def list_picker(
             if title: top_space+=1
             if display_modes: top_space+=1
             items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
+            h, w = stdscr.getmaxyx()
+            items_per_page = h - top_space-int(bool(header)) - 3*int(bool(show_footer))
+
 
         elif key == ord('r'):
             # Refresh
@@ -1198,6 +1232,8 @@ def list_picker(
             if title: top_space+=1
             if display_modes: top_space+=1
             items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
+            h, w = stdscr.getmaxyx()
+            items_per_page = h - top_space-int(bool(header)) - 3*int(bool(show_footer))
             stdscr.refresh()
 
         elif key == ord('f'):
@@ -1224,6 +1260,9 @@ def list_picker(
                 if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
                 else: new_index = 0
                 cursor_pos = new_index
+                # Re-sort items after applying filter
+                if columns_sort_method[sort_column] != 0:
+                    sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
 
 
         elif key == ord('/'):
@@ -1299,6 +1338,9 @@ def list_picker(
                 if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
                 else: new_index = 0
                 cursor_pos = new_index
+                # Re-sort items after applying filter
+                if columns_sort_method[sort_column] != 0:
+                    sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
 
             else:
                 search_query = ""
@@ -1337,6 +1379,9 @@ def list_picker(
                     if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
                     else: new_index = 0
                     cursor_pos = new_index
+                    # Re-sort items after applying filter
+                    if columns_sort_method[sort_column] != 0:
+                        sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
         elif key == 353: # shift+tab key
             # apply setting 
             prev_mode_index = mode_index
@@ -1352,6 +1397,9 @@ def list_picker(
                     if prev_index in [x[0] for x in indexed_items]: new_index = [x[0] for x in indexed_items].index(prev_index)
                     else: new_index = 0
                     cursor_pos = new_index
+                    # Re-sort items after applying filter
+                    if columns_sort_method[sort_column] != 0:
+                        sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
         elif key == ord('|'):
             usrtxt = "xargs -d '\n' -I{}  "
             usrtxt, return_val = input_field(
@@ -1363,7 +1411,7 @@ def list_picker(
                 literal=True,
             )
             if return_val:
-                selected_indices = print_selected_indices()
+                selected_indices = get_selected_indices(indexed_items, selections)
                 if not selected_indices:
                     selected_indices = [indexed_items[cursor_pos][0]]
                 full_values = [format_row_full(items[i], hidden_columns) for i in selected_indices]  # Use format_row_full for full data
@@ -1412,7 +1460,7 @@ if __name__ == '__main__':
     function_data = {
         "items" : items,
         "unselectable_indices" : [],
-        "colors": get_colours(0),
+        "colours": get_colours(0),
         "top_gap": 0,
         "max_width": 70,
     }

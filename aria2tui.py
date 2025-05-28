@@ -77,11 +77,21 @@ todo
  - add source column, showing site from which it is being downloaded
  - When I change a download to position 4, the user_option 4 will remain in the options going forward
  - (!!!) Download position jumps around when refreshing since changing the sort methods to be column-wise
+    -   might have to do with filtering; 
+    -   when original sort order there is no jumping
+    -   lots of jumping when sorting by size
  - open files (*)
     - open files of the same type in one instance
  - Filter/search problems
     - ^[^\s] matches all rows in help but only highlights the first col
         - seems to match the expression in any col but then only show highlights based on the row_str so misses matches in the second col
+ - make remove work with errored download
+ - ForceRemove doesn't seem to do anything (with stopped download)
+ - retry download doesn't seem to do anything 
+ - artifacts after opening download location in terminal; have to refresh before and after?
+ - colour problems:
+    - aria2tui > view downloads > 'q' > 'z' 
+        -   REASON: initial menu has fewer colours
 
 DONE
  - If a download is paused and it is paused again it throws an error when it should just skip it.
@@ -786,7 +796,7 @@ def __getAll():
     # stopped = [["NA"] + row for row in stopped]
     return active + waiting + stopped, wheader
 
-def openDownloadLocation(gid):
+def openDownloadLocation(gid, new_window=True):
     """
 
     """
@@ -804,12 +814,18 @@ def openDownloadLocation(gid):
             loc = val["dir"]
 
         # val = json.loads(response.encode('utf-8'))
-        cmd = f"kitty yazi {repr(loc)}"
-        # subprocess.run(cmd, shell=True)
-        subprocess.Popen(cmd, shell=True)
-        os.system(f"notify-send '{type(val)}'")
-        os.system(f"notify-send '{loc}'")
-        # os.system(f'kitty yazi "{loc}"')
+        if new_window:
+            cmd = f"kitty yazi {repr(loc)}"
+            # subprocess.run(cmd, shell=True)
+            subprocess.Popen(cmd, shell=True)
+            os.system(f"notify-send '{loc}'")
+            # os.system(f'kitty yazi "{loc}"')
+        else:
+            cmd = f"yazi {repr(loc)}"
+            # subprocess.run(cmd, shell=True)
+            subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+            os.system(f"notify-send '{loc}'")
+            # os.system(f'kitty yazi "{loc}"')
 
     except:
         pass
@@ -870,7 +886,8 @@ def begin(config):
                         ["getOption", getOption, {}, {"view":True}],
                         ["getAllInfo", getAllInfo, {}, {"view":True}],
                         # ["changeOption", changeOption, {}, {"view":True}],
-                        ["openDownloadLocation", openDownloadLocation, {}, {}],
+                        ["openDownloadLocation (new window)", openDownloadLocation, {}, {}],
+                        ["openDownloadLocation", lambda gid: openDownloadLocation(gid, new_window=False), {}, {}],
                         ["openFile", openFile, {}, {}],
                     ],
                 }
@@ -976,7 +993,8 @@ def begin(config):
                         ["getOption", getOption, {}, {"view":True}],
                         ["getAllInfo", getAllInfo, {}, {"view":True}],
                         # ["changeOption", changeOption, {}, {"view":True}],
-                        ["openDownloadLocation", openDownloadLocation, {}, {}],
+                        ["openDownloadLocation (new window)", openDownloadLocation, {}, {}],
+                        ["openDownloadLocation", lambda gid: openDownloadLocation(gid, new_window=False), {}, {}],
                         ["openFile", openFile, {}, {}],
                     ],
                 },
@@ -1164,15 +1182,16 @@ def begin(config):
         "highlights": menu_highlights,
         "paginate": paginate,
         "title": app_name,
-        "colors": custom_colors,
+        "colours": custom_colours,
     }
     view_loop_data = {
         "top_gap": 0,
         "highlights": highlights,
         "paginate": paginate,
         "modes": modes,
+        "display_modes": True,
         "title": app_name,
-        "colors": custom_colors,
+        "colours": custom_colours,
         "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1],
         "sort_reverse": [False, False, False, True, True, True, True, True, False, False],
     }
@@ -1181,9 +1200,9 @@ def begin(config):
         "highlights": highlights,
         "paginate": paginate,
         "modes": modes,
-        "title": app_name,
-        "colors": custom_colors,
         "display_modes": True,
+        "title": app_name,
+        "colours": custom_colours,
         "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1],
         "sort_reverse": [False, False, False, True, True, True, True, True, False, False],
     }
@@ -1192,7 +1211,7 @@ def begin(config):
         "highlights": menu_highlights,
         "paginate": paginate,
         "title": app_name,
-        "colors": custom_colors,
+        "colours": custom_colours,
         "require_option": [False if x[0] != "changePosition" else True for x in options[0][1]["operations"]],
     }
     while True:
@@ -1202,9 +1221,6 @@ def begin(config):
             dl_type_list, opts, menu_data = list_picker(
                 stdscr,
                 items=[[func[0]] for func in options],
-                # current_row=cursor_pos_levels[0][0],
-                # current_page=cursor_pos_levels[0][1],
-                # colors=custom_colors,
                 max_selected=1,
                 **menu_data,
             )
@@ -1224,14 +1240,14 @@ def begin(config):
             #     items = [[]]
 
             ## Ensure that the cursor stays on the same download (as ID'd by the gid)
-            # if "indexed_items" in watch_loop_data and len(watch_loop_data["indexed_items"]) != 0 and "cursor_pos" in watch_loop_data:
-            #     curs = watch_loop_data["cursor_pos"]
-            #     indexed_items = watch_loop_data["indexed_items"]
-            #     gid_col = header.index("gid")
-            #     current_index_gid = indexed_items[curs][1][gid_col]
-            #     if current_index_gid in [item[gid_col] for item in items]:
-            #         new_index = [item[gid_col] for item in items].index(current_index_gid)
-            #         watch_loop_data["cursor_pos"] = new_index
+            if "indexed_items" in watch_loop_data and len(watch_loop_data["indexed_items"]) != 0 and "cursor_pos" in watch_loop_data:
+                curs = watch_loop_data["cursor_pos"]
+                indexed_items = watch_loop_data["indexed_items"]
+                gid_col = header.index("gid")
+                current_index_gid = indexed_items[curs][1][gid_col]
+                if current_index_gid in [item[gid_col] for item in items]:
+                    new_index = [item[gid_col] for item in items].index(current_index_gid)
+                    watch_loop_data["cursor_pos"] = new_index
 
             ## Remove old data from dict
             watch_loop_data = {key: val for key, val in watch_loop_data.items() if key not in ["items", "indexed_items"]}
@@ -1248,7 +1264,7 @@ def begin(config):
                 **watch_loop_data,
             )
 
-            # selected_downloads, opts = list_picker(stdscr, items, custom_colors, header=header, timer=2, get_new_data=True, refresh_function=options[dl_type][1]["get_data"])
+            # selected_downloads, opts = list_picker(stdscr, items, custom_colours, header=header, timer=2, get_new_data=True, refresh_function=options[dl_type][1]["get_data"])
             # terminate_code = run_with_timeout(list_picker, args, kwargs, timeout=2)
             if not selected_downloads and opts == 'refresh':
                 continue
@@ -1296,21 +1312,21 @@ def begin(config):
                 header = ["items"]
                 items = [[]]
             ## Ensure that the cursor stays on the same download (as ID'd by the gid)
-            if "indexed_items" in view_loop_data and len(view_loop_data["indexed_items"]) != 0 and "cursor_pos" in watch_loop_data:
-                curs = view_loop_data["cursor_pos"]
-                indexed_items = view_loop_data["indexed_items"]
-                gid_col = header.index("gid")
-                current_index_gid = indexed_items[curs][1][gid_col]
-                if current_index_gid in [item[gid_col] for item in items]:
-                    new_index = [item[gid_col] for item in items].index(current_index_gid)
-                    view_loop_data["cursor_pos"] = new_index
-            view_loop_data = {key: val for key, val in view_loop_data.items() if key not in ["items", "indexed_items"]}
+            # if "indexed_items" in view_loop_data and len(view_loop_data["indexed_items"]) != 0 and "cursor_pos" in watch_loop_data:
+            #     curs = view_loop_data["cursor_pos"]
+            #     indexed_items = view_loop_data["indexed_items"]
+            #     gid_col = header.index("gid")
+            #     current_index_gid = indexed_items[curs][1][gid_col]
+            #     if current_index_gid in [item[gid_col] for item in items]:
+            #         new_index = [item[gid_col] for item in items].index(current_index_gid)
+            #         view_loop_data["cursor_pos"] = new_index
+            # view_loop_data = {key: val for key, val in view_loop_data.items() if key not in ["items", "indexed_items"]}
             selected_downloads, opts, view_loop_data = list_picker(
                 stdscr,
                 items,
                 # current_row=cursor_pos_levels[2][0],
                 # current_page=cursor_pos_levels[2][1],
-                # colors=custom_colors,
+                # colours=custom_colours,
                 header=header,
                 # highlights=highlights,
                 **view_loop_data,
@@ -1328,7 +1344,7 @@ def begin(config):
         operation_n, opts, dl_option_data = list_picker(
             stdscr,
             items,
-            # colors=custom_colors,
+            # colours=custom_colours,
             header=header,
             **dl_option_data,
         )
@@ -1340,6 +1356,11 @@ def begin(config):
         operation_function = operation_list[1]
         if len(operation_list) > 2:
             operation_kwargs = operation_list[2]
+
+
+        # Reset menu after selection
+        view_loop_data["selections"] = {}
+        watch_loop_data["selections"] = {}
 
         # print(f"We want to {operations[operation]}")
         # print(f"    on {gids}")
@@ -1404,7 +1425,7 @@ def main():
         choice, opts, function_data = list_picker(
             stdscr,
             choices,
-            colors=custom_colors,
+            colours=custom_colours,
             header=header,
             max_selected=1
         )
@@ -1471,7 +1492,7 @@ if __name__ == "__main__":
         sendReq = lambda jsonreq, url="http://localhost", port=6800: sendReqFull(jsonreq, url=url, port=port)
         addTorrents = lambda url="http://localhost", port=6800, token=token: addTorrentsFull(url=url, port=port, token=token)
         addUris = lambda url="http://localhost", port=6800, token=token: addUrisFull(url=url, port=port, token=token)
-        custom_colors = get_colours(config["appearance"]["theme"])
+        custom_colours = get_colours(config["appearance"]["theme"])
         
         ## start connection
         while True:
@@ -1481,7 +1502,7 @@ if __name__ == "__main__":
             choice, opts, function_data = list_picker(
                 stdscr,
                 choices,
-                colors=custom_colors,
+                colours=custom_colours,
                 header=header,
                 max_selected=1
             )
