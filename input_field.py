@@ -1,6 +1,6 @@
 import curses
 
-def input_field(stdscr, usrtxt="", field_name="Input", x=0, y=0, literal=False):
+def input_field(stdscr, usrtxt="", field_name="Input", x=0, y=0, literal=False, colours_start=0):
     """
     Display input field at x,y
 
@@ -21,21 +21,21 @@ def input_field(stdscr, usrtxt="", field_name="Input", x=0, y=0, literal=False):
     cursor = 0
     h, w = stdscr.getmaxyx()
     while True:
-        # stdscr.addstr(h - 2, 50, f"{field_name}: {repr(usrtxt)}", curses.color_pair(13))
+        # stdscr.addstr(h - 2, 50, f"{field_name}: {repr(usrtxt)}", curses.color_pair(colours_start+13))
         # if usrtxt and cursor != 0:
-        #     stdscr.addstr(h - 2, 50+len(usrtxt)-cursor+1+len("Command: "), f"{usrtxt[-(cursor)]}", curses.color_pair(13) | curses.A_REVERSE)
+        #     stdscr.addstr(h - 2, 50+len(usrtxt)-cursor+1+len("Command: "), f"{usrtxt[-(cursor)]}", curses.color_pair(colours_start+13) | curses.A_REVERSE)
         # else:
-        #     stdscr.addstr(h - 2, 50-cursor+len(usrtxt)+1+len("Command: "), f" ", curses.color_pair(13) | curses.A_REVERSE)
-        # stdscr.addstr(y, x, f"{field_name}: {repr(usrtxt)}", curses.color_pair(13))
+        #     stdscr.addstr(h - 2, 50-cursor+len(usrtxt)+1+len("Command: "), f" ", curses.color_pair(colours_start+13) | curses.A_REVERSE)
+        # stdscr.addstr(y, x, f"{field_name}: {repr(usrtxt)}", curses.color_pair(colours_start+13))
 
         # Clear background to end of row
-        stdscr.addstr(y, x, " "*((w-x)-2), curses.color_pair(3))
+        stdscr.addstr(y, x, " "*((w-x)-2), curses.color_pair(colours_start+20))
 
         # Display the field name and current text
         if literal:
-            stdscr.addstr(y, x, f"{field_name}: {repr(usrtxt)}", curses.color_pair(13))
+            stdscr.addstr(y, x, f"{field_name}: {repr(usrtxt)}   ", curses.color_pair(colours_start+13) | curses.A_BOLD)
         else:
-            stdscr.addstr(y, x, f" {field_name}: {usrtxt}", curses.color_pair(13))
+            stdscr.addstr(y, x, f" {field_name}: {usrtxt}   ", curses.color_pair(colours_start+13) | curses.A_BOLD)
 
         visible_cursor_x = x+len(usrtxt)-cursor+len(f" {field_name}: ")
         if literal:
@@ -45,11 +45,11 @@ def input_field(stdscr, usrtxt="", field_name="Input", x=0, y=0, literal=False):
         # Display cursor
         if not literal:
             if usrtxt and cursor != 0:
-                stdscr.addstr(y, visible_cursor_x, f"{usrtxt[-(cursor)]}", curses.color_pair(13) | curses.A_REVERSE)
+                stdscr.addstr(y, visible_cursor_x, f"{usrtxt[-(cursor)]}", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
             else:
-                stdscr.addstr(y, visible_cursor_x, f" ", curses.color_pair(13) | curses.A_REVERSE)
+                stdscr.addstr(y, visible_cursor_x, f" ", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
         elif literal:
-            stdscr.addstr(y, visible_cursor_x, f"{repr(usrtxt)[-(cursor+1)]}", curses.color_pair(13) | curses.A_REVERSE)
+            stdscr.addstr(y, visible_cursor_x, f"{repr(usrtxt)[-(cursor+1)]}", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
 
         key = stdscr.getch()
         if key == 27:                                                           # ESC key

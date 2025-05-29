@@ -20,6 +20,7 @@ from aria_adduri import add_download
 import tempfile
 import tomllib
 from utils import *
+from aria2c_utils import *
 
 r"""
 todo 
@@ -91,7 +92,7 @@ todo
  - artifacts after opening download location in terminal; have to refresh before and after?
  - colour problems:
     - aria2tui > view downloads > 'q' > 'z' 
-        -   REASON: initial menu has fewer colours
+ - add preview of selected downloads when selecting options
 
 DONE
  - If a download is paused and it is paused again it throws an error when it should just skip it.
@@ -110,515 +111,6 @@ DONE
 
 """
 
-def test_connection(url="http://localhost", port=6800):
-    url = f'{url}:{port}/jsonrpc'
-    try:
-        print(getVersion())
-        with rq.urlopen(url, getVersion()) as c:
-            response = c.read()
-        return True
-    except urllib.error.URLError:
-        return False
-
-
-def __getQueue():
-    js_rs = send_req(tellWaiting())
-
-    items = []
-
-    # print(f"{' Waiting ':*^50}")
-    # print("*"*50)
-    # for i in range(len(js_rs["result"])):
-
-    options_batch = []
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        dl = js_rs["result"][i]
-        gid = dl['gid']
-        options = json.loads(getOption(gid))
-        options_batch.append(options)
-        
-    options_batch = send_req(json.dumps(options_batch).encode('utf-8'))
-
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        dl = js_rs["result"][i]
-        colsize = 14
-        # print(f"{'Queue Position':<{colsize}}: {i}")
-        try:
-            # gid = dl['gid']
-            # pth = dl['files'][0]['path']
-            # fname = pth[pth.rfind("/")+1:]
-            gid = dl['gid']
-            options = options_batch[i]
-            pth = options["result"]["dir"]
-            orig_path = dl['files'][0]['path']
-            fname = orig_path[orig_path.rfind("/")+1:]
-            if fname == "":   # get from url
-                url = dl['files'][0]['uris'][0]["uri"]
-                fname = url[url.rfind("/")+1:]
-            # options = send_req(getOption(gid))
-            # pth = options["result"]["dir"]
-            # fname = options["result"]["out"]
-            try:
-                if "bittorrent" in dl:
-                    tmp = dl["bittorrent"]["info"]["name"]
-                    fname = tmp
-            except: pass
-
-            status = dl['status']
-            # print(f"{'Path':<{colsize}}: {pth[:70]}")
-            # print(f"{'Filename':<{colsize}}: {fname}")
-            # print(f"{'Status':<{colsize}}: {dl['status']}")
-            # print(f"{'GID':<{colsize}}: {dl['gid']}")
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-            pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
-            # print(f"{'Size':<{colsize}}: {size/1024**2:.02f}MB")
-            # print(f"{'Completed':<{colsize}}: {completed/1024**2:.02f}MB")
-            # print(f"{'% Completed':<{colsize}}: {100*pc_complete:.02f}%")
-        
-            dl_speed = int(dl['downloadSpeed'])
-            time_left = "INF"
-        
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024:.02f}kB")
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024**2:.02f}MB")
-            # entries.append({"path":pth,"fname":fname,"gid":dl['gid'],})
-
-            # row = [i, status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.2f}", format_size(dl_speed)+"/s", time_left, pth, gid]
-            row = [i, status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left, pth, gid]
-            items.append(row)
-        except:
-            print("ERR")
-            # print(dl)
-        # print("*"*50)
-    # header = ["", "status", "fname", "size", "completed", "%", "dl_speed", "time_left", "dir", "gid"]
-    header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
-    # print(response)
-    return items, header
-
-def __getFromQueue(pos=[]):
-    if type(pos) ==  type(1): pos = [pos]
-
-    jsonreq = tellWaiting()
-
-    # with rq.urlopen('http://localhost:6800/jsonrpc', jsonreq) as c:
-    #     js_rs = c.read()
-    #
-    # js_rs = json.loads(response)
-    js_rs = send_req(jsonreq)
-    # js_rs = json.loads(response)
-
-    # print(json.dumps(js_rs, indent=4))
-    entries = []
-
-
-    # print(f"{' Waiting ':*^50}")
-    # print("*"*50)
-    # for i in range(len(js_rs["result"])):
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        if i not in pos: continue
-        dl = js_rs["result"][i]
-        colsize = 14
-        # print(f"{'Queue Position':<{colsize}}: {i}")
-        try:
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            # print(f"{'Path':<{colsize}}: {pth[:70]}")
-            # print(f"{'Filename':<{colsize}}: {fname}")
-            # print(f"{'Status':<{colsize}}: {dl['status']}")
-            # print(f"{'GID':<{colsize}}: {dl['gid']}")
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-            # print(f"{'Size':<{colsize}}: {size/1024**2:.02f}MB")
-            # print(f"{'Completed':<{colsize}}: {completed/1024**2:.02f}MB")
-            # print(f"{'% Completed':<{colsize}}: {100*pc_complete:.02f}%")
-        
-            dl_speed = int(dl['downloadSpeed'])
-        
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024:.02f}kB")
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024**2:.02f}MB")
-            # entries.append({"path":pth,"fname":fname,"gid":dl['gid'],})
-        except:
-            print("ERR")
-        #     print(dl)
-        # print("*"*50)
-
-def __getQueueCompact():
-    jsonreq = tellWaiting()
-
-    # with rq.urlopen('http://localhost:6800/jsonrpc', jsonreq) as c:
-    #     response = c.read()
-    #
-    # js_rs = json.loads(response)
-    js_rs = send_req(jsonreq)
-    # js_rs = json.loads(response)
-
-    # print(json.dumps(js_rs, indent=4))
-    entries = []
-
-    # print(f"{' Waiting ':*^50}")
-    # print("*"*50)
-    # for i in range(len(js_rs["result"])):
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        dl = js_rs["result"][i]
-        colsize = 14
-        # print(f"{'Queue Position':<{colsize}}: {i}")
-        try:
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            status = dl['status'].strip()
-            status_chars = {
-                    'waiting':'w',
-                    'paused':'p',
-                    'active':'a', 
-                    'error': 'e',
-                    'complete':'c'
-                    }
-            status_char = status_chars[status]
-            
-            fn_width = 65
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-        
-            dl_speed = int(dl['downloadSpeed'])
-
-            # line = f"{i:0>{len(str(len(js_rs["result"])-1))}} {status_char}  {fname[:fn_width]:{fn_width}}  {size}  {pc_complete}%  {dl_speed}"
-            line = f"{i:0>{len(str(len(js_rs['result'])-1))}} {status_char}  {fname[:fn_width]:{fn_width}}  {size}  {pc_complete}%"
-            # print(line)
-        
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024:.02f}kB")
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024**2:.02f}MB")
-            # entries.append({"path":pth,"fname":fname,"gid":dl['gid'],})
-        except:
-            print("ERR")
-            print(dl)
-
-def __getStopped():
-    jsonreq = tellStopped()
-
-    # with rq.urlopen('http://localhost:6800/jsonrpc', jsonreq) as c:
-    #     response = c.read()
-
-    js_rs = send_req(tellStopped())
-    # js_rs = json.loads(response)
-
-    # print(json.dumps(js_rs, indent=4))
-    entries = []
-    items = []
-
-    # print(f"{' Stopped ':*^50}")
-    # print("*"*50)
-    # for i in range(len(js_rs["result"])):
-    options_batch = []
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        dl = js_rs["result"][i]
-        gid = dl['gid']
-        options = json.loads(getOption(gid))
-        options_batch.append(options)
-        
-    options_batch = send_req(json.dumps(options_batch).encode('utf-8'))
-
-
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        dl = js_rs["result"][i]
-        colsize = 14
-        # print(f"{'Queue Position':<{colsize}}: {i}")
-        try:
-            gid = dl['gid']
-            # options = send_req(getOption(gid))
-            options = options_batch[i]
-            pth = options["result"]["dir"]
-            orig_path = dl['files'][0]['path']
-            fname = orig_path[orig_path.rfind("/")+1:]
-            if fname == "":   # get from url
-                url = dl['files'][0]['uris'][0]["uri"]
-                fname = url[url.rfind("/")+1:]
-            # fname = options["result"]["out"]
-            status = dl['status']
-            # print(f"{'Path':<{colsize}}: {pth[:70]}")
-            # print(f"{'Filename':<{colsize}}: {fname}")
-            # print(f"{'Status':<{colsize}}: {dl['status']}")
-            # print(f"{'GID':<{colsize}}: {dl['gid']}")
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-            pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
-            # print(f"{'Size':<{colsize}}: {size/1024**2:.02f}MB")
-            # print(f"{'Completed':<{colsize}}: {completed/1024**2:.02f}MB")
-            # print(f"{'% Completed':<{colsize}}: {100*pc_complete:.02f}%")
-        
-            dl_speed = int(dl['downloadSpeed'])
-            time_left = "INF"
-        
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024:.02f}kB")
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024**2:.02f}MB")
-            # entries.append({"path":pth,"fname":fname,"gid":dl['gid'],})
-            # row = [fname, status, format_size(size), format_size(completed), f"{ pc_complete*100 :.1f}", format_size(dl_speed)+"/s", time_left, pth, gid]
-            row = ["NA", status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left, pth, gid]
-            items.append(row)
-        except:
-            print("ERR")
-            print(dl)
-        # print("*"*50)
-    header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
-    return items, header
-
-def __getStoppedCompact():
-    jsonreq = tellStopped()
-
-    # with rq.urlopen('http://localhost:6800/jsonrpc', jsonreq) as c:
-    #     response = c.read()
-    #
-    # js_rs = json.loads(response)
-    js_rs = send_req(jsonreq)
-    # js_rs = json.loads(response)
-
-    # print(json.dumps(js_rs, indent=4))
-    entries = []
-
-    # print(f"{' Stopped ':*^50}")
-    # print("*"*50)
-    # for i in range(len(js_rs["result"])):
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        dl = js_rs["result"][i]
-        colsize = 14
-        # print(f"{'Queue Position':<{colsize}}: {i}")
-        try:
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            status = dl['status'].strip()
-            status_chars = {
-                    'waiting':'w',
-                    'paused':'p',
-                    'active':'a', 
-                    'error': 'e',
-                    'complete':'c'
-                    }
-            # print("1")
-            status_char = status_chars[status]
-            
-            # print("2")
-            fn_width = 65
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-            # print("3")
-        
-            dl_speed = int(dl['downloadSpeed'])
-            # print("4")
-
-            # line = f"{i:0>{len(str(len(js_rs["result"])-1))}} {status_char}  {fname[:fn_width]:{fn_width}}  {size}  {pc_complete}%  {dl_speed}"
-            line = f"{i:0>{len(str(len(js_rs['result'])-1))}} {status_char}  {fname[:fn_width]:{fn_width}}  {size}  {pc_complete}%"
-            print(line)
-        
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024:.02f}kB")
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024**2:.02f}MB")
-            # entries.append({"path":pth,"fname":fname,"gid":dl['gid'],})
-        except:
-            print("ERR")
-            print(dl)
-
-def __getActive(print_output=False):
-
-    js_rs = send_req(tellActive())
-    items = []
-
-    if print_output:
-        print(f"{' Active ':*^50}")
-        print("*"*50)
-
-    options_batch = []
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        dl = js_rs["result"][i]
-        gid = dl['gid']
-        options = json.loads(getOption(gid))
-        options_batch.append(options)
-        
-    options_batch = send_req(json.dumps(options_batch).encode('utf-8'))
-
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
-        try:
-            colsize = 14
-            gid = dl['gid']
-            options = options_batch[i]
-            pth = options["result"]["dir"]
-            if "out" in options["result"]:
-                fname = options["result"]["out"]
-            else:
-                orig_path = dl['files'][0]['path']
-                fname = orig_path[orig_path.rfind("/")+1:]
-            if fname == "":   # get from url
-                url = dl['files'][0]['uris'][0]["uri"]
-                fname = url[url.rfind("/")+1:]
-            # fname = js_rs2["result"]["out"]
-            # pth = dl['files'][0]['path']
-            # fname = pth[pth.rfind("/")+1:]
-            try:
-                if "bittorrent" in dl:
-                    tmp = dl["bittorrent"]["info"]["name"]
-                    fname = tmp
-            except: pass
-            status = dl['status']
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-            pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
-            dl_speed = int(dl['downloadSpeed'])
-            time_left = int((size-completed)/dl_speed) if dl_speed > 0 else None
-            if time_left: time_left_s = convert_seconds(time_left)
-            else: time_left_s = "INF"
-            # time_left_s = f"{time_left//60**2%60}h" + f"{time_left//60%60}m" + f"{time_left%60}s" if time_left else "INF"
-
-            if print_output:
-                print(f"{'Path':<{colsize}}: {pth[:70]}")
-                print(f"{'Filename':<{colsize}}: {fname}")
-                print(f"{'Status':<{colsize}}: {dl['status']}")
-                print(f"{'GID':<{colsize}}: {dl['gid']}")
-                print(f"{'Size':<{colsize}}: {size/1024**2:.02f}MB")
-                print(f"{'Completed':<{colsize}}: {completed/1024**2:.02f}MB")
-                print(f"{'% Completed':<{colsize}}: {100*pc_complete:.02f}%")
-                print(f"{'D/l speed':<{colsize}}: {dl_speed/1024:.02f}kB/s")
-                print(f"{'D/l speed':<{colsize}}: {dl_speed/1024**2:.02f}MB/s")
-                print(f"{'Time Left':<{colsize}}: {time_left_s}")
-
-            # row = [fname, status, format_size(size), format_size(completed), f"{pc_complete*100:.2f}", format_size(dl_speed)+"/s", time_left_s, pth, gid]
-            row = ["NA", status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
-            items.append(row)
-        except:
-            print("ERR")
-            print(dl)
-
-        if print_output:
-            print("*"*50)
-    header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
-    return items, header
-
-def __getActiveCompact():
-    jsonreq = tellActive()
-
-    # with rq.urlopen('http://localhost:6800/jsonrpc', jsonreq) as c:
-    #     response = c.read()
-    #
-    # js_rs = json.loads(response)
-    js_rs = send_req(jsonreq)
-    # js_rs = json.loads(response)
-
-    # print(json.dumps(js_rs, indent=4))
-
-    # print(f"{' Active ':*^50}")
-    # print("*"*50)
-
-    fn_width = 65
-    header = f"{'Q'} {'S'}  {'File Name':{fn_width}}  {'Size':8}  {'%done'}  {'DL speed'}  {'Time Left'}"
-    print(header)
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
-        try:
-            colsize = 14
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-        
-            dl_speed = int(dl['downloadSpeed'])
-            time_left = int((size-completed)/dl_speed) if dl_speed > 0 else None
-            if time_left:
-                time_left_s = ""
-                time_left_s += f"{time_left//60**2%60}h" if time_left//60**2 > 1 else ""
-                time_left_s += f"{time_left//60%60}m" if time_left//60 > 1 else ""
-                time_left_s += f"{time_left%60}s"
-            else: time_left_s = "INF"
-            # time_left_s = f"{time_left//60**2%60}h" + f"{time_left//60%60}m" + f"{time_left%60}s" if time_left else "INF"
-            
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            status = dl['status'].strip()
-            status_chars = {
-                    'waiting':'w',
-                    'paused':'p',
-                    'active':'a', 
-                    'error': 'e',
-                    'complete':'c'
-                    }
-            status_char = status_chars[status]
-            
-            fn_width = 65
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-        
-            dl_speed = int(dl['downloadSpeed'])
-
-            # line = f"{i:0>{len(str(len(js_rs["result"])-1))}} {status_char}  {fname[:fn_width]:{fn_width}}  {size}  {pc_complete}%  {dl_speed}"
-            line = f"{i:0>{len(str(len(js_rs['result'])-1))}} {status_char}  {fname[:fn_width]:{fn_width}}  {size/1024**2:.02f}MB  {pc_complete*100:.01f}%  {dl_speed/1024:.02f}KB/s  {time_left_s}s"
-            print(line)
-
-
-        except:
-            print("ERR")
-            print(dl)
-
-def __getPaused():
-    jsonreq = tellWaiting()
-
-    # with rq.urlopen('http://localhost:6800/jsonrpc', jsonreq) as c:
-    #     response = c.read()
-    #
-    # js_rs = json.loads(response)
-    js_rs = send_req(jsonreq)
-    # js_rs = json.loads(response)
-
-    # print(json.dumps(js_rs, indent=4))
-
-    # print(f"{' Paused ':*^50}")
-    # print("*"*50)
-    gids=[]
-
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
-        if "paused" not in dl['status']: continue
-        try:
-            colsize = 14
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            # print(f"{'Path':<{colsize}}: {pth[:70]}")
-            # print(f"{'Filename':<{colsize}}: {fname}")
-            # print(f"{'Status':<{colsize}}: {dl['status']}")
-            # print(f"{'GID':<{colsize}}: {dl['gid']}")
-
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-            pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
-            # print(f"{'Completed':<{colsize}}: {completed/1024**2:.02f}MB")
-            # print(f"{'% Completed':<{colsize}}: {100*pc_complete:.02f}%")
-        
-            dl_speed = int(dl['downloadSpeed'])
-            time_left = int((size-completed)/dl_speed) if dl_speed > 0 else None
-            if time_left:
-                time_left_s = ""
-                time_left_s += f"{time_left//60**2%60}h" if time_left//60**2 > 1 else ""
-                time_left_s += f"{time_left//60%60}m" if time_left//60 > 1 else ""
-                time_left_s += f"{time_left%60}s"
-            else: time_left_s = "INF"
-            # time_left_s = f"{time_left//60**2%60}h" + f"{time_left//60%60}m" + f"{time_left%60}s" if time_left else "INF"
-            
-        
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024:.02f}kB/s")
-            # print(f"{'D/l speed':<{colsize}}: {dl_speed/1024**2:.02f}MB/s")
-            # print(f"{'Time Left':<{colsize}}: {time_left_s}")
-
-            gids.append(dl['gid'])
-
-        except:
-            print("ERR")
-            print(dl)
-    #     print("*"*50)
-    # print(f"gids = {gids}")
 
 
 def run_with_timeout(function, args, kwargs, timeout):
@@ -646,218 +138,6 @@ def run_with_timeout(function, args, kwargs, timeout):
 
     return result
 
-def watch_active(stdscr):
-    stdscr.clear()
-    REFRESH_INTERVAL = 1
-    COL_SIZE = 3
-    while True:
-        items, header = __getActive()
-        # Get col sizes
-        colsizes = [len(str(item)) for item in header]
-        for row in items:
-            for i, col in enumerate(row):
-                if len(str(col)) > colsizes[i]:
-                    colsizes[i] = len(str(col))
-        # Clear the screen
-        stdscr.clear()
-        
-        # Print the header
-        header_str = " | ".join([f"{item:<{colsizes[i]}}" for i, item in enumerate(header)])
-        stdscr.addstr(0, 0, header_str)
-
-        # Print the rows
-        for i, row in enumerate(items):
-            row_str = " | ".join([f"{item:<{colsizes[i]}}" for i, item in enumerate(row)])
-            stdscr.addstr(i+1, 0, row_str)
-
-        # Refresh the screen
-        stdscr.refresh()
-        key = stdscr.getch()
-        if key == ord('q'):
-            break
-        sleep(REFRESH_INTERVAL)
-
-def restartAria():
-    cmd = f"systemctl --user restart aria2d.service"
-    subprocess.run(cmd, shell=True)
-
-def editConfig():
-    cmd = f"NVIM_APPNAME=nvim-nvchad nvim ~/.config/aria2/aria2.conf"
-    process = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-def addUrisFull(url="http://localhost", port=6800, token=None):
-    s = "!!\n"
-    s +=  "# URI,out\n\n"
-
-    ## Create tmpfile
-    with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
-        tmpfile.write(s)
-        tmpfile_path = tmpfile.name
-    cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
-    subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-    # process = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    with open(tmpfile_path, "r") as f:
-        lines = f.readlines()
-
-    dls = []
-    argstrs = []
-    for line in lines:
-        if line[0] == "!" and line.count("!") == 2:
-            argstrs.append(line)
-        elif line[0] in ["#", "!"] or line.strip() == "":
-            pass
-        else:
-            sp = line.find(",")
-            if sp == -1:
-                # os.system(f"notify-send '{len(dls)} downloads added'")
-                dls.append({"uri": line.strip()})
-            else:
-                dls.append({"uri": line[:sp].strip(), "filename": line[sp+1:].strip()})
-
-    for dl in dls:
-        add_download(**dl, url=url, port=port, token=token)
-        # jsonreq = pyperclip.copy(addUri(**dl))
-        # send_req(jsonreq)
-
-    os.system(f"notify-send '{len(dls)} downloads added'")
-
-def addTorrentsFull(url="http://localhost", port=6800, token=None):
-    s = "!!\n"
-    s +=  "# path\n\n"
-
-    ## Create tmpfile
-    with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
-        tmpfile.write(s)
-        tmpfile_path = tmpfile.name
-    cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
-    process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-
-    with open(tmpfile_path, "r") as f:
-        lines = f.readlines()
-
-    dls = []
-    uris = []
-    argstrs = []
-    for line in lines:
-        if line[0] == "!" and line.count("!") == 2:
-            argstrs.append(line)
-        elif line[0] in ["#", "!"] or line.strip() == "":
-            pass
-        elif len(line) > len("magnet:") and line[:len("magnet:")] == "magnet:":
-            uris.append({"uri": line.strip()})
-        else:
-            dls.append({"path": line.strip()})
-            # sp = line.find(",")
-            # if sp == -1:
-            #     # os.system(f"notify-send '{len(dls)} downloads added'")
-            #     dls.append({"path": line.strip()})
-            # else:
-            #     dls.append({"path": line[:sp].strip(), "filename": line[sp+1:].strip()})
-
-    for dl in dls:
-        # with open(dl["path"], "rb") as f:
-        #     torrent_data = f.read()
-        jsonreq = addTorrent(dl["path"])
-
-        # jsonreq = pyperclip.copy(addUri(**dl))
-        send_req(jsonreq)
-
-    for uri in uris:
-        add_download(**uri, url=url, port=port, token=token)
-
-    os.system(f"notify-send '{len(dls)} torrent files added'")
-    os.system(f"notify-send '{len(uris)} magnet links added'")
-
-def getAllInfo(gid):
-    responses = []
-    for op in [getFiles, getServers, getPeers, getUris, getOption, tellStatus]:
-        try:
-            response = send_req(op(gid))
-            info = { "function" : op.__name__ }
-            response = {**info, **response}
-            responses.append(response)
-        except:
-            responses.append(json.loads(f'{{"function": "{op.__name__}", "response": "NONE"}}'))
-    return responses
-    file_info = send_req(getFiles(gid))
-    server_info = send_req(getServers(gid)) 
-
-    vals = [file_info]
-    return file_info
-    return [val if val else json.loads("{}") for val in vals]
-
-def __getAll():
-    active, aheader = __getActive()
-    stopped, sheader = __getStopped()
-    waiting, wheader = __getQueue()
-
-    # active = [["NA"] + row for row in active]
-    # stopped = [["NA"] + row for row in stopped]
-    return active + waiting + stopped, wheader
-
-def openDownloadLocation(gid, new_window=True):
-    """
-
-    """
-    try:
-        req = getFiles(str(gid))
-        response = send_req(req)
-        val = json.loads(json.dumps(response))
-        files = val["result"]
-        if len(files) == 0: return None
-        loc = files[0]["path"]
-        if "/" not in loc:
-            req = getOption(str(gid))
-            response = send_req(req)
-            val = json.loads(json.dumps(response))
-            loc = val["dir"]
-
-        # val = json.loads(response.encode('utf-8'))
-        if new_window:
-            cmd = f"kitty yazi {repr(loc)}"
-            # subprocess.run(cmd, shell=True)
-            subprocess.Popen(cmd, shell=True)
-            os.system(f"notify-send '{loc}'")
-            # os.system(f'kitty yazi "{loc}"')
-        else:
-            cmd = f"yazi {repr(loc)}"
-            # subprocess.run(cmd, shell=True)
-            subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-            os.system(f"notify-send '{loc}'")
-            # os.system(f'kitty yazi "{loc}"')
-
-    except:
-        pass
-
-def openFile(gid):
-    """
-
-    """
-    try:
-        req = getFiles(str(gid))
-        response = send_req(req)
-        val = json.loads(json.dumps(response))
-        files = val["result"]
-        if len(files) == 0: return None
-        loc = files[0]["path"]
-        if "/" not in loc:
-            req = getOption(str(gid))
-            response = send_req(req)
-            val = json.loads(json.dumps(response))
-            loc = val["dir"]
-
-        # val = json.loads(response.encode('utf-8'))
-        cmd = f"xdg-open {repr(loc)}"
-        # subprocess.run(cmd, shell=True)
-        subprocess.Popen(cmd, shell=True)
-        os.system(f"notify-send '{type(val)}'")
-        os.system(f"notify-send '{loc}'")
-        # os.system(f'kitty yazi "{loc}"')
-
-    except:
-        pass
-
 
 def begin(config):
     active_loop = lambda x: x
@@ -868,7 +148,7 @@ def begin(config):
                 "View All", 
                 {
                     "function": active_loop,
-                    "get_data": __getAll,
+                    "get_data": getAll,
                     "operations": [
                         ["pause", pause],
                         ["unpause", unpause],
@@ -896,7 +176,7 @@ def begin(config):
             #     "View Active", 
             #     {
             #         "function": active_loop,
-            #         "get_data": __getActive,
+            #         "get_data": getActive,
             #         "operations": [
             #             ["pause", pause],
             #             ["changePosition", changePosition],
@@ -919,7 +199,7 @@ def begin(config):
             #     "View Waiting", 
             #     {
             #         "function": waiting_loop,
-            #         "get_data": __getQueue,
+            #         "get_data": getQueue,
             #         "operations": [
             #             ["pause", pause],
             #             ["unpause", unpause],
@@ -943,7 +223,7 @@ def begin(config):
             #     "View Stopped", 
             #     {
             #         "function": stopped_loop,
-            #         "get_data": __getStopped,
+            #         "get_data": getStopped,
             #         "operations": [
             #             ["unpause", unpause, {}],
             #             ["remove", removeStopped],
@@ -963,7 +243,7 @@ def begin(config):
             # [
             #     "Watch Active",
             #     {
-            #         "get_data": __getActive,
+            #         "get_data": getActive,
             #         "args": (),
             #         "kwargs": {},
             #         "refresh": True,
@@ -972,7 +252,7 @@ def begin(config):
             [
                 "Watch All",
                 {
-                    "get_data": __getAll,
+                    "get_data": getAll,
                     "args": (),
                     "kwargs": {},
                     "refresh": True,
@@ -999,15 +279,6 @@ def begin(config):
                     ],
                 },
             ],
-            # [
-            #     "Watch Active (non-interactive)",
-            #     {
-            #         "get_data": __getActive,
-            #         "args": (),
-            #         "kwargs": {},
-            #         "refresh": True,
-            #     },
-            # ],
             [
                 "AddURIs",
                 {
@@ -1218,6 +489,8 @@ def begin(config):
         ## Select menu option
         if not menu_persistent:
             menu_data = {key: val for key, val in menu_data.items() if key not in ["items", "indexed_items"]}
+            menu_data["colours"] = custom_colours
+
             dl_type_list, opts, menu_data = list_picker(
                 stdscr,
                 items=[[func[0]] for func in options],
@@ -1228,10 +501,7 @@ def begin(config):
         dl_type = dl_type_list[0]
 
 
-        if options[dl_type][0] == "Watch Active (non-interactive)":
-            curses.wrapper(watch_active)
-            continue
-        elif options[dl_type][0] in ["Watch Active", "Watch All"]:
+        if options[dl_type][0] in ["Watch Active", "Watch All"]:
             # os.system("notify-send 'refreshing'")
             menu_persistent = True
             items, header = options[dl_type][1]["get_data"]()
@@ -1257,7 +527,7 @@ def begin(config):
                 # current_row=cursor_pos_levels[1][0],
                 # current_page=cursor_pos_levels[1][1],
                 header=header,
-                timer=3,
+                timer=0.5,
                 get_new_data=True,
                 refresh_function=options[dl_type][1]["get_data"],
                 # highlights=highlights,
@@ -1320,7 +590,7 @@ def begin(config):
             #     if current_index_gid in [item[gid_col] for item in items]:
             #         new_index = [item[gid_col] for item in items].index(current_index_gid)
             #         view_loop_data["cursor_pos"] = new_index
-            # view_loop_data = {key: val for key, val in view_loop_data.items() if key not in ["items", "indexed_items"]}
+            view_loop_data = {key: val for key, val in view_loop_data.items() if key not in ["items", "indexed_items"]}
             selected_downloads, opts, view_loop_data = list_picker(
                 stdscr,
                 items,
@@ -1407,14 +677,6 @@ def begin(config):
 
 
 
-def format_size(size_bytes):
-    if size_bytes == 0:
-        return "0.0 MB"
-    size_mb = size_bytes / (1024 * 1024)
-    size_gb = size_mb / 1024
-    if size_gb >= 1:
-        return f"{size_gb:.1f} GB"
-    return f"{size_mb:.1f} MB"
 
 
 def main():
@@ -1462,36 +724,6 @@ if __name__ == "__main__":
         token = config["general"]["token"]
         paginate = config["general"]["paginate"]
 
-        send_req = lambda req: sendReqFull(req, url=url, port=port)
-        addUri = lambda uri, out="", dir=None, queue_pos=10000:  addUriFull(uri, out=out, dir=dir, queue_pos=queue_pos, token=token)
-        addTorrent = lambda path, out="", dir=None, queue_pos=10000:  addTorrentFull(path, out=out, dir=dir, queue_pos=queue_pos, token=token)
-        getOption = lambda gid:  getOptionFull(gid, token=token)
-        getServers = lambda gid:  getServersFull(gid, token=token)
-        getPeers = lambda gid:  getPeersFull(gid, token=token)
-        getUris = lambda gid:  getUrisFull(gid, token=token)
-        getGlobalOption = lambda : getGlobalOptionFull(token=token)
-        getSessionInfo = lambda : getSessionInfoFull(token=token)
-        getVersion = lambda : getVersionFull(token=token)
-        getGlobalStat = lambda : getGlobalStatFull(token=token)
-        pause = lambda gid:  pauseFull(gid, token=token)
-        retryDownload = lambda gid:  retryDownloadFull(gid, token=token)
-        retryDownload2 = lambda gid:  retryDownload2Full(gid, token=token)
-        pauseAll = lambda : pauseAllFull(token=token)
-        unpause = lambda gid:  unpauseFull(gid, token=token)
-        remove = lambda gid:  removeFull(gid, token=token)
-        forceRemove = lambda gid:  forceRemoveFull(gid, token=token)
-        removeStopped = lambda gid:  removeStoppedFull(gid, token=token)
-        getFiles = lambda gid:  getFilesFull(gid, token=token)
-        removeCompleted = lambda : removeCompletedFull(token=token)
-        changePosition = lambda gid, pos, how="POS_SET":  changePositionFull(gid, pos, how=how, token=token)
-        changeOption = lambda gid, key, val:  changeOptionFull(gid, key, val, token=token)
-        tellActive = lambda offset=0, max=5000:  tellActiveFull(offset=0, max=max, token=token)
-        tellWaiting = lambda offset=0, max=5000:  tellWaitingFull(offset=0, max=max, token=token)
-        tellStopped = lambda offset=0, max=5000:  tellStoppedFull(offset=0, max=max, token=token)
-        tellStatus = lambda gid:  tellStatusFull(gid, token=token)
-        sendReq = lambda jsonreq, url="http://localhost", port=6800: sendReqFull(jsonreq, url=url, port=port)
-        addTorrents = lambda url="http://localhost", port=6800, token=token: addTorrentsFull(url=url, port=port, token=token)
-        addUris = lambda url="http://localhost", port=6800, token=token: addUrisFull(url=url, port=port, token=token)
         custom_colours = get_colours(config["appearance"]["theme"])
         
         ## start connection

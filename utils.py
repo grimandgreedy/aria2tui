@@ -27,7 +27,7 @@ def format_row(row, hidden_columns, column_widths, separator):
     row_str = ""
     for i, cell in enumerate(row):
         if i in hidden_columns: continue
-        val = truncate_to_display_width(cell, column_widths[i])
+        val = truncate_to_display_width(str(cell), column_widths[i])
         row_str += val + separator
     return row_str
     # return row_str.strip()
@@ -109,3 +109,12 @@ def get_selected_indices(indexed_items, selections):
 def get_selected_values(items, indexed_items, selections):
     selected_values = [items[x][0] for x in get_selected_indices(indexed_items, selections)]
     return selected_values
+
+def format_size(size_bytes):
+    if size_bytes == 0:
+        return "0.0 MB"
+    size_mb = size_bytes / (1024 * 1024)
+    size_gb = size_mb / 1024
+    if size_gb >= 1:
+        return f"{size_gb:.1f} GB"
+    return f"{size_mb:.1f} MB"
