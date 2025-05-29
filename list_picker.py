@@ -16,6 +16,7 @@ from input_field import *
 from clipboard_operations import *
 from searching import search
 from help_screen import help_lines
+from keys import keys_dict, notification_keys
 
 """
  - (!!!) fix crash when terminal is too small
@@ -194,7 +195,9 @@ def list_picker(
         title="",
         header=[],
         max_column_width=70,
-        timer=False,
+        
+        auto_refresh=False,
+        timer=5,
         get_new_data=False,
         refresh_function=None,
         unselectable_indices=[],
@@ -580,7 +583,7 @@ def list_picker(
             elif is_deselecting: select_mode = "Visual deselection"
 
             # stdscr.addstr(h - 1, 0, f" {select_mode} {int(bool(key_chain))*'    '}", curses.color_pair(colours_start+4))
-            stdscr.addstr(h - 3, w-35, f" {select_mode} ", curses.color_pair(colours_start+4) | curses.A_BOLD)
+            stdscr.addstr(h - 3, w-35, f" {select_mode}", curses.color_pair(colours_start+4) | curses.A_BOLD)
 
             stdscr.refresh()
         if display_infobox:
@@ -621,8 +624,11 @@ def list_picker(
         column_widths = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
         if require_option == []:
             require_option = [False for x in indexed_items]
-        if columns_sort_method == [] and len(items) > 0:
-            columns_sort_method = [0 for i in items[0]]
+
+        if len(items)>0 and len(columns_sort_method) < len(items[0]):
+            columns_sort_method = columns_sort_method + [0 for i in range(len(items[0])-len(columns_sort_method))]
+        if len(items)>0 and len(sort_reverse) < len(items[0]):
+            sort_reverse = sort_reverse + [False for i in range(len(items[0])-len(sort_reverse))]
         if sort_reverse == [] and len(items) > 0:
             sort_reverse = [False for i in items[0]]
 
@@ -722,8 +728,7 @@ def list_picker(
 
 
 
-    def open_submenu(stdscr):
-        nonlocal user_opts
+    def open_submenu(stdscr, user_opts):
         h, w = stdscr.getmaxyx()
         submenu_win = curses.newwin(6, 50, h // 2 - 2, w // 2 - 25)
         submenu_win.box()
@@ -911,9 +916,9 @@ def list_picker(
             else:
                 hidden_columns.add(col_index)
 
-    def apply_settings():
+    def apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method):
         
-        nonlocal user_settings, highlights, sort_column, current_page, current_row, cursor_pos, columns_sort_method
+        # nonlocal user_settings, highlights, sort_column, cursor_pos, columns_sort_method
         # settings= usrtxt.split(' ')
         # split settings and appy them
         """
@@ -946,6 +951,7 @@ def list_picker(
                         toggle_column_visibility(int(col))
 
             user_settings = ""
+        return highlights, sort_column, cursor_pos, columns_sort_method
 
     # Functions for item selection
     def toggle_item(index):
@@ -1027,14 +1033,18 @@ def list_picker(
             if key_remappings[key] == val or (isinstance(key_remappings[key], list) and val in key_remappings[key]):
                 return True
         return False
+    def check_key(function, key,  keys_dict):
+        if function in keys_dict and key in keys_dict[function]:
+            return True
+        return False
 
 
-    if timer: initial_time = time.time()
+    if auto_refresh and timer > 0: initial_time = time.time()
 
     curses.curs_set(0)
     # stdscr.nodelay(1)  # Non-blocking input
     stdscr.timeout(2000)  # Set a timeout for getch() to ensure it does not block indefinitely
-    if not timer: stdscr.clear()
+    stdscr.clear()
     stdscr.refresh()
 
     
@@ -1063,14 +1073,14 @@ def list_picker(
     while True:
         key = stdscr.getch()
         if key in disabled_keys: continue
+        clear_screen=True
         # os.system(f"notify-send '2'")
         
         # time.sleep(random.uniform(0.05, 0.1))
         # os.system(f"notify-send 'Timer {timer}'")
         # if timer:
             # os.system(f"notify-send '{time.time() - initial_time}, {timer} {bool(timer)}, {time.time() - initial_time > timer}'")
-        if key == curses.KEY_F5 or remapped_key(key, curses.KEY_F5, key_remappings) or (timer and (time.time() - initial_time) > timer):
-            # stdscr.clear()
+        if check_key("refresh", key, keys_dict) or remapped_key(key, curses.KEY_F5, key_remappings) or (auto_refresh and (time.time() - initial_time) > timer):
             h, w = stdscr.getmaxyx()
             stdscr.addstr(0,w-3,"⟲")
             stdscr.refresh()
@@ -1091,8 +1101,7 @@ def list_picker(
                 function_data = get_function_data()
                 return [], "refresh", function_data
 
-        clear_screen=True
-        if key == ord('?') or remapped_key(key, ord('?'), key_remappings):
+        if check_key("help", key, keys_dict):
             stdscr.clear()
             stdscr.refresh()
             list_picker(
@@ -1106,11 +1115,11 @@ def list_picker(
                 colours_start=100,
             )
 
-        elif key in [ord('q'), ord('h')]  or remapped_key(key, ord('q'), key_remappings):
+        elif check_key("exit", key, keys_dict):
             stdscr.clear()
             function_data = get_function_data()
             return [], "", function_data
-        elif key == ord('`'):
+        elif check_key("settings_input", key, keys_dict):
             usrtxt = f"{user_settings} " if user_settings else ""
             usrtxt, return_val = input_field(
                 stdscr,
@@ -1121,50 +1130,50 @@ def list_picker(
             )
             if return_val:
                 user_settings = usrtxt
-                apply_settings()
+                highlights, sort_column, cursor_pos, columns_sort_method = apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method)
 
-        elif key == ord('{'):
+        elif check_key("move_column_left", key, keys_dict):
             move_column(-1)
 
-        elif key == ord('}'):
+        elif check_key("move_column_right", key, keys_dict):
             move_column(1)
-        elif key in [curses.KEY_DOWN, ord('j')]:
+        elif check_key("cursor_down", key, keys_dict):
             page_turned = cursor_down()
             if not page_turned: clear_screen = False
-        elif key == ord('d'):
+        elif check_key("half_page_down", key, keys_dict):
             clear_screen = False
             for i in range(items_per_page//2): 
                 if cursor_down(): clear_screen = True
-        elif key == ord('J'):
+        elif check_key("five_down", key, keys_dict):
             clear_screen = False
             for i in range(5): 
                 if cursor_down(): clear_screen = True
-        elif key in [curses.KEY_UP, ord('k')]:
+        elif check_key("cursor_up", key, keys_dict):
             page_turned = cursor_up()
             if not page_turned: clear_screen = False
-        elif key == ord('K'):
+        elif check_key("five_up", key, keys_dict):
             clear_screen = False
             for i in range(5): 
                 if cursor_up(): clear_screen = True
-        elif key == ord('u'):
+        elif check_key("half_page_up", key, keys_dict):
             clear_screen = False
             for i in range(items_per_page//2): 
                 if cursor_up(): clear_screen = True
 
-        elif key == ord(' '): # Space key
+        elif check_key("toggle_select", key, keys_dict):
             if len(indexed_items) > 0:
                 item_index = indexed_items[cursor_pos][0]
                 selected_count = sum(selections.values())
                 if max_selected == None or selected_count >= max_selected:
                     toggle_item(item_index)
             cursor_down()
-        elif key == ord('m') or key == 1:  # Select all (m or ctrl-a)
+        elif check_key("select_all", key, keys_dict):  # Select all (m or ctrl-a)
             select_all()
 
-        elif key == ord('M') or key == 18:  # Deselect all (M or ctrl-r)
+        elif check_key("select_none", key, keys_dict):  # Deselect all (M or ctrl-r)
             deselect_all()
 
-        elif key in [ord('g'), curses.KEY_HOME]:
+        elif check_key("cursor_top", key, keys_dict):
             new_pos = 0
             while True:
                 if new_pos in unselectable_indices: new_pos+=1
@@ -1174,7 +1183,7 @@ def list_picker(
 
             draw_screen(indexed_items, highlights)
 
-        elif key == ord('G') or key == curses.KEY_END:
+        elif check_key("cursor_bottom", key, keys_dict):
             new_pos = len(indexed_items)-1
             while True:
                 if new_pos in unselectable_indices: new_pos-=1
@@ -1187,7 +1196,7 @@ def list_picker(
             #
             #     current_row = (len(indexed_items) +items_per_page - 1) % items_per_page
             # draw_screen(indexed_items, highlights)
-        elif key in [curses.KEY_ENTER, ord('\n'), ord('l')]:
+        elif check_key("enter", key, keys_dict):
             # Print the selected indices if any, otherwise print the current index
             if is_selecting or is_deselecting: handle_visual_selection()
             if len(indexed_items) == 0:
@@ -1215,40 +1224,40 @@ def list_picker(
             stdscr.refresh()
             function_data = get_function_data()
             return selected_indices, user_opts, function_data
-        elif key == ord('n') or key == curses.KEY_NPAGE:  # Next page
+        elif check_key("page_down", key, keys_dict):  # Next page
             cursor_pos = min(len(indexed_items) - 1, cursor_pos+items_per_page)
 
-        elif key == ord('p')  or key == curses.KEY_PPAGE:  # Previous page
+        elif check_key("page_up", key, keys_dict):
             cursor_pos = max(0, cursor_pos-items_per_page)
 
-        elif key == 12:  # Ctrl-l, ^l
+        elif check_key("redraw_screen", key, keys_dict):
             stdscr.clear()
             stdscr.refresh()
             draw_screen(indexed_items, highlights)
 
-        elif key == ord('s'):  # Cycle sort method
+        elif check_key("cycle_sort_method", key, keys_dict):
             columns_sort_method[sort_column] = (columns_sort_method[sort_column]+1) % len(SORT_METHODS)
             current_index = indexed_items[cursor_pos][0]
             sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
             cursor_pos = [row[0] for row in indexed_items].index(current_index)
-        elif key == ord('S'):  # Cycle sort method
+        elif check_key("cycle_sort_method_reverse", key, keys_dict):  # Cycle sort method
             columns_sort_method[sort_column] = (columns_sort_method[sort_column]-1) % len(SORT_METHODS)
             current_index = indexed_items[cursor_pos][0]
             sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
             cursor_pos = [row[0] for row in indexed_items].index(current_index)
-        elif key == ord('t'):  # Toggle sort order
+        elif check_key("cycle_sort_order", key, keys_dict):  # Toggle sort order
             sort_reverse[sort_column] = not sort_reverse[sort_column]
             current_index = indexed_items[cursor_pos][0]
             sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
             cursor_pos = [row[0] for row in indexed_items].index(current_index)
-        elif key in [ord('0'), ord('1'), ord('2'), ord('3'), ord('4'), ord('5'), ord('6'), ord('7'), ord('8'), ord('9')]:
+        elif check_key("col_select", key, keys_dict):
             col_index = key - ord('0')
             if 0 <= col_index < len(items[0]):
                 sort_column = col_index
                 current_index = indexed_items[cursor_pos][0]
                 sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
                 cursor_pos = [row[0] for row in indexed_items].index(current_index)
-        elif key in [ord('!'), ord('@'), ord('#'), ord('$'), ord('%'), ord('^'), ord('&'), ord('*'), ord('('), ord(')')]:
+        elif check_key("col_hide", key, keys_dict):
             d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
             d = {s:i for i,s in enumerate(")!@#$%^&*(")}
             col_index = d[chr(key)]
@@ -1266,27 +1275,33 @@ def list_picker(
             # copy_items_to_clipboard()
             copy_selected_rows_to_clipboard(items, selections)
             notification(stdscr, f"{sum(selections.values())} full rows copied to clipboard", colours_end=colours_end)
-        elif key == curses.KEY_DC:  # Delete key
+        elif check_key("delete", key, keys_dict):  # Delete key
             delete_entries()
-        elif key == ord('+'):  # Increase lines per page
+        elif check_key("increase_lines_per_page", key, keys_dict):
             items_per_page += 1
             draw_screen(indexed_items, highlights)
-        elif key == ord('-'):  # Decrease lines per page
+        elif check_key("decrease_lines_per_page", key, keys_dict):
             if items_per_page > 1:
                 items_per_page -= 1
             draw_screen(indexed_items, highlights)
-        elif key == ord('['):
+        elif check_key("decrease_column_width", key, keys_dict):
             if max_column_width > 10:
                 max_column_width -= 10
                 column_widths[:] = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
                 draw_screen(indexed_items, highlights)
-        elif key == ord('v'):
+        elif check_key("increase_column_width", key, keys_dict):
+            if max_column_width < 300:
+                max_column_width += 10
+                column_widths[:] = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
+                draw_screen(indexed_items, highlights)
+        elif check_key("visual_selection_toggle", key, keys_dict):
             handle_visual_selection()
             draw_screen(indexed_items, highlights)
 
-        elif key == ord('V'):
+        elif check_key("visual_deslection_toggle", key, keys_dict):
             handle_visual_selection(selecting=False)
             draw_screen(indexed_items, highlights)
+
         if key == curses.KEY_RESIZE:  # Terminal resize signal
             h, w = stdscr.getmaxyx()
             top_space = top_gap
@@ -1307,7 +1322,7 @@ def list_picker(
             items_per_page = h - top_space-int(bool(header)) - 3*int(bool(show_footer))
             stdscr.refresh()
 
-        elif key == ord('f'):
+        elif check_key("filter_input", key, keys_dict):
             draw_screen(indexed_items, highlights)
             usrtxt = f" {filter_query}" if filter_query else ""
             h, w = stdscr.getmaxyx()
@@ -1337,7 +1352,7 @@ def list_picker(
                     sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
 
 
-        elif key == ord('/'):
+        elif check_key("search_input", key, keys_dict):
             draw_screen(indexed_items, highlights)
             usrtxt = f"{search_query} " if search_query else ""
             usrtxt, return_val = input_field(
@@ -1359,7 +1374,7 @@ def list_picker(
                 if return_val:
                     cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
 
-        elif key == ord('i'):
+        elif check_key("continue_search_forward", key, keys_dict):
             return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
                 query=search_query,
                 indexed_items=indexed_items,
@@ -1370,7 +1385,7 @@ def list_picker(
             )
             if return_val:
                 cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
-        elif key == ord('I'):
+        elif check_key("continue_search_backward", key, keys_dict):
             return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
                 query=search_query,
                 indexed_items=indexed_items,
@@ -1382,7 +1397,7 @@ def list_picker(
             )
             if return_val:
                 cursor_pos, search_index, search_count, highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
-        elif key == 27:  # ESC key
+        elif check_key("cancel", key, keys_dict):  # ESC key
             # order of escapes:
             # 1. selecting/deslecting
             # 2. search
@@ -1420,7 +1435,7 @@ def list_picker(
                 highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
                 continue
             draw_screen(indexed_items, highlights)
-        elif key == ord(':'):
+        elif check_key("opts_input", key, keys_dict):
             usrtxt = f"{user_opts} " if user_opts else ""
             usrtxt, return_val = input_field(
                 stdscr,
@@ -1431,11 +1446,11 @@ def list_picker(
             )
             if return_val:
                 user_opts = usrtxt
-        elif key == ord('o'):
+        elif check_key("opts_select", key, keys_dict):
             open_submenu(stdscr)
-        elif key == ord('z'):
+        elif check_key("notification_toggle", key, keys_dict):
             notification(stdscr, colours_end=colours_end)
-        elif key == 9: # tab key
+        elif check_key("mode_next", key, keys_dict): # tab key
             # apply setting 
             prev_mode_index = mode_index
             mode_index = (mode_index+1)%len(modes)
@@ -1454,7 +1469,7 @@ def list_picker(
                     # Re-sort items after applying filter
                     if columns_sort_method[sort_column] != 0:
                         sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-        elif key == 353: # shift+tab key
+        elif check_key("mode_prev", key, keys_dict): # shift+tab key
             # apply setting 
             prev_mode_index = mode_index
             mode_index = (mode_index-1)%len(modes)
@@ -1472,7 +1487,7 @@ def list_picker(
                     # Re-sort items after applying filter
                     if columns_sort_method[sort_column] != 0:
                         sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-        elif key == ord('|'):
+        elif check_key("pipe_input", key, keys_dict):
             usrtxt = "xargs -d '\n' -I{}  "
             usrtxt, return_val = input_field(
                 stdscr,
@@ -1492,13 +1507,8 @@ def list_picker(
                     process = subprocess.Popen(usrtxt, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     process.communicate(input='\n'.join(full_values).encode('utf-8'))
 
-        elif key == ord("\\"):
+        elif check_key("reset_opts", key, keys_dict):
             user_opts = ""
-        elif key == ord(']'):
-            if max_column_width < 300:
-                max_column_width += 10
-                column_widths[:] = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
-                draw_screen(indexed_items, highlights)
         draw_screen(indexed_items, highlights, clear=clear_screen)
 
 

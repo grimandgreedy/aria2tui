@@ -373,7 +373,7 @@ def restartAria():
 
 def editConfig():
     cmd = f"NVIM_APPNAME=nvim-nvchad nvim ~/.config/aria2/aria2.conf"
-    process = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
 def addUrisFull(url="http://localhost", port=6800, token=None):
     s = "!!\n"
