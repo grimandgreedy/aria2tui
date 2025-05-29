@@ -468,6 +468,7 @@ def begin(config):
         "paginate": paginate,
         "title": app_name,
         "colours": custom_colours,
+        "max_selected": 1,
     }
     view_loop_data = {
         "top_gap": 0,
@@ -499,75 +500,54 @@ def begin(config):
         "colours": custom_colours,
         "require_option": [False if x[0] != "changePosition" else True for x in options[0][1]["operations"]],
     }
-    while True:
-        ## Select menu option
-        if not menu_persistent:
-            menu_data = {key: val for key, val in menu_data.items() if key not in ["items", "indexed_items"]}
-            menu_data["colours"] = custom_colours
 
-            dl_type_list, opts, menu_data = list_picker(
-                stdscr,
-                items=[[func[0]] for func in options],
-                max_selected=1,
-                **menu_data,
-            )
+    while True:
+        menu_data = {key:val for key, val in menu_data.items() if key not in ["items", "indexed_items"]}
+        dl_type_list, opts, menu_data = list_picker(
+            stdscr,
+            items=[[func[0]] for func in options],
+            **menu_data,
+        )
         if not dl_type_list: break
         dl_type = dl_type_list[0]
-
-
-        if options[dl_type][0] in ["Watch Active", "Watch All"]:
-            # os.system("notify-send 'refreshing'")
-            menu_persistent = True
+        if options[dl_type][0] in ["Watch All"]:
             items, header = options[dl_type][1]["get_data"]()
-
-            ## Ensure that the cursor stays on the same download (as ID'd by the gid)
-            if "indexed_items" in watch_loop_data and len(watch_loop_data["indexed_items"]) != 0 and "cursor_pos" in watch_loop_data:
-                curs = watch_loop_data["cursor_pos"]
-                indexed_items = watch_loop_data["indexed_items"]
-                gid_col = header.index("gid")
-                current_index_gid = indexed_items[curs][1][gid_col]
-                if current_index_gid in [item[gid_col] for item in items]:
-                    new_index = [item[gid_col] for item in items].index(current_index_gid)
-                    watch_loop_data["cursor_pos"] = new_index
 
             ## Remove old data from dict
             watch_loop_data = {key: val for key, val in watch_loop_data.items() if key not in ["items", "indexed_items"]}
             selected_downloads, opts, watch_loop_data = list_picker(
                 stdscr,
-                items,
-                # current_row=cursor_pos_levels[1][0],
-                # current_page=cursor_pos_levels[1][1],
+                items=items,
                 header=header,
-                timer=1,
+                auto_refresh=True,
                 get_new_data=True,
                 refresh_function=options[dl_type][1]["get_data"],
-                # highlights=highlights,
+                timer=1,
                 **watch_loop_data,
             )
-            # selected_downloads, opts = list_picker(stdscr, items, custom_colours, header=header, timer=2, get_new_data=True, refresh_function=options[dl_type][1]["get_data"])
-            # terminate_code = run_with_timeout(list_picker, args, kwargs, timeout=2)
-            if not selected_downloads and opts == 'refresh':
-                continue
-            elif not selected_downloads:
-                menu_persistent = False
-                continue
+            if not selected_downloads: continue
+        elif options[dl_type][0] in ["View All"]:
+            items, header = options[dl_type][1]["get_data"]()
+
+            ## Remove old data from dict
+            view_loop_data = {key: val for key, val in view_loop_data.items() if key not in ["items", "indexed_items"]}
+            selected_downloads, opts, view_loop_data = list_picker(
+                stdscr,
+                items=items,
+                header=header,
+                auto_refresh=False,
+                get_new_data=False,
+                refresh_function=options[dl_type][1]["get_data"],
+                timer=1,
+                **view_loop_data,
+            )
+            if not selected_downloads: continue
 
         elif options[dl_type][0] in ["AddURIs", "Edit Config", "Restart Aria", "Add Torrents"]:
             # Run function
             options[dl_type][1]["function"]()
             continue
-        # elif options[dl_type][0] == "Edit Config":
-        #     # process = subprocess.Popen(usrtxt, shell=True, stdin=subprocess.PIPE)
-        #     # process.communicate(input='\n'.join(full_values).encode('utf-8'))
-        #     # cmd = f"kitty --class=reader-class nvim -i NONE {tmpfile_path}"
-        #     # cmd = f"nvim ~/.config/aria2/aria2.conf"
-        #     cmd = f"NVIM_APPNAME=nvim-nvchad nvim ~/.config/aria2/aria2.conf"
-        #     subprocess.run(cmd, shell=True)
-        #     continue
-        # elif options[dl_type][0] == "Restart Aria":
-        #     cmd = f"systemctl --user restart aria2d.service"
-        #     subprocess.run(cmd, shell=True)
-        #     continue
+
         ## Global
         elif options[dl_type][0] in ["Get Global Options", "Get Global Stat", "Get Session Info", "Get Version"]:
             data = send_req(options[dl_type][1]["function"]())
@@ -583,32 +563,18 @@ def begin(config):
         elif options[dl_type][0] in ["pauseAll", "Remove completed/errored downloads"]:
             data = send_req(options[dl_type][1]["function"]())
             continue
-
-
+        ####### THIS SHOULDN'T BE REACHED
         else:
             ## select downloads to operate upon
             items, header = options[dl_type][1]["get_data"]()
             if len(items) == 0:
                 header = ["items"]
                 items = [[]]
-            ## Ensure that the cursor stays on the same download (as ID'd by the gid)
-            # if "indexed_items" in view_loop_data and len(view_loop_data["indexed_items"]) != 0 and "cursor_pos" in watch_loop_data:
-            #     curs = view_loop_data["cursor_pos"]
-            #     indexed_items = view_loop_data["indexed_items"]
-            #     gid_col = header.index("gid")
-            #     current_index_gid = indexed_items[curs][1][gid_col]
-            #     if current_index_gid in [item[gid_col] for item in items]:
-            #         new_index = [item[gid_col] for item in items].index(current_index_gid)
-            #         view_loop_data["cursor_pos"] = new_index
             view_loop_data = {key: val for key, val in view_loop_data.items() if key not in ["items", "indexed_items"]}
             selected_downloads, opts, view_loop_data = list_picker(
                 stdscr,
                 items,
-                # current_row=cursor_pos_levels[2][0],
-                # current_page=cursor_pos_levels[2][1],
-                # colours=custom_colours,
                 header=header,
-                # highlights=highlights,
                 **view_loop_data,
 
             )
@@ -618,7 +584,7 @@ def begin(config):
         fname_index = header.index("fname")
         gids = [item[gid_index] for i, item in enumerate(items) if i in selected_downloads]
         fnames = [item[fname_index] for i, item in enumerate(items) if i in selected_downloads]
-        
+
         ## select action to perform on downloads
         operations = [operation_list[0] for operation_list in options[dl_type][1]["operations"]]
         items, header = operations, [f"Select operation"]
@@ -640,6 +606,7 @@ def begin(config):
         operation_f = options[dl_type][1]["operations"][operation][1]
         operation_list = options[dl_type][1]["operations"][operation]
         operation_function = operation_list[1]
+
         if len(operation_list) > 2:
             operation_kwargs = operation_list[2]
 
@@ -653,7 +620,6 @@ def begin(config):
         # print(f"    from list {dl_type_list}")
 
         responses = []
-        batch = []
         for gid in gids:
             try:
                 # jsonreq = changePosition(gid,0)
@@ -669,7 +635,7 @@ def begin(config):
                     jsonreq = operation_f(str(gid), **operation_kwargs)
                 else:
                     jsonreq = operation_f(str(gid))
-            
+
                 js_rs = send_req(jsonreq)
                 responses.append(js_rs)
             except:
@@ -690,10 +656,6 @@ def begin(config):
             cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
             process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
         stdscr.clear()
-
-
-
-
 
 def main():
     while True:
