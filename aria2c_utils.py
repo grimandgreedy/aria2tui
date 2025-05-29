@@ -490,6 +490,7 @@ def openDownloadLocation(gid, new_window=True):
 
     """
     try:
+        os.system('cls' if os.name == 'nt' else 'clear')
         req = getFiles(str(gid))
         response = send_req(req)
         val = json.loads(json.dumps(response))
@@ -507,13 +508,11 @@ def openDownloadLocation(gid, new_window=True):
             cmd = f"kitty yazi {repr(loc)}"
             # subprocess.run(cmd, shell=True)
             subprocess.Popen(cmd, shell=True)
-            os.system(f"notify-send '{loc}'")
             # os.system(f'kitty yazi "{loc}"')
         else:
             cmd = f"yazi {repr(loc)}"
             # subprocess.run(cmd, shell=True)
             subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-            os.system(f"notify-send '{loc}'")
             # os.system(f'kitty yazi "{loc}"')
 
     except:
@@ -540,8 +539,6 @@ def openFile(gid):
         cmd = f"xdg-open {repr(loc)}"
         # subprocess.run(cmd, shell=True)
         subprocess.Popen(cmd, shell=True)
-        os.system(f"notify-send '{type(val)}'")
-        os.system(f"notify-send '{loc}'")
         # os.system(f'kitty yazi "{loc}"')
 
     except:

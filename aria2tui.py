@@ -89,10 +89,10 @@ todo
  - make remove work with errored download
  - ForceRemove doesn't seem to do anything (with stopped download)
  - retry download doesn't seem to do anything 
- - artifacts after opening download location in terminal; have to refresh before and after?
- - colour problems:
-    - aria2tui > view downloads > 'q' > 'z' 
- - add preview of selected downloads when selecting options
+ - restrict refresh so that it doesn't exit on the menu
+ - infobox causes flickering
+ - add key to open download location using 'o'
+ - remove old watch loop; pass refresh function to watch, no refresh function to view
 
 DONE
  - If a download is paused and it is paused again it throws an error when it should just skip it.
@@ -101,12 +101,22 @@ DONE
  - check if remove completed/errored is working
  - show all downloads (not just 500)
     - set max=5000 which should be fine
+    - had to set the max in the aria config file as well
  - Add a getAllInfo option for downloads
  - open location
  - figure out how to keep the row constant when going back and forth between menus
  - make fetching active, queue, and stopped downloads into a batch request
  - (!!!) high CPU usage
     - when val in `stdscr.timeout(val)` is low the cpu usage is high
+ - colour problems:
+    - aria2tui > view downloads > 'q' > 'z' 
+    (*) fixed by arbitarily setting 0-50 for application colours, 50-100 for help colours and 100-150 for notification colours
+ - have to open watch active twice; first time exits immediately...
+ - add preview of selected downloads when selecting options
+    (*) implemented infobox
+ - artifacts after opening download location in terminal; have to refresh before and after?
+    (*) stdscr.clear() after yazi closes
+
 
 
 """
@@ -431,6 +441,10 @@ def begin(config):
             'name': 'Queue',
         },
         {
+            'filter': '--1 waiting|active',
+            'name': 'Active+Queue',
+        },
+        {
             'filter': '--1 paused',
             'name': 'Paused',
         },
@@ -505,9 +519,6 @@ def begin(config):
             # os.system("notify-send 'refreshing'")
             menu_persistent = True
             items, header = options[dl_type][1]["get_data"]()
-            # if len(items) == 0:
-            #     header = ["items"]
-            #     items = [[]]
 
             ## Ensure that the cursor stays on the same download (as ID'd by the gid)
             if "indexed_items" in watch_loop_data and len(watch_loop_data["indexed_items"]) != 0 and "cursor_pos" in watch_loop_data:
@@ -527,13 +538,12 @@ def begin(config):
                 # current_row=cursor_pos_levels[1][0],
                 # current_page=cursor_pos_levels[1][1],
                 header=header,
-                timer=0.5,
+                timer=1,
                 get_new_data=True,
                 refresh_function=options[dl_type][1]["get_data"],
                 # highlights=highlights,
                 **watch_loop_data,
             )
-
             # selected_downloads, opts = list_picker(stdscr, items, custom_colours, header=header, timer=2, get_new_data=True, refresh_function=options[dl_type][1]["get_data"])
             # terminate_code = run_with_timeout(list_picker, args, kwargs, timeout=2)
             if not selected_downloads and opts == 'refresh':
@@ -605,18 +615,24 @@ def begin(config):
             if not selected_downloads or items == [[]]: continue
         # os.system(f"notify-send {repr(selected_downloads)}")
         gid_index = header.index("gid")
+        fname_index = header.index("fname")
         gids = [item[gid_index] for i, item in enumerate(items) if i in selected_downloads]
+        fnames = [item[fname_index] for i, item in enumerate(items) if i in selected_downloads]
         
         ## select action to perform on downloads
         operations = [operation_list[0] for operation_list in options[dl_type][1]["operations"]]
-        items, header = operations, [f"Operation to perform on {selected_downloads}"]
+        items, header = operations, [f"Select operation"]
         dl_option_data = {key: val for key, val in dl_option_data.items() if key not in ["items", "indexed_items"]}
+        dl_option_data["display_infobox"] = True
+        dl_option_data["infobox_items"] = fnames
+
         operation_n, opts, dl_option_data = list_picker(
             stdscr,
             items,
             # colours=custom_colours,
             header=header,
             **dl_option_data,
+
         )
         if not operation_n: 
             continue
@@ -673,7 +689,7 @@ def begin(config):
             # cmd = r"nvim -i NONE -c '/^\s*\d'" + f" {tmpfile_path}"
             cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
             process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-            
+        stdscr.clear()
 
 
 

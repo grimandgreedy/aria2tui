@@ -193,7 +193,7 @@ def list_picker(
         top_gap=1,
         title="",
         header=[],
-        max_width=70,
+        max_column_width=70,
         timer=False,
         get_new_data=False,
         refresh_function=None,
@@ -238,6 +238,10 @@ def list_picker(
         colours_start=0,
         colours_end=-1,
         key_remappings = {},
+        display_infobox = False,
+        infobox_items = [[]],
+        display_only=False,
+        
 ):
     """
     A simple list picker using ncurses.
@@ -247,7 +251,7 @@ def list_picker(
         max_selected (int, optional): The maximum number of items that can be selected. Defaults to None.
         top_gap (int, optional): The number of lines to leave at the top of the screen. Defaults to 1.
         header (str, optional): A string to display as a header above the list picker. Defaults to empty list.
-        max_width (int, optional): The maximum width of the list picker window. Defaults to 70.
+        max_column_width (int, optional): The maximum width of the list picker window. Defaults to 70.
         timer (bool, optional): Whether to display a timer at the bottom of the screen. Defaults to False.
         get_new_data (bool, optional): Whether to call refresh_function when new data is available. Defaults to False.
         refresh_function (function, optional): A function to call when new data is available. Defaults to None.
@@ -318,6 +322,41 @@ def list_picker(
         curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
         return start+21
 
+    def infobox(stdscr, message="", title="Infobox",  colours_end=0, duration=4):
+        h, w = stdscr.getmaxyx()
+        notification_width, notification_height = w//2, h-8
+        message_width = notification_width-5
+
+        if not message: message = "!!"
+        if isinstance(message, str):
+            submenu_items = ["  "+message[i*message_width:(i+1)*message_width] for i in range(len(message)//message_width+1)]
+        else:
+            submenu_items = message
+
+        notification_remap_keys = { 
+            curses.KEY_RESIZE: curses.KEY_F5,
+            27: ord('q')
+        }
+        while True:
+            h, w = stdscr.getmaxyx()
+
+            submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
+            s, o, f = list_picker(
+                submenu_win,
+                submenu_items,
+                colours=notification_colours,
+                title=title,
+                show_footer=False,
+                colours_start=150,
+                disabled_keys=[ord('z'), ord('c')],
+                top_gap=0,
+                key_remappings = notification_remap_keys,
+                display_only = True,
+            )
+            if o != "refresh": break
+
+        return submenu_win
+
     def draw_screen(indexed_items=[], highlights={}, clear=True):
         nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer
 
@@ -377,7 +416,7 @@ def list_picker(
         if header:
             # header_str = format_row(header)
             # stdscr.addstr(top_gap, 0, header_str, curses.color_pair(colours_start+3))
-            column_widths = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
+            column_widths = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
             # header_str = ' '.join(f"{i+1}. {header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
             header_str = ""
             up_to_selected_col = ""
@@ -511,9 +550,17 @@ def list_picker(
         # stdscr.addstr(h - 3, 0, f"Page {current_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}", curses.color_pair(colours_start+4))
 
         if show_footer:
-            stdscr.addstr(h-1, 0, ' '*(w-1), curses.color_pair(colours_start+20))
-            stdscr.addstr(h-2, 0, ' '*w, curses.color_pair(colours_start+20))
             stdscr.addstr(h-3, 0, ' '*w, curses.color_pair(colours_start+20))
+            stdscr.addstr(h-2, 0, ' '*w, curses.color_pair(colours_start+20))
+            stdscr.addstr(h-1, 0, ' '*(w-1), curses.color_pair(colours_start+20)) # Problem with curses that you can't write to the last char
+
+
+            if filter_query:
+                stdscr.addstr(h - 2, 2, f" Filter: {filter_query} "[:w-40], curses.color_pair(colours_start+20) | curses.A_BOLD)  # Display filter query
+            if search_query:
+                stdscr.addstr(h - 3, 2, f" Search: {search_query} [{search_index}/{search_count}] "[:w-3], curses.color_pair(colours_start+20) | curses.A_BOLD)
+            if user_opts:
+                stdscr.addstr(h-1, 2, f" Opts: {user_opts} "[:w-3], curses.color_pair(colours_start+20) | curses.A_BOLD)  # Display additional text
             # Display sort information
             sort_column_info = f"{sort_column if sort_column is not None else 'None'}"
             sort_method_info = f"{SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else "NA"
@@ -535,22 +582,14 @@ def list_picker(
             # stdscr.addstr(h - 1, 0, f" {select_mode} {int(bool(key_chain))*'    '}", curses.color_pair(colours_start+4))
             stdscr.addstr(h - 3, w-35, f" {select_mode} ", curses.color_pair(colours_start+4) | curses.A_BOLD)
 
-            try:
-                if filter_query:
-                    stdscr.addstr(h - 2, 2, f" Filter: {filter_query} ", curses.color_pair(colours_start+20) | curses.A_BOLD)  # Display filter query
-                if search_query:
-                    stdscr.addstr(h - 3, 2, f" Search: {search_query} [{search_index}/{search_count}] ", curses.color_pair(colours_start+20) | curses.A_BOLD)
-            except:
-                pass
-            try:
-                if user_opts:
-                    stdscr.addstr(h-1, 2, f" Opts: {user_opts} ", curses.color_pair(colours_start+20) | curses.A_BOLD)  # Display additional text
-            except: pass
-
             stdscr.refresh()
+        if display_infobox:
+            infobox(stdscr, message=infobox_items)
+            stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
+            # stdscr.refresh()
         
 
-    def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_width, unselectable_indices):
+    def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices):
 
         if items == []: items = [[]]
         ## Ensure that items is a List[List[Str]] object
@@ -579,7 +618,7 @@ def list_picker(
         h, w = stdscr.getmaxyx()
         items_per_page = h - top_space-int(bool(header)) - 3*int(bool(show_footer))
         indexed_items = list(enumerate(items))
-        column_widths = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
+        column_widths = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
         if require_option == []:
             require_option = [False for x in indexed_items]
         if columns_sort_method == [] and len(items) > 0:
@@ -612,9 +651,9 @@ def list_picker(
 
         assert new_pos < len(items)
         cursor_pos = new_pos
-        return items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS
+        return items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w
 
-    items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_width, unselectable_indices)
+    items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices)
 
     draw_screen(indexed_items, highlights)
     
@@ -642,7 +681,7 @@ def list_picker(
             "start_selection":      start_selection,
             "end_selection":        end_selection,
             "highlights":           highlights,
-            "max_width":            max_width,
+            "max_column_width":     max_column_width,
             "mode_index":           mode_index,
             "modes":                modes,
             "title":                title,
@@ -658,6 +697,10 @@ def list_picker(
             "show_footer":          show_footer,
             "colours_start":        colours_start,
             "colours_end":          colours_end,
+            "display_only":         display_only,
+            "infobox_items":        infobox_items,
+            "display_infobox":      display_infobox,
+            "key_remappings":       key_remappings,
         }
         return function_data
 
@@ -859,6 +902,7 @@ def list_picker(
                 # if title: top_space+=1
                 # if display_modes: top_space+=1
                 # items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
+
     
     def toggle_column_visibility(col_index):
         if 0 <= col_index < len(items[0]):
@@ -902,13 +946,6 @@ def list_picker(
                         toggle_column_visibility(int(col))
 
             user_settings = ""
-
-    # Function to display the help screen
-
-    def format_full_row(row):
-        return '\t'.join(row)
-
-    # Function to draw the screen
 
     # Functions for item selection
     def toggle_item(index):
@@ -982,7 +1019,6 @@ def list_picker(
         cursor_pos = new_pos
         return True
 
-    draw_screen(indexed_items, highlights)
     def remapped_key(key, val, key_remappings):
         """
         if key has been remapped to val in key_remappings
@@ -991,6 +1027,8 @@ def list_picker(
             if key_remappings[key] == val or (isinstance(key_remappings[key], list) and val in key_remappings[key]):
                 return True
         return False
+
+
     if timer: initial_time = time.time()
 
     curses.curs_set(0)
@@ -1011,10 +1049,16 @@ def list_picker(
 
     # Set terminal background color
     stdscr.bkgd(' ', curses.color_pair(colours_start+3))  # Apply background color
+    draw_screen(indexed_items, highlights)
+
+    if display_only:
+        stdscr.timeout(50)
+        stdscr.getch()
+        function_data = get_function_data()
+        return [], "", function_data
 
     # Main loop
     data_refreshed = False
-    draw_screen(indexed_items, highlights)
     
     while True:
         key = stdscr.getch()
@@ -1027,6 +1071,9 @@ def list_picker(
             # os.system(f"notify-send '{time.time() - initial_time}, {timer} {bool(timer)}, {time.time() - initial_time > timer}'")
         if key == curses.KEY_F5 or remapped_key(key, curses.KEY_F5, key_remappings) or (timer and (time.time() - initial_time) > timer):
             # stdscr.clear()
+            h, w = stdscr.getmaxyx()
+            stdscr.addstr(0,w-3,"⟲")
+            stdscr.refresh()
             if get_new_data and refresh_function:
                 # f = refresh_function[0]
                 # args = refresh_function[1]
@@ -1035,7 +1082,7 @@ def list_picker(
 
                 items2, header2 = refresh_function()
                 items = items2
-                items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS = initialise_variables(items2, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_width, unselectable_indices)
+                items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w = initialise_variables(items2, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices)
 
                 initial_time = time.time()
                 draw_screen(indexed_items, highlights, clear=False)
@@ -1229,9 +1276,9 @@ def list_picker(
                 items_per_page -= 1
             draw_screen(indexed_items, highlights)
         elif key == ord('['):
-            if max_width > 10:
-                max_width -= 10
-                column_widths[:] = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
+            if max_column_width > 10:
+                max_column_width -= 10
+                column_widths[:] = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
                 draw_screen(indexed_items, highlights)
         elif key == ord('v'):
             handle_visual_selection()
@@ -1263,6 +1310,7 @@ def list_picker(
         elif key == ord('f'):
             draw_screen(indexed_items, highlights)
             usrtxt = f" {filter_query}" if filter_query else ""
+            h, w = stdscr.getmaxyx()
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1447,9 +1495,9 @@ def list_picker(
         elif key == ord("\\"):
             user_opts = ""
         elif key == ord(']'):
-            if max_width < 300:
-                max_width += 10
-                column_widths[:] = get_column_widths(items, header=header, max_width=max_width, number_columns=number_columns)
+            if max_column_width < 300:
+                max_column_width += 10
+                column_widths[:] = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
                 draw_screen(indexed_items, highlights)
         draw_screen(indexed_items, highlights, clear=clear_screen)
 
@@ -1486,7 +1534,7 @@ if __name__ == '__main__':
         "unselectable_indices" : [],
         "colours": get_colours(0),
         "top_gap": 0,
-        "max_width": 70,
+        "max_column_width": 70,
     }
     if items == None:
         function_data["items"] = test_items
