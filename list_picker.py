@@ -1517,7 +1517,6 @@ def list_picker(
         elif check_key("edit", key, keys_dict):
             if len(indexed_items) > 0 and sort_column >=0:
                 current_val = indexed_items[cursor_pos][1][sort_column]
-                input_field
                 usrtxt = f"{current_val}"
                 usrtxt, return_val = input_field(
                     stdscr,

@@ -156,7 +156,14 @@ DONE
 #     return result
 
 
-def begin(config):
+def begin(stdscr, config):
+    url = config["general"]["url"]
+    port = config["general"]["port"]
+    token = config["general"]["token"]
+    paginate = config["general"]["paginate"]
+
+    custom_colours = get_colours(config["appearance"]["theme"])
+
     active_loop = lambda x: x
     waiting_loop = lambda x: x
     stopped_loop = lambda x: x
@@ -590,32 +597,7 @@ def begin(config):
         stdscr.clear()
 
 def main():
-    while True:
-        connection_up = test_connection()
-        if connection_up: break
-        header, choices = ["Aria2c Connection down."], ["Yes", "No"]
-        choice, opts, function_data = list_picker(
-            stdscr,
-            choices,
-            colours=custom_colours,
-            header=header,
-            max_selected=1
-        )
-
-        if choice == [1] or choice == []: exit()
-
-        subprocess.Popen(f"systemctl --user restart aria2d.service", shell=True, stderr=subprocess.PIPE)
-        subprocess.Popen(f"systemctl --user restart ariang.service", shell=True, stderr=subprocess.PIPE)
-        time.sleep(2)
-
-    begin(config)
-
-
-
-
-if __name__ == "__main__":
-    # os.environ.setdefault('ESCDELAY', '25')
-    
+    ## Load config
     CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"
     with open(os.path.expanduser(CONFIGPATH), "rb") as f:
         config = tomllib.load(f)
@@ -626,39 +608,35 @@ if __name__ == "__main__":
     paginate = config["general"]["paginate"]
 
     custom_colours = get_colours(config["appearance"]["theme"])
-    try:
-        ## Run curses
-        stdscr = curses.initscr()
-        stdscr.keypad(True)
-        curses.start_color()
-        curses.noecho()  # Turn off automatic echoing of keys to the screen
-        curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
 
-        
-        ## start connection
-        # Check if config exists. If not then load default
-        while True:
-            connection_up = testConnection()
-            if connection_up: break
-            header, choices = ["Aria2c Connection down."], ["Yes", "No"]
-            choice, opts, function_data = list_picker(
-                stdscr,
-                choices,
-                colours=custom_colours,
-                header=header,
-                max_selected=1
-            )
+    ## Run curses
+    stdscr = curses.initscr()
+    stdscr.keypad(True)
+    curses.start_color()
+    curses.noecho()  # Turn off automatic echoing of keys to the screen
+    curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
 
-            if choice == [1] or choice == []: exit()
-            for cmd in config["general"]["startupcmds"]:
-                subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
+    ## Check if aria is running
+    connection_up = testConnection()
+    if not connection_up:
+        header, choices = ["Aria2c Connection down."], ["Yes", "No"]
+        choice, opts, function_data = list_picker(
+            stdscr,
+            choices,
+            colours=custom_colours,
+            header=header,
+            max_selected=1
+        )
 
-            time.sleep(2)
+        if choice == [1] or choice == []: exit()
+        for cmd in config["general"]["startupcmds"]:
+            subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
 
-        begin(config=config)
-    except:
-        pass
-    # Clean up
+        time.sleep(2)
+
+    begin(stdscr, config=config)
+
+    ## Clean up curses and clear terminal
     stdscr.clear()
     stdscr.refresh()
     curses.nocbreak()
@@ -666,3 +644,6 @@ if __name__ == "__main__":
     curses.echo()
     curses.endwin()
     os.system('cls' if os.name == 'nt' else 'clear')
+
+if __name__ == "__main__":
+    main()
