@@ -460,14 +460,16 @@ def addTorrentsFull(url="http://localhost", port=6800, token=None):
 
 def getAllInfo(gid):
     responses = []
-    for op in [getFiles, getServers, getPeers, getUris, getOption, tellStatus]:
+    names = ["getFiles", "getServers", "getPeers", "getUris", "getOption", "tellStatus"]
+    # for op in [getFiles, getServers, getPeers, getUris, getOption, tellStatus]:
+    for i, op in enumerate([getFiles, getServers, getPeers, getUris, getOption, tellStatus]):
         try:
             response = send_req(op(gid))
-            info = { "function" : op.__name__ }
+            info = { "function" : names[i] }
             response = {**info, **response}
             responses.append(response)
         except:
-            responses.append(json.loads(f'{{"function": "{op.__name__}", "response": "NONE"}}'))
+            responses.append(json.loads(f'{{"function": "{names[i]}", "response": "NONE"}}'))
     return responses
     file_info = send_req(getFiles(gid))
     server_info = send_req(getServers(gid)) 
@@ -475,6 +477,12 @@ def getAllInfo(gid):
     vals = [file_info]
     return file_info
     return [val if val else json.loads("{}") for val in vals]
+
+def retryDownloadFull(gid, url="http://localhost", port=6800, token=None):
+    status = send_req(tellStatus(gid))
+    dir = status["result"]["dir"]
+    uri = status["result"]["files"][0]["uris"][0]["uri"]
+    add_download(uri, url=url, port=port, token=token, directory=dir)
 
 def getAll():
     active, aheader = getActive()
@@ -564,8 +572,7 @@ getSessionInfo = lambda : getSessionInfoFull(token=token)
 getVersion = lambda : getVersionFull(token=token)
 getGlobalStat = lambda : getGlobalStatFull(token=token)
 pause = lambda gid:  pauseFull(gid, token=token)
-retryDownload = lambda gid:  retryDownloadFull(gid, token=token)
-retryDownload2 = lambda gid:  retryDownload2Full(gid, token=token)
+retryDownload = lambda gid:  retryDownloadFull(gid, url=url, port=port, token=token)
 pauseAll = lambda : pauseAllFull(token=token)
 unpause = lambda gid:  unpauseFull(gid, token=token)
 remove = lambda gid:  removeFull(gid, token=token)

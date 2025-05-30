@@ -93,6 +93,8 @@ todo
  - infobox causes flickering
  - add key to open download location using 'o'
  - remove old watch loop; pass refresh function to watch, no refresh function to view
+ - add a lambda function for add_download so that url and port don't have to be specifed
+ - show notification if adding downloads fail
 
 DONE
  - If a download is paused and it is paused again it throws an error when it should just skip it.

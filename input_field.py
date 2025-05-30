@@ -29,7 +29,7 @@ def input_field(stdscr, usrtxt="", field_name="Input", x=0, y=0, literal=False, 
         # stdscr.addstr(y, x, f"{field_name}: {repr(usrtxt)}", curses.color_pair(colours_start+13))
 
         # Clear background to end of row
-        stdscr.addstr(y, x, " "*((w-x)-2), curses.color_pair(colours_start+20))
+        stdscr.addstr(y, x, " "*((w-x)-35), curses.color_pair(colours_start+20))
 
         # Display the field name and current text
         field_length = 0

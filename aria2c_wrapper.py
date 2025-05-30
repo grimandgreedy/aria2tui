@@ -102,28 +102,6 @@ def pauseFull(gid, token=None):
         jsonreq["params"] = [gid]
     return json.dumps(jsonreq).encode('utf-8')
 
-def retryDownloadFull(gid, token=None):
-    ## DOESN'T work
-    jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer', 'params' : [f"token:{token}"] }
-    jsonreq["params"] = [] if token in [None, ""] else [f"token:{token}"]
-    jsonreq["method"] = "aria2.retryDownload"
-    if "params" in jsonreq:
-        jsonreq["params"] += [gid]
-    else:
-        jsonreq["params"] = [gid]
-    return json.dumps(jsonreq).encode('utf-8')
-
-def retryDownload2Full(gid, token=None):
-    ## Get info about download
-    jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer', 'params' : [f"token:{token}"] }
-    jsonreq["params"] = [] if token in [None, ""] else [f"token:{token}"]
-    jsonreq["method"] = "aria2.retryDownload"
-    if "params" in jsonreq:
-        jsonreq["params"] += [gid]
-    else:
-        jsonreq["params"] = [gid]
-    return json.dumps(jsonreq).encode('utf-8')
-
 def pauseAllFull(token=None):
     jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer', 'params' : [f"token:{token}"] }
     jsonreq["params"] = [] if token in [None, ""] else [f"token:{token}"]
