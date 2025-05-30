@@ -13,7 +13,7 @@ import tempfile
 from aria_adduri import addDownloadFull
 import tabulate
 
-def test_connection(url="http://localhost", port=6800):
+def testConnectionFull(url="http://localhost", port=6800):
     url = f'{url}:{port}/jsonrpc'
     try:
         getVersion()
@@ -481,9 +481,13 @@ def getAllInfo(gid):
 
 def retryDownloadFull(gid, url="http://localhost", port=6800, token=None):
     status = send_req(tellStatus(gid))
+    options = send_req(getOption(gid))
+
     dir = status["result"]["dir"]
     uri = status["result"]["files"][0]["uris"][0]["uri"]
-    addDownload(uri=uri)
+    fname = options["result"]["out"] if "out" in options["result"] else None
+    os.system(f"notify-send '{dir}'")
+    addDownload(uri=uri, directory=dir, filename=fname)
 
 def getAll():
     active, aheader = getActive()
@@ -562,7 +566,7 @@ paginate = config["general"]["paginate"]
 send_req = lambda req: sendReqFull(req, url=url, port=port)
 addUri = lambda uri, out="", dir=None, queue_pos=10000:  addUriFull(uri, out=out, dir=dir, queue_pos=queue_pos, token=token)
 addTorrent = lambda path, out="", dir=None, queue_pos=10000:  addTorrentFull(path, out=out, dir=dir, queue_pos=queue_pos, token=token)
-addDownload = lambda uri, filename=None, dir=None, url=url, port=port, token=token, queue_pos=None, proxy=None, prompt=False, cookies_file=None:  addDownloadFull(uri, filename=filename, directory=dir, queue_position=queue_pos, url=url, port=port, token=token, prompt=prompt, proxy=proxy, cookies_file=cookies_file)
+addDownload = lambda uri, filename=None, directory=None, url=url, port=port, token=token, queue_pos=None, proxy=None, prompt=False, cookies_file=None:  addDownloadFull(uri, filename=filename, directory=directory, queue_position=queue_pos, url=url, port=port, token=token, prompt=prompt, proxy=proxy, cookies_file=cookies_file)
 getOption = lambda gid:  getOptionFull(gid, token=token)
 getServers = lambda gid:  getServersFull(gid, token=token)
 getPeers = lambda gid:  getPeersFull(gid, token=token)
@@ -586,6 +590,7 @@ tellActive = lambda offset=0, max=10000:  tellActiveFull(offset=0, max=max, toke
 tellWaiting = lambda offset=0, max=10000:  tellWaitingFull(offset=0, max=max, token=token)
 tellStopped = lambda offset=0, max=10000:  tellStoppedFull(offset=0, max=max, token=token)
 tellStatus = lambda gid:  tellStatusFull(gid, token=token)
-sendReq = lambda jsonreq, url="http://localhost", port=6800: sendReqFull(jsonreq, url=url, port=port)
-addTorrents = lambda url="http://localhost", port=6800, token=token: addTorrentsFull(url=url, port=port, token=token)
-addUris = lambda url="http://localhost", port=6800, token=token: addUrisFull(url=url, port=port, token=token)
+sendReq = lambda jsonreq, url=url, port=port: sendReqFull(jsonreq, url=url, port=port)
+addTorrents = lambda url=url, port=port, token=token: addTorrentsFull(url=url, port=port, token=token)
+addUris = lambda url=url, port=port, token=token: addUrisFull(url=url, port=port, token=token)
+testConnection = lambda url=url, port=port: testConnectionFull(url=url, port=port)

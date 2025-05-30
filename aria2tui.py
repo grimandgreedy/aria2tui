@@ -93,6 +93,12 @@ todo
  - add key to open download location using 'o'
  - remove old watch loop; pass refresh function to watch, no refresh function to view
  - show notification if adding downloads fail
+ - (!!!) there is a problem with the path when readding downloads sometimes. It is correct in the download info but is displayed wrong???
+ - make operations work only with certain download types:
+    - make remove work with all
+    - queue operations only on those in the queue
+    - retry only on errored
+    - 
 
 DONE
  - If a download is paused and it is paused again it throws an error when it should just skip it.
@@ -124,30 +130,30 @@ DONE
 
 
 
-def run_with_timeout(function, args, kwargs, timeout):
-    result_queue = multiprocessing.Queue()
-
-    # Create a wrapper function to pass both positional and keyword arguments, and a result queue
-    def wrapper():
-        function(*args, result_queue=result_queue, **kwargs)
-
-    p = multiprocessing.Process(target=wrapper)
-    p.start()
-    p.join(timeout)  # Wait for `timeout` seconds or until process finishes
-
-    if p.is_alive():
-        p.terminate()  # Terminate the process if still alive after timeout
-        p.join()  # Ensure process has terminated
-        result = None
-        print("Curses application terminated due to timeout")
-    else:
-        print("Curses application completed successfully")
-        try:
-            result = result_queue.get_nowait()
-        except queue.Empty:
-            result = None
-
-    return result
+# def run_with_timeout(function, args, kwargs, timeout):
+#     result_queue = multiprocessing.Queue()
+#
+#     # Create a wrapper function to pass both positional and keyword arguments, and a result queue
+#     def wrapper():
+#         function(*args, result_queue=result_queue, **kwargs)
+#
+#     p = multiprocessing.Process(target=wrapper)
+#     p.start()
+#     p.join(timeout)  # Wait for `timeout` seconds or until process finishes
+#
+#     if p.is_alive():
+#         p.terminate()  # Terminate the process if still alive after timeout
+#         p.join()  # Ensure process has terminated
+#         result = None
+#         print("Curses application terminated due to timeout")
+#     else:
+#         print("Curses application completed successfully")
+#         try:
+#             result = result_queue.get_nowait()
+#         except queue.Empty:
+#             result = None
+#
+#     return result
 
 
 def begin(config):
@@ -606,30 +612,32 @@ def main():
 
 
 if __name__ == "__main__":
-    ## Run curses
-    os.environ.setdefault('ESCDELAY', '25')
+    # os.environ.setdefault('ESCDELAY', '25')
+    
+    CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"
+    with open(os.path.expanduser(CONFIGPATH), "rb") as f:
+        config = tomllib.load(f)
+
+    url = config["general"]["url"]
+    port = config["general"]["port"]
+    token = config["general"]["token"]
+    paginate = config["general"]["paginate"]
+
+    custom_colours = get_colours(config["appearance"]["theme"])
     try:
+        ## Run curses
         stdscr = curses.initscr()
+        curses.savetty()
         stdscr.keypad(True)
         curses.start_color()
         curses.noecho()  # Turn off automatic echoing of keys to the screen
         curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
 
-        # Check if config exists. If not then load default
-        CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"
-        with open(os.path.expanduser(CONFIGPATH), "rb") as f:
-            config = tomllib.load(f)
-
-        url = config["general"]["url"]
-        port = config["general"]["port"]
-        token = config["general"]["token"]
-        paginate = config["general"]["paginate"]
-
-        custom_colours = get_colours(config["appearance"]["theme"])
         
         ## start connection
+        # Check if config exists. If not then load default
         while True:
-            connection_up = test_connection()
+            connection_up = testConnection()
             if connection_up: break
             header, choices = ["Aria2c Connection down."], ["Yes", "No"]
             choice, opts, function_data = list_picker(
@@ -644,27 +652,17 @@ if __name__ == "__main__":
             for cmd in config["general"]["startupcmds"]:
                 subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
 
-            # subprocess.run(f"systemctl --user restart aria2d.service", shell=True)
-            # subprocess.run(f"systemctl --user restart ariang.service", shell=True)
             time.sleep(2)
 
         begin(config=config)
-        # Clean up
-        stdscr.clear()
-        stdscr.refresh()
-        curses.nocbreak()
-        stdscr.keypad(False)
-        curses.echo()
-        curses.endwin()
-        os.system('cls' if os.name == 'nt' else 'clear')
     except:
-
-        # Clean up
-        stdscr.clear()
-        stdscr.refresh()
-        curses.nocbreak()
-        stdscr.keypad(False)
-        curses.echo()
-        curses.endwin()
-        os.system('cls' if os.name == 'nt' else 'clear')
-        raise
+        pass
+    # Clean up
+    stdscr.clear()
+    stdscr.refresh()
+    curses.nocbreak()
+    stdscr.keypad(False)
+    curses.echo()
+    curses.endwin()
+    os.system('cls' if os.name == 'nt' else 'clear')
+    curses.resetty()

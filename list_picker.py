@@ -277,6 +277,7 @@ def list_picker(
         # Sort items initially
         # sort_items()
 
+    curses.set_escdelay(25)
 
     def move_column(direction):
         nonlocal items, column_widths,sort_column, header
@@ -589,6 +590,7 @@ def list_picker(
             infobox(stdscr, message=infobox_items)
             stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
             # stdscr.refresh()
+        curses.setsyx(h-1, w-1)
         
 
     def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices):
