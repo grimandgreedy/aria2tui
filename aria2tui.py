@@ -627,7 +627,6 @@ if __name__ == "__main__":
     try:
         ## Run curses
         stdscr = curses.initscr()
-        curses.savetty()
         stdscr.keypad(True)
         curses.start_color()
         curses.noecho()  # Turn off automatic echoing of keys to the screen
@@ -665,4 +664,3 @@ if __name__ == "__main__":
     curses.echo()
     curses.endwin()
     os.system('cls' if os.name == 'nt' else 'clear')
-    curses.resetty()
