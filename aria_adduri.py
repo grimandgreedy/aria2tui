@@ -7,7 +7,7 @@ import tempfile
 import subprocess
 import re
 
-def add_download(uri, filename=None, token=None, url="http://localhost", port=6800, queue_position=None, cookies_file=None, directory=None, proxy=None, prompt=False):
+def addDownloadFull(uri, filename=None, token=None, url="http://localhost", port=6800, queue_position=None, cookies_file=None, directory=None, proxy=None, prompt=False):
     url = f'{url}:{port}/jsonrpc'
    
     if prompt:
@@ -108,7 +108,7 @@ def kitty_prompt(name, url):
     # Open the temporary file in nvim within a new kitty window
     # cmd = f"kitty --class=reader-class nvim -i NONE -c 'normal VGk' {tmpfile_path}"
     cmd = f"kitty --class=reader-class nvim -i NONE {tmpfile_path}"
-    subprocess.run(cmd, shell=True)
+    ps = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
     with open(tmpfile_path, "r") as f:
         lines = f.readlines()
@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    add_download(
+    addDownloadFull(
         uri=args.uri,
         filename=args.output,
         token=args.token,

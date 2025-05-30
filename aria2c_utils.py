@@ -10,7 +10,7 @@ import json
 from sqlalchemy.engine import cursor
 from utils import *
 import tempfile
-from aria_adduri import add_download
+from aria_adduri import addDownloadFull
 import tabulate
 
 def test_connection(url="http://localhost", port=6800):
@@ -405,7 +405,8 @@ def addUrisFull(url="http://localhost", port=6800, token=None):
                 dls.append({"uri": line[:sp].strip(), "filename": line[sp+1:].strip()})
 
     for dl in dls:
-        add_download(**dl, url=url, port=port, token=token)
+        # addDownload(**dl, url=url, port=port, token=token)
+        addDownload(**dl)
         # jsonreq = pyperclip.copy(addUri(**dl))
         # send_req(jsonreq)
 
@@ -453,7 +454,7 @@ def addTorrentsFull(url="http://localhost", port=6800, token=None):
         send_req(jsonreq)
 
     for uri in uris:
-        add_download(**uri, url=url, port=port, token=token)
+        addDownload(**uri)
 
     os.system(f"notify-send '{len(dls)} torrent files added'")
     os.system(f"notify-send '{len(uris)} magnet links added'")
@@ -482,15 +483,13 @@ def retryDownloadFull(gid, url="http://localhost", port=6800, token=None):
     status = send_req(tellStatus(gid))
     dir = status["result"]["dir"]
     uri = status["result"]["files"][0]["uris"][0]["uri"]
-    add_download(uri, url=url, port=port, token=token, directory=dir)
+    addDownload(uri=uri)
 
 def getAll():
     active, aheader = getActive()
     stopped, sheader = getStopped()
     waiting, wheader = getQueue()
 
-    # active = [["NA"] + row for row in active]
-    # stopped = [["NA"] + row for row in stopped]
     return active + waiting + stopped, wheader
 
 def openDownloadLocation(gid, new_window=True):
@@ -563,6 +562,7 @@ paginate = config["general"]["paginate"]
 send_req = lambda req: sendReqFull(req, url=url, port=port)
 addUri = lambda uri, out="", dir=None, queue_pos=10000:  addUriFull(uri, out=out, dir=dir, queue_pos=queue_pos, token=token)
 addTorrent = lambda path, out="", dir=None, queue_pos=10000:  addTorrentFull(path, out=out, dir=dir, queue_pos=queue_pos, token=token)
+addDownload = lambda uri, filename=None, dir=None, url=url, port=port, token=token, queue_pos=None, proxy=None, prompt=False, cookies_file=None:  addDownloadFull(uri, filename=filename, directory=dir, queue_position=queue_pos, url=url, port=port, token=token, prompt=prompt, proxy=proxy, cookies_file=cookies_file)
 getOption = lambda gid:  getOptionFull(gid, token=token)
 getServers = lambda gid:  getServersFull(gid, token=token)
 getPeers = lambda gid:  getPeersFull(gid, token=token)

@@ -16,7 +16,6 @@ import os
 from time import sleep
 import curses
 from aria2c_wrapper import *
-from aria_adduri import add_download
 import tempfile
 import tomllib
 from utils import *
@@ -93,7 +92,6 @@ todo
  - infobox causes flickering
  - add key to open download location using 'o'
  - remove old watch loop; pass refresh function to watch, no refresh function to view
- - add a lambda function for add_download so that url and port don't have to be specifed
  - show notification if adding downloads fail
 
 DONE
@@ -118,6 +116,7 @@ DONE
     (*) implemented infobox
  - artifacts after opening download location in terminal; have to refresh before and after?
     (*) stdscr.clear() after yazi closes
+ - add a lambda function for add_download so that url and port don't have to be specifed
 
 
 
@@ -184,83 +183,6 @@ def begin(config):
                     ],
                 }
             ],
-            # [
-            #     "View Active", 
-            #     {
-            #         "function": active_loop,
-            #         "get_data": getActive,
-            #         "operations": [
-            #             ["pause", pause],
-            #             ["changePosition", changePosition],
-            #             ["sendToFrontOfQueue", changePosition, {"pos":0} ],
-            #             ["sendToBackOfQueue", changePosition, {"pos":10000} ],
-            #             ["remove", remove],
-            #             ["forceRemove", forceRemove],
-            #             ["getFiles", getFiles, {}, {"view":True}],
-            #             ["getServers", getServers, {}, {"view":True}],
-            #             ["getPeers", getPeers, {}, {"view":True}],
-            #             ["getUris", getUris, {}, {"view":True}],
-            #             ["tellStatus", tellStatus, {}, {"view":True}],
-            #             ["getOption", getOption, {}, {"view":True}],
-            #             ["getAllInfo", getAllInfo, {}, {"view":True}],
-            #             # ["changeOption", changeOption, {}, {"view":True}],
-            #         ],
-            #     }
-            # ],
-            # [
-            #     "View Waiting", 
-            #     {
-            #         "function": waiting_loop,
-            #         "get_data": getQueue,
-            #         "operations": [
-            #             ["pause", pause],
-            #             ["unpause", unpause],
-            #             ["changePosition", changePosition],
-            #             ["sendToFrontOfQueue", changePosition, {"pos":0} ],
-            #             ["sendToBackOfQueue", changePosition, {"pos":10000} ],
-            #             ["remove", remove],
-            #             ["forceRemove", forceRemove],
-            #             ["getFiles", getFiles, {}, {"view":True}],
-            #             ["getServers", getServers, {}, {"view":True}],
-            #             ["getPeers", getPeers, {}, {"view":True}],
-            #             ["getUris", getUris, {}, {"view":True}],
-            #             ["tellStatus", tellStatus, {}, {"view":True}],
-            #             ["getOption", getOption, {}, {"view":True}],
-            #             ["getAllInfo", getAllInfo, {}, {"view":True}],
-            #             # ["changeOption", changeOption, {}, {"view":True}],
-            #         ]
-            #     }
-            # ],
-            # [
-            #     "View Stopped", 
-            #     {
-            #         "function": stopped_loop,
-            #         "get_data": getStopped,
-            #         "operations": [
-            #             ["unpause", unpause, {}],
-            #             ["remove", removeStopped],
-            #             ["forceRemove", removeStopped],
-            #             ["retryDownload", retryDownload, {}],
-            #             ["getFiles", getFiles, {}, {"view":True}],
-            #             ["getServers", getServers, {}, {"view":True}],
-            #             ["getPeers", getPeers, {}, {"view":True}],
-            #             ["getUris", getUris, {}, {"view":True}],
-            #             ["tellStatus", tellStatus, {}, {"view":True}],
-            #             ["getOption", getOption, {}, {"view":True}],
-            #             ["getAllInfo", getAllInfo, {}, {"view":True}],
-            #             # ["changeOption", changeOption, {}, {"view":True}],
-            #         ]
-            #     },
-            # ],
-            # [
-            #     "Watch Active",
-            #     {
-            #         "get_data": getActive,
-            #         "args": (),
-            #         "kwargs": {},
-            #         "refresh": True,
-            #     },
-            # ],
             [
                 "Watch All",
                 {
@@ -685,7 +607,6 @@ def main():
 
 if __name__ == "__main__":
     ## Run curses
-    global send_req, jsonmodelreq, token
     os.environ.setdefault('ESCDELAY', '25')
     try:
         stdscr = curses.initscr()

@@ -83,7 +83,6 @@ from keys import keys_dict, notification_keys
  - filter problems
     - "--1 error .*" doesn't work but ".* --1" error does
  - add return value; e.g., refreshing
- - when filter string is too long it crashes
  - option to number columns or not
  - make sure `separator` works with header
  - add cursor when inputing filter, opts, etc.
@@ -97,10 +96,8 @@ from keys import keys_dict, notification_keys
  - add different selection styles
     - row highlighted   
     - selection indicator
- - crash when selecting column for empty list
  - should require_option skip the prompt if an option has already been given?
  - force option type; show notification to user if option not appropriate
- - (!!!) When the input_field is too long the application crashes
  - add disable options for:
     - sort
     - visual selection
@@ -182,6 +179,8 @@ DONE
     * the problem is that ESCDELAY has to be set
  - (!!!) high CPU usage
     * when val in `stdscr.timeout(val)` is low the cpu usage is high
+ - (!!!) When the input_field is too long the application crashes
+ - crash when selecting column from empty list
 
 """
 
@@ -1237,26 +1236,30 @@ def list_picker(
 
         elif check_key("cycle_sort_method", key, keys_dict):
             columns_sort_method[sort_column] = (columns_sort_method[sort_column]+1) % len(SORT_METHODS)
-            current_index = indexed_items[cursor_pos][0]
-            sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-            cursor_pos = [row[0] for row in indexed_items].index(current_index)
+            if len(indexed_items) > 0:
+                current_index = indexed_items[cursor_pos][0]
+                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+                cursor_pos = [row[0] for row in indexed_items].index(current_index)
         elif check_key("cycle_sort_method_reverse", key, keys_dict):  # Cycle sort method
             columns_sort_method[sort_column] = (columns_sort_method[sort_column]-1) % len(SORT_METHODS)
-            current_index = indexed_items[cursor_pos][0]
-            sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-            cursor_pos = [row[0] for row in indexed_items].index(current_index)
+            if len(indexed_items) > 0:
+                current_index = indexed_items[cursor_pos][0]
+                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+                cursor_pos = [row[0] for row in indexed_items].index(current_index)
         elif check_key("cycle_sort_order", key, keys_dict):  # Toggle sort order
             sort_reverse[sort_column] = not sort_reverse[sort_column]
-            current_index = indexed_items[cursor_pos][0]
-            sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-            cursor_pos = [row[0] for row in indexed_items].index(current_index)
+            if len(indexed_items) > 0:
+                current_index = indexed_items[cursor_pos][0]
+                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+                cursor_pos = [row[0] for row in indexed_items].index(current_index)
         elif check_key("col_select", key, keys_dict):
             col_index = key - ord('0')
             if 0 <= col_index < len(items[0]):
                 sort_column = col_index
-                current_index = indexed_items[cursor_pos][0]
-                sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-                cursor_pos = [row[0] for row in indexed_items].index(current_index)
+                if len(indexed_items) > 0:
+                    current_index = indexed_items[cursor_pos][0]
+                    sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+                    cursor_pos = [row[0] for row in indexed_items].index(current_index)
         elif check_key("col_hide", key, keys_dict):
             d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
             d = {s:i for i,s in enumerate(")!@#$%^&*(")}
