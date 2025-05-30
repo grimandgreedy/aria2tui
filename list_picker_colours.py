@@ -42,6 +42,8 @@ def get_colours(pick=0):
         'selected_header_column_bg': 247,
         'footer_fg': 232,
         'footer_bg': 253,
+        'refreshing_fg': 25,
+        'refreshing_bg': 253,
     },
     {
         'background': 232,
@@ -254,6 +256,8 @@ help_colours = {
         'selected_header_column_bg': 247,
         'footer_fg': 232,
         'footer_bg': 253,
+        'refreshing_fg': 25,
+        'refreshing_bg': 253,
     }
 notification_colours = {
         'background': 25,
@@ -292,4 +296,6 @@ notification_colours = {
         'selected_header_column_bg': 247,
         'footer_fg': 232,
         'footer_bg': 253,
+        'refreshing_fg': 25,
+        'refreshing_bg': 253,
     }

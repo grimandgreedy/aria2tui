@@ -17,6 +17,7 @@ from clipboard_operations import *
 from searching import search
 from help_screen import help_lines
 from keys import keys_dict, notification_keys
+from choose_option import choose_option
 
 """
  - (!!!) fix crash when terminal is too small
@@ -243,6 +244,8 @@ def list_picker(
         display_infobox = False,
         infobox_items = [[]],
         display_only=False,
+
+        editable_columns = [],
         
 ):
     """
@@ -323,6 +326,7 @@ def list_picker(
         curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
         curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
         curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
+        curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
         return start+21
 
     def infobox(stdscr, message="", title="Infobox",  colours_end=0, duration=4):
@@ -584,6 +588,8 @@ def list_picker(
 
             # stdscr.addstr(h - 1, 0, f" {select_mode} {int(bool(key_chain))*'    '}", curses.color_pair(colours_start+4))
             stdscr.addstr(h - 3, w-35, f" {select_mode}", curses.color_pair(colours_start+4) | curses.A_BOLD)
+            if auto_refresh:
+                stdscr.addstr(h - 3, w-35+len(select_mode)+2, f"Auto-refresh", curses.color_pair(colours_start+21) | curses.A_BOLD | curses.A_REVERSE)
 
             stdscr.refresh()
         if display_infobox:
@@ -593,7 +599,7 @@ def list_picker(
         curses.setsyx(h-1, w-1)
         
 
-    def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices):
+    def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns):
 
         if items == []: items = [[]]
         ## Ensure that items is a List[List[Str]] object
@@ -630,6 +636,8 @@ def list_picker(
             columns_sort_method = columns_sort_method + [0 for i in range(len(items[0])-len(columns_sort_method))]
         if len(items)>0 and len(sort_reverse) < len(items[0]):
             sort_reverse = sort_reverse + [False for i in range(len(items[0])-len(sort_reverse))]
+        if len(items)>0 and len(editable_columns) < len(items[0]):
+            editable_columns = editable_columns + [False for i in range(len(items[0])-len(editable_columns))]
         if sort_reverse == [] and len(items) > 0:
             sort_reverse = [False for i in items[0]]
 
@@ -647,6 +655,7 @@ def list_picker(
             number_columns = False
 
 
+
         h, w = stdscr.getmaxyx()
 
         # Adjust variables to ensure correctness if errors
@@ -658,9 +667,9 @@ def list_picker(
 
         assert new_pos < len(items)
         cursor_pos = new_pos
-        return items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w
+        return items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns
 
-    items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices)
+    items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns)
 
     draw_screen(indexed_items, highlights)
     
@@ -708,6 +717,8 @@ def list_picker(
             "infobox_items":        infobox_items,
             "display_infobox":      display_infobox,
             "key_remappings":       key_remappings,
+            "auto_refresh":         auto_refresh,
+            "editable_columns":     editable_columns,
         }
         return function_data
 
@@ -728,6 +739,44 @@ def list_picker(
         draw_screen(indexed_items, highlights)
 
 
+    def choose_option(stdscr, options=[], field_name="Input", x=0, y=0, literal=False, colours_start=0):
+        """
+        Display input field at x,y
+
+        ---Arguments
+            stdscr: curses screen
+            usrtxt (str): text to be edited by the user
+            field_name (str): The text to be displayed at the start of the text input
+            x (int): prompt begins at (x,y) in the screen given
+            y (int): prompt begins at (x,y) in the screen given
+
+        ---Returns
+            usrtxt, return_code
+            usrtxt: the text inputted by the user
+            return_code: 
+                            0: user hit escape
+                            1: user hit return
+        """
+        if options == []: options = [str(i) for i in range(256)]
+        cursor = 0
+        h, w = stdscr.getmaxyx()
+
+        window_width = min(max([len(x) for x in options] + [len(field_name)] + [35]) + 6, w//2)
+
+        submenu_win = curses.newwin(12, window_width, h // 2 - 2, w // 2 - 25)
+
+        
+        s, o, f = list_picker(
+            submenu_win,
+            options,
+            colours=colours,
+            title=field_name,
+            # show_footer=False,
+            colours_start=0,
+            disabled_keys=[ord('z'), ord('c')],
+            top_gap=0,
+            # scroll_bar=False,
+        )
 
     def open_submenu(stdscr, user_opts):
         h, w = stdscr.getmaxyx()
@@ -917,7 +966,7 @@ def list_picker(
             else:
                 hidden_columns.add(col_index)
 
-    def apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method):
+    def apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh):
         
         # nonlocal user_settings, highlights, sort_column, cursor_pos, columns_sort_method
         # settings= usrtxt.split(' ')
@@ -933,10 +982,15 @@ def list_picker(
             settings = re.split(r'\s+', user_settings)
             for setting in settings:
                 if len(setting) == 0: continue
-                if setting[0] == "!":
-                    cols = setting[1:].split(",")
-                    for col in cols:
-                        toggle_column_visibility(int(col))
+
+                if setting[0] == "!" and len(setting) > 1:
+                    if isinstance(setting[1], int):
+                        cols = setting[1:].split(",")
+                        for col in cols:
+                            toggle_column_visibility(int(col))
+                    if setting[1] == "r":
+                        auto_refresh = not auto_refresh
+
                 elif setting in ["nhl", "nohl", "nohighlights"]:
                     highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
                 elif setting[0] == "s":
@@ -952,7 +1006,7 @@ def list_picker(
                         toggle_column_visibility(int(col))
 
             user_settings = ""
-        return highlights, sort_column, cursor_pos, columns_sort_method
+        return highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh
 
     # Functions for item selection
     def toggle_item(index):
@@ -1093,7 +1147,7 @@ def list_picker(
 
                 items2, header2 = refresh_function()
                 items = items2
-                items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w = initialise_variables(items2, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices)
+                items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns = initialise_variables(items2, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns)
 
                 initial_time = time.time()
                 draw_screen(indexed_items, highlights, clear=False)
@@ -1131,7 +1185,7 @@ def list_picker(
             )
             if return_val:
                 user_settings = usrtxt
-                highlights, sort_column, cursor_pos, columns_sort_method = apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method)
+                highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh = apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh)
 
         elif check_key("move_column_left", key, keys_dict):
             move_column(-1)
@@ -1303,7 +1357,7 @@ def list_picker(
             handle_visual_selection()
             draw_screen(indexed_items, highlights)
 
-        elif check_key("visual_deslection_toggle", key, keys_dict):
+        elif check_key("visual_deselection_toggle", key, keys_dict):
             handle_visual_selection(selecting=False)
             draw_screen(indexed_items, highlights)
 
@@ -1452,7 +1506,8 @@ def list_picker(
             if return_val:
                 user_opts = usrtxt
         elif check_key("opts_select", key, keys_dict):
-            open_submenu(stdscr)
+            # open_submenu(stdscr, user_opts)
+            choose_option(stdscr)
         elif check_key("notification_toggle", key, keys_dict):
             notification(stdscr, colours_end=colours_end)
         elif check_key("mode_next", key, keys_dict): # tab key
@@ -1515,7 +1570,21 @@ def list_picker(
         elif check_key("reset_opts", key, keys_dict):
             user_opts = ""
         elif check_key("edit", key, keys_dict):
-            if len(indexed_items) > 0 and sort_column >=0:
+            if len(indexed_items) > 0 and sort_column >=0 and editable_columns[sort_column]:
+                current_val = indexed_items[cursor_pos][1][sort_column]
+                usrtxt = f"{current_val}"
+                usrtxt, return_val = input_field(
+                    stdscr,
+                    usrtxt=usrtxt,
+                    field_name="Edit value",
+                    x=2,
+                    y=h-2,
+                )
+                if return_val:
+                    indexed_items[cursor_pos][1][sort_column] = usrtxt
+
+        elif check_key("edit_picker", key, keys_dict):
+            if len(indexed_items) > 0 and sort_column >=0 and editable_columns[sort_column]:
                 current_val = indexed_items[cursor_pos][1][sort_column]
                 usrtxt = f"{current_val}"
                 usrtxt, return_val = input_field(

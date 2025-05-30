@@ -417,6 +417,8 @@ def begin(stdscr, config):
         "colours": custom_colours,
         "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1],
         "sort_reverse": [False, False, False, True, True, True, True, True, False, False],
+        "auto_refresh": False,
+        "get_new_data": False,
     }
     watch_loop_data = {
         "top_gap": 0,
@@ -428,6 +430,9 @@ def begin(stdscr, config):
         "colours": custom_colours,
         "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1],
         "sort_reverse": [False, False, False, True, True, True, True, True, False, False],
+        "auto_refresh": True,
+        "get_new_data": True,
+        "timer": 1,
     }
     dl_option_data = {
         "top_gap": 0,
@@ -456,10 +461,7 @@ def begin(stdscr, config):
                 stdscr,
                 items=items,
                 header=header,
-                auto_refresh=True,
-                get_new_data=True,
                 refresh_function=options[dl_type][1]["get_data"],
-                timer=1,
                 **watch_loop_data,
             )
             if not selected_downloads: continue
@@ -472,10 +474,7 @@ def begin(stdscr, config):
                 stdscr,
                 items=items,
                 header=header,
-                auto_refresh=False,
-                get_new_data=False,
                 refresh_function=options[dl_type][1]["get_data"],
-                timer=1,
                 **view_loop_data,
             )
             if not selected_downloads: continue
