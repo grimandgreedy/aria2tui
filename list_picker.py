@@ -1514,6 +1514,20 @@ def list_picker(
 
         elif check_key("reset_opts", key, keys_dict):
             user_opts = ""
+        elif check_key("edit", key, keys_dict):
+            if len(indexed_items) > 0 and sort_column >=0:
+                current_val = indexed_items[cursor_pos][1][sort_column]
+                input_field
+                usrtxt = f"{current_val}"
+                usrtxt, return_val = input_field(
+                    stdscr,
+                    usrtxt=usrtxt,
+                    field_name="Edit value",
+                    x=2,
+                    y=h-2,
+                )
+                if return_val:
+                    indexed_items[cursor_pos][1][sort_column] = usrtxt
         draw_screen(indexed_items, highlights, clear=clear_screen)
 
 

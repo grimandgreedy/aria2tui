@@ -98,7 +98,7 @@ todo
     - make remove work with all
     - queue operations only on those in the queue
     - retry only on errored
-    - 
+ - implement changeOption for downloads
 
 DONE
  - If a download is paused and it is paused again it throws an error when it should just skip it.
@@ -584,6 +584,8 @@ def begin(config):
             # cmd = f"kitty --class=reader-class nvim -i NONE {tmpfile_path}"
             # cmd = r"nvim -i NONE -c '/^\s*\d'" + f" {tmpfile_path}"
             cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
+            # cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
+            cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0'""" + f" {tmpfile_path}"
             process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
         stdscr.clear()
 
