@@ -7,11 +7,11 @@ import tempfile
 import subprocess
 import re
 
-def addDownloadFull(uri, filename=None, token=None, url="http://localhost", port=6800, queue_position=None, cookies_file=None, directory=None, proxy=None, prompt=False):
+def addDownloadFull(uri, out=None, token=None, url="http://localhost", port=6800, queue_position=None, cookies_file=None, dir=None, proxy=None, prompt=False):
     url = f'{url}:{port}/jsonrpc'
    
     if prompt:
-        argdict, filename, uri = kitty_prompt(filename, uri)
+        argdict, out, uri = kitty_prompt(out, uri)
         if type(uri) == type([]):
             uri = uri[0]
 
@@ -20,10 +20,10 @@ def addDownloadFull(uri, filename=None, token=None, url="http://localhost", port
     
     # Include optional parameters if provided
     options = {}
-    if filename:
-        options['out'] = filename
-    if directory:
-        options['dir'] = directory
+    if out:
+        options['out'] = out
+    if dir:
+        options['dir'] = dir
     if cookies_file:
         # Assuming cookies_file contains cookies in a format accepted by aria2
         with open(cookies_file, 'r') as file:
@@ -153,11 +153,11 @@ if __name__ == "__main__":
 
     addDownloadFull(
         uri=args.uri,
-        filename=args.output,
+        out=args.output,
         token=args.token,
         queue_position=args.queue,
         cookies_file=args.cookies,
-        directory=args.directory,
+        dir=args.directory,
         proxy=args.proxy,
         prompt=args.kitty_prompt
     )

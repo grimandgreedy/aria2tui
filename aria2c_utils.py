@@ -30,7 +30,7 @@ def getQueue():
     items = []
 
     options_batch = []
-    for i in range(len(js_rs["result"])-1, -1, -1):
+    for i in range(len(js_rs["result"])):
         dl = js_rs["result"][i]
         gid = dl['gid']
         options = json.loads(getOption(gid))
@@ -38,7 +38,7 @@ def getQueue():
         
     options_batch = send_req(json.dumps(options_batch).encode('utf-8'))
 
-    for i in range(len(js_rs["result"])-1, -1, -1):
+    for i in range(len(js_rs["result"])):
         dl = js_rs["result"][i]
         colsize = 14
         try:
@@ -69,7 +69,7 @@ def getQueue():
         except:
             pass
     header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
-    return items[::-1], header
+    return items, header
 
 def getFromQueue(pos=[]):
     if type(pos) ==  type(1): pos = [pos]
@@ -137,7 +137,7 @@ def getStopped():
     items = []
 
     options_batch = []
-    for i in range(len(js_rs["result"])-1, -1, -1):
+    for i in range(len(js_rs["result"])):
         dl = js_rs["result"][i]
         gid = dl['gid']
         options = json.loads(getOption(gid))
@@ -146,7 +146,7 @@ def getStopped():
     options_batch = send_req(json.dumps(options_batch).encode('utf-8'))
 
 
-    for i in range(len(js_rs["result"])-1, -1, -1):
+    for i in range(len(js_rs["result"])):
         dl = js_rs["result"][i]
         colsize = 14
         try:
@@ -172,7 +172,7 @@ def getStopped():
         except:
             pass
     header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
-    return items, header
+    return items[::-1], header
 
 def getStoppedCompact():
     jsonreq = tellStopped()
@@ -218,7 +218,7 @@ def getActive(print_output=False):
         print("*"*50)
 
     options_batch = []
-    for i in range(len(js_rs["result"])-1, -1, -1):
+    for i in range(len(js_rs["result"])):
         dl = js_rs["result"][i]
         gid = dl['gid']
         options = json.loads(getOption(gid))
@@ -377,7 +377,7 @@ def editConfig():
 
 def addUrisFull(url="http://localhost", port=6800, token=None):
     s = "!!\n"
-    s +=  "# URI,out\n\n"
+    s +=  '# https://docs.python.org/3/_static/py.svg\n#    pythonlogo.svg\n#    dir=/home/user/tmp/trash/'
 
     ## Create tmpfile
     with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
@@ -390,28 +390,69 @@ def addUrisFull(url="http://localhost", port=6800, token=None):
     with open(tmpfile_path, "r") as f:
         lines = f.readlines()
 
-    dls = []
-    argstrs = []
-    for line in lines:
-        if line[0] == "!" and line.count("!") == 2:
-            argstrs.append(line)
-        elif line[0] in ["#", "!"] or line.strip() == "":
-            pass
-        else:
-            sp = line.find(",")
-            if sp == -1:
-                dls.append({"uri": line.strip()})
-            else:
-                dls.append({"uri": line[:sp].strip(), "filename": line[sp+1:].strip()})
+    dls, argstrs = input_file_lines_to_dict(lines)
 
+    # Restrict keys passed to the following
+    valid_keys = ["out", "uri", "dir"]
     for dl in dls:
+        os.system(f"notify-send {dl}")
         # addDownload(**dl, url=url, port=port, token=token)
-        addDownload(**dl)
+        addDownload(**{key:val for key,val in dl.items() if key in valid_keys})
         # jsonreq = pyperclip.copy(addUri(**dl))
         # send_req(jsonreq)
 
     os.system(f"notify-send '{len(dls)} downloads added'")
 
+def input_file_lines_to_dict(lines):
+    '''
+    Converts lines to list of download dicts.
+
+    Syntax
+        a line that begins with a # will be interpreted as a comment
+        a line that begins with a ! will be interpreted as an argstring
+        a line with no leading space will be interpreted as a uri for a new download
+        a line with leading spaces will be interpreted as an option to be added to the preceeding download
+        if the line immediately follows the url and has leading spaces it will be interpreted as the filename
+        any other line that succeeds the uri that has leading whitespace must have a = separating the option from the value
+
+
+    Example
+    ```
+    https://example.com/image.iso
+        exampleimage.iso
+        dir=/home/user/images/
+
+    ```
+    '''
+
+    downloads = []
+    download = {}
+    argstrings = []
+
+    for line in lines:
+        stripped_line = line.rstrip()
+
+        # Comment
+        if line.strip().startswith('#') or line.strip() == '': continue
+        
+        # If the line has no leading spaces then it is a url to add
+        if line.startswith('!'):
+            argstrings.append(line)
+        elif not line.startswith(' '):
+            if download:
+                downloads.append(download)
+                download = {}
+            download["uri"] = stripped_line
+        elif '=' in line and line.startswith(' '):
+            key, value = stripped_line.split('=', 1)
+            download[key.strip()] = value.strip()
+        elif len(download) == 1 and line.startswith(' '):
+            download["out"] = line.strip()
+
+    if download:
+        downloads.append(download)
+
+    return downloads, argstrings
 def addTorrentsFull(url="http://localhost", port=6800, token=None):
     s = "!!\n"
     s +=  "# path\n\n"
@@ -487,7 +528,7 @@ def retryDownloadFull(gid, url="http://localhost", port=6800, token=None):
     uri = status["result"]["files"][0]["uris"][0]["uri"]
     fname = options["result"]["out"] if "out" in options["result"] else None
     os.system(f"notify-send '{dir}'")
-    addDownload(uri=uri, directory=dir, filename=fname)
+    addDownload(uri=uri, dir=dir, out=fname)
 
 def getAll():
     active, aheader = getActive()
@@ -566,7 +607,7 @@ paginate = config["general"]["paginate"]
 send_req = lambda req: sendReqFull(req, url=url, port=port)
 addUri = lambda uri, out="", dir=None, queue_pos=10000:  addUriFull(uri, out=out, dir=dir, queue_pos=queue_pos, token=token)
 addTorrent = lambda path, out="", dir=None, queue_pos=10000:  addTorrentFull(path, out=out, dir=dir, queue_pos=queue_pos, token=token)
-addDownload = lambda uri, filename=None, directory=None, url=url, port=port, token=token, queue_pos=None, proxy=None, prompt=False, cookies_file=None:  addDownloadFull(uri, filename=filename, directory=directory, queue_position=queue_pos, url=url, port=port, token=token, prompt=prompt, proxy=proxy, cookies_file=cookies_file)
+addDownload = lambda uri, out=None, dir=None, url=url, port=port, token=token, queue_pos=None, proxy=None, prompt=False, cookies_file=None:  addDownloadFull(uri, out=out, dir=dir, queue_position=queue_pos, url=url, port=port, token=token, prompt=prompt, proxy=proxy, cookies_file=cookies_file)
 getOption = lambda gid:  getOptionFull(gid, token=token)
 getServers = lambda gid:  getServersFull(gid, token=token)
 getPeers = lambda gid:  getPeersFull(gid, token=token)

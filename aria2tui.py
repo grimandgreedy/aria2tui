@@ -24,19 +24,11 @@ from aria2c_utils import *
 r"""
 todo 
 
- - refresh menu with a timer
- - (!!!) add retry download function by getting download data, remove it and readd it
- - info is wrong for torrents. The size, % completed, etc. Might need to rework the the data scraped from the json response.
  - remove completed not working
  - fix adding uris with filename. Data is the same but it is corrupted somehow.
     - works:        https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg
     - doesn't work: https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBVWNXUrlGnx3VtnPULUE6v0EteQg
- - get all function
  - merge columns
- - add empty values for inapplicable cols
- - allow index
- - add a config file (~/.config/ariatui.conf) which contains the rpc url, port, secret, etc.
- - fix not resizing properly
  - Add hidden columns to function so that they remain hidden on refresh
  - Add a view all tasks option
  - Add color to highlight errored and completed tasks
@@ -51,7 +43,6 @@ todo
     - completed: green
     - active: blue
     - paused: ??? gray?
- - after nvim is opened (e.g., show all dl info) the display needs to be redrawn
  - fix filenames; also check torrents
  - add highlights for % complete
  - create watch all
@@ -64,7 +55,6 @@ todo
  - live setting changes
     - theme
  - make percentage bar look nicer
- - watch active only refreshes upon a keypress
  - when the item order refreshes (e.g. new downloads added) the selected items change. need to associate the selected items with gids and then create new selected items which will be passed back
  - takes us back to the top when it refreshes in a different mode (I think due to filter)
  - add pin_cursor option to prevent the cursor from going down when refreshing
@@ -93,8 +83,7 @@ todo
  - add key to open download location using 'o'
  - remove old watch loop; pass refresh function to watch, no refresh function to view
  - show notification if adding downloads fail
- - (!!!) there is a problem with the path when readding downloads sometimes. It is correct in the download info but is displayed wrong???
- - make operations work only with certain download types:
+ - (!!!) make operations upon downloads work only with certain download types:
     - make remove work with all
     - queue operations only on those in the queue
     - retry only on errored
@@ -123,8 +112,21 @@ DONE
  - artifacts after opening download location in terminal; have to refresh before and after?
     (*) stdscr.clear() after yazi closes
  - add a lambda function for add_download so that url and port don't have to be specifed
-
-
+ - some sudden exits from the watch all menu
+    (*) caused by get_new_data not being in the function data
+ - add a config file (~/.config/ariatui.conf) which contains the rpc url, port, secret, etc.
+    - port, url
+    - colour
+ - refresh menu with a timer
+ - add empty values for inapplicable cols
+ - get all function
+ - fix not resizing properly
+ - watch active only refreshes upon a keypress
+ - (!!!) add retry download function by getting download data, remove it and readd it
+ - info is wrong for torrents. The size, % completed, etc. Might need to rework the the data scraped from the json response.
+ - after nvim is opened (e.g., show all dl info) the display needs to be redrawn
+ - (!!!) there is a problem with the path when readding downloads sometimes. It is correct in the download info but is displayed wrong???
+    (*) was caused by discordant order of getting download options and the main download information
 
 """
 

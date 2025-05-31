@@ -17,7 +17,6 @@ from clipboard_operations import *
 from searching import search
 from help_screen import help_lines
 from keys import keys_dict, notification_keys
-from choose_option import choose_option
 
 """
  - (!!!) fix crash when terminal is too small
@@ -48,20 +47,21 @@ from choose_option import choose_option
     - e.g., select column 2 (complete download), and pressing tab will go to the next that is not complete 
  - when column is selected try best guess search method
  - adjust default column width based on current page?
- - there is a difference between search matches and highlights because the highlights operate on what is displayed
+ - (!!!) there is a difference between search matches and highlights because the highlights operate on what is displayed
     - What to do?
     - allow visual matches with searches?
     - hide highlights across fields?
+    - e.g., mkv$ shows no highlights but does match
  - add notification system
  - Add error handling
     - apply_settings("sjjj") 
+ - redo settings
  - complete get_colours loop
  - toggle cursor visibility
  - change hidden_columns from set() to list()
  - make unselectable_indices work with filtering
  - look at adjustment for cursor position and hidden unselectable indices
  - each time we pass options it will resort and refilter; add an option to simply load the items that are passed
- - sendReq()...
  - flickering when "watching"
     - Is it the delay caused by fetching the data? Maybe fetch and then refresh?
  - moving columns:
@@ -74,12 +74,6 @@ from choose_option import choose_option
     - gg
     - count
  - change the cursor tracker from current_row, current_page to current_pos
- - add tabs for quick switching
- - add header for title
- - add header tabs
- - add colour for active setting; e.g., when filter is being entered the bg should be blue
- - check if mode filter in query when updating the query and if not change the mode
- - when sorting on empty data it throws an error
  - add option to require options
  - filter problems
     - "--1 error .*" doesn't work but ".* --1" error does
@@ -90,10 +84,6 @@ from choose_option import choose_option
  - weird alignment problem when following characters are in cells:
     - ： 
  - add support for multiple aria servers
- - hiding a column doesn't hide the corresponding header cell
- - add colour for selected column
- - highlighting doesn't disappear when columns are hidden
- - add scroll bar
  - add different selection styles
     - row highlighted   
     - selection indicator
@@ -182,6 +172,17 @@ DONE
     * when val in `stdscr.timeout(val)` is low the cpu usage is high
  - (!!!) When the input_field is too long the application crashes
  - crash when selecting column from empty list
+ - sendReq()...
+ - add tabs for quick switching
+ - add header for title
+ - add header tabs
+ - add colour for active setting; e.g., when filter is being entered the bg should be blue
+ - check if mode filter in query when updating the query and if not change the mode
+ - when sorting on empty data it throws an error
+ - hiding a column doesn't hide the corresponding header cell
+ - add colour for selected column
+ - highlighting doesn't disappear when columns are hidden
+ - add scroll bar
 
 """
 
@@ -202,6 +203,7 @@ def list_picker(
         refresh_function=None,
         unselectable_indices=[],
         highlights=[],
+        highlights_hide=False,
         number_columns=True,
 
 
@@ -365,7 +367,7 @@ def list_picker(
         return submenu_win
 
     def draw_screen(indexed_items=[], highlights={}, clear=True):
-        nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer
+        nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer, highlights_hide
 
         if clear:
             # stdscr.clear()
@@ -502,42 +504,43 @@ def list_picker(
             # Add color highlights
             # if len(highlights) > 0:
             #     os.system(f"notify-send 'match: {len(highlights)}'")
-            for highlight in highlights:
-                try:
-                    if highlight["field"] == "all":
-                        match = re.search(highlight["match"], row_str, re.IGNORECASE)
-                        if not match: continue
-                        highlight_start = match.start()
-                        highlight_end = match.end()
-                    # elif type(highlight["field"]) == type(4) and  highlight["match"] == item[1][highlight["field"]].strip():
-                    elif type(highlight["field"]) == type(4) and highlight["field"] not in hidden_columns:
-                        match = re.search(highlight["match"], item[1][highlight["field"]][:column_widths[highlight["field"]]], re.IGNORECASE)
-                        if not match: continue
-                        field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
-                        field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
-                        field_start = sum(column_widths[:highlight["field"]]) + highlight["field"]*wcswidth(separator)
-                        field_start = sum([width for i, width in enumerate(column_widths[:highlight["field"]]) if i not in hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in hidden_columns])*wcswidth(separator)
-                        highlight_start = wcswidth(item[1][:match.start()]) + field_start
-                        highlight_end = match.end() + field_start
-                    else:
-                        continue
-                    color_pair = curses.color_pair(colours_start+highlight["color"])  # Selected item
-                    if idx == cursor_pos:
-                        color_pair = curses.color_pair(colours_start+highlight["color"])  | curses.A_REVERSE
-                    stdscr.attron(color_pair)
-                    # highlight_start = row_str.index(highlight["match"])
-                    # highlight_end = highlight_start + len(highlight["match"])
-                    highlight_len = highlight_start - highlight_end
+            if not highlights_hide:
+                for highlight in highlights:
+                    try:
+                        if highlight["field"] == "all":
+                            match = re.search(highlight["match"], row_str, re.IGNORECASE)
+                            if not match: continue
+                            highlight_start = match.start()
+                            highlight_end = match.end()
+                        # elif type(highlight["field"]) == type(4) and  highlight["match"] == item[1][highlight["field"]].strip():
+                        elif type(highlight["field"]) == type(4) and highlight["field"] not in hidden_columns:
+                            match = re.search(highlight["match"], item[1][highlight["field"]][:column_widths[highlight["field"]]], re.IGNORECASE)
+                            if not match: continue
+                            field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
+                            field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
+                            field_start = sum(column_widths[:highlight["field"]]) + highlight["field"]*wcswidth(separator)
+                            field_start = sum([width for i, width in enumerate(column_widths[:highlight["field"]]) if i not in hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in hidden_columns])*wcswidth(separator)
+                            highlight_start = wcswidth(item[1][:match.start()]) + field_start
+                            highlight_end = match.end() + field_start
+                        else:
+                            continue
+                        color_pair = curses.color_pair(colours_start+highlight["color"])  # Selected item
+                        if idx == cursor_pos:
+                            color_pair = curses.color_pair(colours_start+highlight["color"])  | curses.A_REVERSE
+                        stdscr.attron(color_pair)
+                        # highlight_start = row_str.index(highlight["match"])
+                        # highlight_end = highlight_start + len(highlight["match"])
+                        highlight_len = highlight_start - highlight_end
 
 
-                    # stdscr.addstr(y, highlight_start, highlight["match"], color_pair)
-                    h, w = stdscr.getmaxyx()
-                    stdscr.addstr(y, highlight_start, row_str[highlight_start:min(w, highlight_end)], color_pair | curses.A_BOLD)
-                # except curses.error:
-                except:
-                    pass  # Handle errors due to cursor position issues
-                stdscr.attroff(color_pair)
-                # os.system(f"notify-send 'match: {y}, {highlight_start}'")
+                        # stdscr.addstr(y, highlight_start, highlight["match"], color_pair)
+                        h, w = stdscr.getmaxyx()
+                        stdscr.addstr(y, highlight_start, row_str[highlight_start:min(w, highlight_end)], color_pair | curses.A_BOLD)
+                    # except curses.error:
+                    except:
+                        pass  # Handle errors due to cursor position issues
+                    stdscr.attroff(color_pair)
+                    # os.system(f"notify-send 'match: {y}, {highlight_start}'")
 
         ## Display scrollbar
         if scroll_bar and len(indexed_items) and len(indexed_items) > (items_per_page):
@@ -718,6 +721,7 @@ def list_picker(
             "display_infobox":      display_infobox,
             "key_remappings":       key_remappings,
             "auto_refresh":         auto_refresh,
+            "get_new_data":         get_new_data,
             "editable_columns":     editable_columns,
         }
         return function_data
@@ -966,7 +970,7 @@ def list_picker(
             else:
                 hidden_columns.add(col_index)
 
-    def apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh):
+    def apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide):
         
         # nonlocal user_settings, highlights, sort_column, cursor_pos, columns_sort_method
         # settings= usrtxt.split(' ')
@@ -988,8 +992,10 @@ def list_picker(
                         cols = setting[1:].split(",")
                         for col in cols:
                             toggle_column_visibility(int(col))
-                    if setting[1] == "r":
+                    elif setting[1] == "r":
                         auto_refresh = not auto_refresh
+                    elif setting[1] == "h":
+                        highlights_hide = not highlights_hide
 
                 elif setting in ["nhl", "nohl", "nohighlights"]:
                     highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
@@ -1006,7 +1012,7 @@ def list_picker(
                         toggle_column_visibility(int(col))
 
             user_settings = ""
-        return highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh
+        return highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide
 
     # Functions for item selection
     def toggle_item(index):
@@ -1185,7 +1191,7 @@ def list_picker(
             )
             if return_val:
                 user_settings = usrtxt
-                highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh = apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh)
+                highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide = apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide)
 
         elif check_key("move_column_left", key, keys_dict):
             move_column(-1)
