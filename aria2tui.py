@@ -88,6 +88,7 @@ todo
     - queue operations only on those in the queue
     - retry only on errored
  - implement changeOption for downloads
+ - add column to show download type (e.g., torrent)
 
 DONE
  - If a download is paused and it is paused again it throws an error when it should just skip it.
@@ -398,9 +399,7 @@ def begin(stdscr, config):
     ]
 
     app_name = "Aria2TUI"
-    menu_persistent = False
     dl_type_list = [3]
-    cursor_pos = 0
     menu_data = {
         "top_gap": 0,
         "highlights": menu_highlights,
@@ -417,8 +416,8 @@ def begin(stdscr, config):
         "display_modes": True,
         "title": app_name,
         "colours": custom_colours,
-        "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1],
-        "sort_reverse": [False, False, False, True, True, True, True, True, False, False],
+        "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1, 0],
+        "sort_reverse": [False, False, False, True, True, True, True, True, False, False, False],
         "auto_refresh": False,
         "get_new_data": False,
     }
@@ -430,8 +429,8 @@ def begin(stdscr, config):
         "display_modes": True,
         "title": app_name,
         "colours": custom_colours,
-        "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1],
-        "sort_reverse": [False, False, False, True, True, True, True, True, False, False],
+        "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1, 0],
+        "sort_reverse": [False, False, False, True, True, True, True, True, False, False, False,],
         "auto_refresh": True,
         "get_new_data": True,
         "timer": 1,
@@ -454,8 +453,12 @@ def begin(stdscr, config):
         )
         if not dl_type_list: break
         dl_type = dl_type_list[0]
-        if options[dl_type][0] in ["Watch All"]:
+        if options[dl_type][0] in ["Watch All", "View All"]:
             items, header = options[dl_type][1]["get_data"]()
+            if options[dl_type][0] == "View All":
+                watch_loop_data["auto_refresh"] = False
+            else:
+                watch_loop_data["auto_refresh"] = True
 
             ## Remove old data from dict
             watch_loop_data = {key: val for key, val in watch_loop_data.items() if key not in ["items", "indexed_items"]}
@@ -465,19 +468,6 @@ def begin(stdscr, config):
                 header=header,
                 refresh_function=options[dl_type][1]["get_data"],
                 **watch_loop_data,
-            )
-            if not selected_downloads: continue
-        elif options[dl_type][0] in ["View All"]:
-            items, header = options[dl_type][1]["get_data"]()
-
-            ## Remove old data from dict
-            view_loop_data = {key: val for key, val in view_loop_data.items() if key not in ["items", "indexed_items"]}
-            selected_downloads, opts, view_loop_data = list_picker(
-                stdscr,
-                items=items,
-                header=header,
-                refresh_function=options[dl_type][1]["get_data"],
-                **view_loop_data,
             )
             if not selected_downloads: continue
 
@@ -491,9 +481,7 @@ def begin(stdscr, config):
             data = send_req(options[dl_type][1]["function"]())
             with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
                 tmpfile.write(json.dumps(data, indent=4))
-                # tmpfile.write(data)
                 tmpfile_path = tmpfile.name
-            # cmd = f"kitty --class=reader-class nvim -i NONE {tmpfile_path}"
             cmd = f"nvim -i NONE {tmpfile_path}"
             process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
             continue
@@ -501,6 +489,7 @@ def begin(stdscr, config):
         elif options[dl_type][0] in ["pauseAll", "Remove completed/errored downloads"]:
             data = send_req(options[dl_type][1]["function"]())
             continue
+
         ####### THIS SHOULDN'T BE REACHED
         else:
             ## select downloads to operate upon
@@ -508,16 +497,15 @@ def begin(stdscr, config):
             if len(items) == 0:
                 header = ["items"]
                 items = [[]]
-            view_loop_data = {key: val for key, val in view_loop_data.items() if key not in ["items", "indexed_items"]}
-            selected_downloads, opts, view_loop_data = list_picker(
+            watch_loop_data = {key: val for key, val in watch_loop_data.items() if key not in ["items", "indexed_items"]}
+            selected_downloads, opts, watch_loop_data = list_picker(
                 stdscr,
                 items,
                 header=header,
-                **view_loop_data,
+                **watch_loop_data,
 
             )
             if not selected_downloads or items == [[]]: continue
-        # os.system(f"notify-send {repr(selected_downloads)}")
         gid_index = header.index("gid")
         fname_index = header.index("fname")
         gids = [item[gid_index] for i, item in enumerate(items) if i in selected_downloads]
@@ -538,8 +526,11 @@ def begin(stdscr, config):
             **dl_option_data,
 
         )
+
         if not operation_n: 
             continue
+
+        user_opts = dl_option_data["user_opts"]
         operation = operation_n[0]
         operation_f = options[dl_type][1]["operations"][operation][1]
         operation_list = options[dl_type][1]["operations"][operation]
@@ -550,7 +541,7 @@ def begin(stdscr, config):
 
 
         # Reset menu after selection
-        view_loop_data["selections"] = {}
+        # view_loop_data["selections"] = {}
         watch_loop_data["selections"] = {}
 
         # print(f"We want to {operations[operation]}")
@@ -562,7 +553,7 @@ def begin(stdscr, config):
             try:
                 # jsonreq = changePosition(gid,0)
                 if operations[operation] == "changePosition":
-                    position = int(opts) if opts.strip().isdigit() else 0
+                    position = int(user_opts) if user_opts.strip().isdigit() else 0
                     jsonreq = operation_f(str(gid), position)
                 elif operations[operation] == "getAllInfo":
                     js_rs = getAllInfo(str(gid))
@@ -620,11 +611,12 @@ def main():
     ## Check if aria is running
     connection_up = testConnection()
     if not connection_up:
-        header, choices = ["Aria2c Connection down."], ["Yes", "No"]
+        header, choices = ["Aria2c Connection Down. Do you want to start it?"], ["Yes", "No"]
         choice, opts, function_data = list_picker(
             stdscr,
             choices,
             colours=custom_colours,
+            title="Aria2TUI",
             header=header,
             max_selected=1
         )

@@ -248,6 +248,7 @@ def list_picker(
         display_only=False,
 
         editable_columns = [],
+        last_key=None,
         
 ):
     """
@@ -263,6 +264,7 @@ def list_picker(
         get_new_data (bool, optional): Whether to call refresh_function when new data is available. Defaults to False.
         refresh_function (function, optional): A function to call when new data is available. Defaults to None.
         highlights (list[dicts]): any fields that should be highlighted with the given color pair
+
     Returns:
         list, opts, cursor_pos: A list of indices representing the selected items along with any options passed
         selected, opts, cursor_pos
@@ -440,8 +442,11 @@ def list_picker(
                 header_str += " "
             # header_str = ' '.join(f"{i}. " if number_columns else "" + f"{header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
             # header_str = format_row([f"{i+1}. {col}" for i, col in enumerate(header)])
-            stdscr.addstr(top_space, 0, header_str[:w], curses.color_pair(colours_start+4))
-            if sort_column != None and sort_column not in hidden_columns and len(up_to_selected_col) < w: 
+
+            stdscr.addstr(top_space, 0, header_str[:w], curses.color_pair(colours_start+4) | curses.A_BOLD)
+
+            # Highlight sort column
+            if sort_column != None and sort_column not in hidden_columns and len(up_to_selected_col) < w and len(header) > 1: 
                 number = f"{sort_column}. " if number_columns else ""
                 number = f"{intStringToExponentString(sort_column)}. " if number_columns else ""
                 stdscr.addstr(top_space, len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)], curses.color_pair(colours_start+19) | curses.A_BOLD)
@@ -723,6 +728,7 @@ def list_picker(
             "auto_refresh":         auto_refresh,
             "get_new_data":         get_new_data,
             "editable_columns":     editable_columns,
+            "last_key":             None,
         }
         return function_data
 
@@ -1100,7 +1106,7 @@ def list_picker(
         return False
 
 
-    if auto_refresh and timer > 0: initial_time = time.time()
+    initial_time = time.time()
 
     curses.curs_set(0)
     # stdscr.nodelay(1)  # Non-blocking input
@@ -1179,6 +1185,7 @@ def list_picker(
         elif check_key("exit", key, keys_dict):
             stdscr.clear()
             function_data = get_function_data()
+            function_data["last_key"] = key
             return [], "", function_data
         elif check_key("settings_input", key, keys_dict):
             usrtxt = f"{user_settings} " if user_settings else ""
@@ -1262,6 +1269,7 @@ def list_picker(
             if is_selecting or is_deselecting: handle_visual_selection()
             if len(indexed_items) == 0:
                 function_data = get_function_data()
+                function_data["last_key"] = key
                 return [], "", function_data
             selected_indices = get_selected_indices(indexed_items, selections)
             if not selected_indices:
@@ -1284,6 +1292,7 @@ def list_picker(
             stdscr.clear()
             stdscr.refresh()
             function_data = get_function_data()
+            function_data["last_key"] = key
             return selected_indices, user_opts, function_data
         elif check_key("page_down", key, keys_dict):  # Next page
             cursor_pos = min(len(indexed_items) - 1, cursor_pos+items_per_page)

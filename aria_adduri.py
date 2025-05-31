@@ -34,7 +34,7 @@ def addDownloadFull(uri, out=None, token=None, url="http://localhost", port=6800
 
     # Add optional parameters to params
     if options:
-        params.append(options)
+        params = params + [options]
 
     # JSON-RPC request data
     request_data = {
