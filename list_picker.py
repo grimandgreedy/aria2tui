@@ -97,10 +97,14 @@ from keys import keys_dict, notification_keys
  - add indexed
  - restrict functionality of notification list_picker
  - why does curses crash when writing to the final char on the final line?
+    - is there a way to colour it?
  - (!!!) Need to remove nonlocal args and pass all variables as arguments
  - Colour problems
     - we have arbitrarily set application colours to be 0-50, notification 50-100 and help 100-150
  - finish implementing modes; currently only supports filters
+ - sometimes the cursor shows, sometimes it doesn't
+    -  cursor shows after opening nvim and returning to listpicker
+ - errors thrown when length(header) != length(items[0])
 
 (!!!) COPY:
 
@@ -188,7 +192,7 @@ DONE
 
 def list_picker(
         stdscr, 
-        items,
+        items=[],
         cursor_pos=0,
         colours=None,
         max_selected=None,
@@ -201,6 +205,8 @@ def list_picker(
         timer=5,
         get_new_data=False,
         refresh_function=None,
+        get_data_startup=False,
+
         unselectable_indices=[],
         highlights=[],
         highlights_hide=False,
@@ -227,9 +233,9 @@ def list_picker(
         selections = {},
         items_per_page = -1,
         sort_method = 0,
-        sort_reverse = [],  # Default sort order (ascending)
+        sort_reverse = [0],  # Default sort order (ascending)
         sort_column = 0,
-        columns_sort_method = [],
+        columns_sort_method = [0],
         key_chain = "",
 
         paginate=False,
@@ -607,7 +613,9 @@ def list_picker(
         curses.setsyx(h-1, w-1)
         
 
-    def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns):
+    def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=False):
+        if get_data and refresh_function != None:
+            items, header = refresh_function()
 
         if items == []: items = [[]]
         ## Ensure that items is a List[List[Str]] object
@@ -618,7 +626,7 @@ def list_picker(
 
         # Ensure that header is of the same length as the rows
         if header and len(header) != len(items[0]):
-            header = [header[i] if i < len(header) else f"" for i in range(len(items[0]))]
+            header = [str(header[i]) if i < len(header) else "" for i in range(len(items[0]))]
 
         # Constants
         # DEFAULT_ITEMS_PER_PAGE = os.get_terminal_size().lines - top_gap*2-2-int(bool(header))
@@ -657,7 +665,7 @@ def list_picker(
             if cursor_pos in [x[0] for x in indexed_items]: cursor_pos = [x[0] for x in indexed_items].index(cursor_pos)
             else: cursor_pos = 0
         # If a sort is passed
-        if sort_column != None and columns_sort_method[sort_column] != 0:
+        if len(indexed_items) > 0 and sort_column != None and columns_sort_method[sort_column] != 0:
             sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
         if len(items[0]) == 1:
             number_columns = False
@@ -677,7 +685,7 @@ def list_picker(
         cursor_pos = new_pos
         return items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns
 
-    items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns)
+    items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=get_data_startup)
 
     draw_screen(indexed_items, highlights)
     
@@ -715,6 +723,7 @@ def list_picker(
             "number_columns":       number_columns,
             "items":                items,
             "indexed_items":        indexed_items,
+            "header":               header,
             "scroll_bar":           scroll_bar,
             "columns_sort_method":  columns_sort_method,
             "disabled_keys":        disabled_keys,
@@ -727,8 +736,11 @@ def list_picker(
             "key_remappings":       key_remappings,
             "auto_refresh":         auto_refresh,
             "get_new_data":         get_new_data,
+            "refresh_function":     refresh_function,
+            "get_data_startup":     get_data_startup,
             "editable_columns":     editable_columns,
             "last_key":             None,
+            
         }
         return function_data
 
@@ -1106,7 +1118,7 @@ def list_picker(
         return False
 
 
-    initial_time = time.time()
+    initial_time = time.time()-timer
 
     curses.curs_set(0)
     # stdscr.nodelay(1)  # Non-blocking input
@@ -1157,9 +1169,8 @@ def list_picker(
                 # kwargs = refresh_function[2]
                 # items = f(*args, **kwargs)
 
-                items2, header2 = refresh_function()
-                items = items2
-                items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns = initialise_variables(items2, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns)
+                items, header = refresh_function()
+                items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=True)
 
                 initial_time = time.time()
                 draw_screen(indexed_items, highlights, clear=False)

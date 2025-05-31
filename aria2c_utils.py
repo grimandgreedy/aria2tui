@@ -25,7 +25,7 @@ def testConnectionFull(url="http://localhost", port=6800):
 
 
 def getQueue():
-    js_rs = send_req(tellWaiting())
+    js_rs = sendReq(tellWaiting())
 
     items = []
 
@@ -36,7 +36,7 @@ def getQueue():
         options = json.loads(getOption(gid))
         options_batch.append(options)
         
-    options_batch = send_req(json.dumps(options_batch).encode('utf-8'))
+    options_batch = sendReq(json.dumps(options_batch).encode('utf-8'))
 
     for i in range(len(js_rs["result"])):
         dl = js_rs["result"][i]
@@ -76,7 +76,7 @@ def getFromQueue(pos=[]):
 
     jsonreq = tellWaiting()
 
-    js_rs = send_req(jsonreq)
+    js_rs = sendReq(jsonreq)
     entries = []
 
 
@@ -97,7 +97,7 @@ def getFromQueue(pos=[]):
 
 def getQueueCompact():
     jsonreq = tellWaiting()
-    js_rs = send_req(jsonreq)
+    js_rs = sendReq(jsonreq)
 
     for i in range(len(js_rs["result"])-1, -1, -1):
         dl = js_rs["result"][i]
@@ -131,7 +131,7 @@ def getQueueCompact():
 def getStopped():
     jsonreq = tellStopped()
 
-    js_rs = send_req(tellStopped())
+    js_rs = sendReq(tellStopped())
 
     entries = []
     items = []
@@ -143,7 +143,7 @@ def getStopped():
         options = json.loads(getOption(gid))
         options_batch.append(options)
         
-    options_batch = send_req(json.dumps(options_batch).encode('utf-8'))
+    options_batch = sendReq(json.dumps(options_batch).encode('utf-8'))
 
 
     for i in range(len(js_rs["result"])):
@@ -177,7 +177,7 @@ def getStopped():
 def getStoppedCompact():
     jsonreq = tellStopped()
 
-    js_rs = send_req(jsonreq)
+    js_rs = sendReq(jsonreq)
     entries = []
 
     for i in range(len(js_rs["result"])-1, -1, -1):
@@ -210,7 +210,7 @@ def getStoppedCompact():
 
 def getActive(print_output=False):
 
-    js_rs = send_req(tellActive())
+    js_rs = sendReq(tellActive())
     items = []
 
     if print_output:
@@ -224,7 +224,7 @@ def getActive(print_output=False):
         options = json.loads(getOption(gid))
         options_batch.append(options)
         
-    options_batch = send_req(json.dumps(options_batch).encode('utf-8'))
+    options_batch = sendReq(json.dumps(options_batch).encode('utf-8'))
 
     for i in range(len(js_rs["result"])):
         dl = js_rs["result"][i]
@@ -281,7 +281,7 @@ def getActive(print_output=False):
 def getActiveCompact():
     jsonreq = tellActive()
 
-    js_rs = send_req(jsonreq)
+    js_rs = sendReq(jsonreq)
 
     fn_width = 65
     header = f"{'Q'} {'S'}  {'File Name':{fn_width}}  {'Size':8}  {'%done'}  {'DL speed'}  {'Time Left'}"
@@ -331,7 +331,7 @@ def getActiveCompact():
 
 def getPaused():
     jsonreq = tellWaiting()
-    js_rs = send_req(jsonreq)
+    js_rs = sendReq(jsonreq)
     gids=[]
 
     for i in range(len(js_rs["result"])):
@@ -399,7 +399,7 @@ def addUrisFull(url="http://localhost", port=6800, token=None):
         # addDownload(**dl, url=url, port=port, token=token)
         addDownload(**{key:val for key,val in dl.items() if key in valid_keys})
         # jsonreq = pyperclip.copy(addUri(**dl))
-        # send_req(jsonreq)
+        # sendReq(jsonreq)
 
     os.system(f"notify-send '{len(dls)} downloads added'")
 
@@ -492,7 +492,7 @@ def addTorrentsFull(url="http://localhost", port=6800, token=None):
         jsonreq = addTorrent(dl["path"])
 
         # jsonreq = pyperclip.copy(addUri(**dl))
-        send_req(jsonreq)
+        sendReq(jsonreq)
 
     for uri in uris:
         addDownload(**uri)
@@ -506,23 +506,23 @@ def getAllInfo(gid):
     # for op in [getFiles, getServers, getPeers, getUris, getOption, tellStatus]:
     for i, op in enumerate([getFiles, getServers, getPeers, getUris, getOption, tellStatus]):
         try:
-            response = send_req(op(gid))
+            response = sendReq(op(gid))
             info = { "function" : names[i] }
             response = {**info, **response}
             responses.append(response)
         except:
             responses.append(json.loads(f'{{"function": "{names[i]}", "response": "NONE"}}'))
     return responses
-    file_info = send_req(getFiles(gid))
-    server_info = send_req(getServers(gid)) 
+    file_info = sendReq(getFiles(gid))
+    server_info = sendReq(getServers(gid)) 
 
     vals = [file_info]
     return file_info
     return [val if val else json.loads("{}") for val in vals]
 
 def retryDownloadFull(gid, url="http://localhost", port=6800, token=None):
-    status = send_req(tellStatus(gid))
-    options = send_req(getOption(gid))
+    status = sendReq(tellStatus(gid))
+    options = sendReq(getOption(gid))
 
     dir = status["result"]["dir"]
     uri = status["result"]["files"][0]["uris"][0]["uri"]
@@ -544,14 +544,14 @@ def openDownloadLocation(gid, new_window=True):
     try:
         os.system('cls' if os.name == 'nt' else 'clear')
         req = getFiles(str(gid))
-        response = send_req(req)
+        response = sendReq(req)
         val = json.loads(json.dumps(response))
         files = val["result"]
         if len(files) == 0: return None
         loc = files[0]["path"]
         if "/" not in loc:
             req = getOption(str(gid))
-            response = send_req(req)
+            response = sendReq(req)
             val = json.loads(json.dumps(response))
             loc = val["dir"]
 
@@ -559,7 +559,7 @@ def openDownloadLocation(gid, new_window=True):
         if new_window:
             cmd = f"kitty yazi {repr(loc)}"
             # subprocess.run(cmd, shell=True)
-            subprocess.Popen(cmd, shell=True)
+            subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
             # os.system(f'kitty yazi "{loc}"')
         else:
             cmd = f"yazi {repr(loc)}"
@@ -576,14 +576,14 @@ def openFile(gid):
     """
     try:
         req = getFiles(str(gid))
-        response = send_req(req)
+        response = sendReq(req)
         val = json.loads(json.dumps(response))
         files = val["result"]
         if len(files) == 0: return None
         loc = files[0]["path"]
         if "/" not in loc:
             req = getOption(str(gid))
-            response = send_req(req)
+            response = sendReq(req)
             val = json.loads(json.dumps(response))
             loc = val["dir"]
 
@@ -604,7 +604,7 @@ port = config["general"]["port"]
 token = config["general"]["token"]
 paginate = config["general"]["paginate"]
 
-send_req = lambda req: sendReqFull(req, url=url, port=port)
+# send_req = lambda req: sendReqFull(req, url=url, port=port)
 addUri = lambda uri, out="", dir=None, queue_pos=10000:  addUriFull(uri, out=out, dir=dir, queue_pos=queue_pos, token=token)
 addTorrent = lambda path, out="", dir=None, queue_pos=10000:  addTorrentFull(path, out=out, dir=dir, queue_pos=queue_pos, token=token)
 addDownload = lambda uri, out=None, dir=None, url=url, port=port, token=token, queue_pos=None, proxy=None, prompt=False, cookies_file=None:  addDownloadFull(uri, out=out, dir=dir, queue_position=queue_pos, url=url, port=port, token=token, prompt=prompt, proxy=proxy, cookies_file=cookies_file)
