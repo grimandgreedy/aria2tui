@@ -167,131 +167,6 @@ def begin(stdscr, config):
 
     custom_colours = get_colours(config["appearance"]["theme"])
 
-    active_loop = lambda x: x
-    waiting_loop = lambda x: x
-    stopped_loop = lambda x: x
-    options = [
-            [
-                "View All", 
-                {
-                    "function": active_loop,
-                    "get_data": getAll,
-                    "operations": [
-                        ["pause", pause],
-                        ["unpause", unpause],
-                        ["changePosition", changePosition],
-                        ["sendToFrontOfQueue", changePosition, {"pos":0} ],
-                        ["sendToBackOfQueue", changePosition, {"pos":10000} ],
-                        ["remove", remove],
-                        ["retryDownload", retryDownload, {}],
-                        ["forceRemove", forceRemove],
-                        ["getFiles", getFiles, {}, {"view":True}],
-                        ["getServers", getServers, {}, {"view":True}],
-                        ["getPeers", getPeers, {}, {"view":True}],
-                        ["getUris", getUris, {}, {"view":True}],
-                        ["tellStatus", tellStatus, {}, {"view":True}],
-                        ["getOption", getOption, {}, {"view":True}],
-                        ["getAllInfo", getAllInfo, {}, {"view":True}],
-                        # ["changeOption", changeOption, {}, {"view":True}],
-                        ["openDownloadLocation (new window)", openDownloadLocation, {}, {}],
-                        ["openDownloadLocation", lambda gid: openDownloadLocation(gid, new_window=False), {}, {}],
-                        ["openFile", openFile, {}, {}],
-                    ],
-                }
-            ],
-            [
-                "Watch All",
-                {
-                    "get_data": getAll,
-                    "args": (),
-                    "kwargs": {},
-                    "refresh": True,
-                    "operations": [
-                        ["pause", pause],
-                        ["unpause", unpause],
-                        ["changePosition", changePosition],
-                        ["sendToFrontOfQueue", changePosition, {"pos":0} ],
-                        ["sendToBackOfQueue", changePosition, {"pos":10000} ],
-                        ["remove", remove],
-                        ["retryDownload", retryDownload, {}],
-                        ["forceRemove", forceRemove],
-                        ["getFiles", getFiles, {}, {"view":True}],
-                        ["getServers", getServers, {}, {"view":True}],
-                        ["getPeers", getPeers, {}, {"view":True}],
-                        ["getUris", getUris, {}, {"view":True}],
-                        ["tellStatus", tellStatus, {}, {"view":True}],
-                        ["getOption", getOption, {}, {"view":True}],
-                        ["getAllInfo", getAllInfo, {}, {"view":True}],
-                        # ["changeOption", changeOption, {}, {"view":True}],
-                        ["openDownloadLocation (new window)", openDownloadLocation, {}, {}],
-                        ["openDownloadLocation", lambda gid: openDownloadLocation(gid, new_window=False), {}, {}],
-                        ["openFile", openFile, {}, {}],
-                    ],
-                },
-            ],
-            [
-                "AddURIs",
-                {
-                    "function": addUris,
-                },
-            ],
-            [
-                "Add Torrents",
-                {
-                    "function": addTorrents,
-                },
-            ],
-            [
-                "pauseAll",
-                {
-                    "function": pauseAll,
-                }
-            ],
-            [
-                "Remove completed/errored downloads",
-                {
-                    "function": removeCompleted,
-                },
-            ],
-            [
-                "Get Global Options",
-                {
-                    "function": getGlobalOption,
-                }
-
-            ],
-            [
-                "Get Global Stat",
-                {
-                    "function": getGlobalStat,
-                }
-            ],
-            [
-                "Get Session Info",
-                {
-                    "function": getSessionInfo,
-                }
-            ],
-            [
-                "Get Version",
-                {
-                    "function": getVersion,
-                }
-            ],
-            [
-                "Edit Config",
-                {
-                    "function": editConfig,
-                }
-            ],
-            [
-                "Restart Aria",
-                {
-                    "function": restartAria,
-                }
-
-            ],
-        ]
     highlights = [
         {
             "match": "complete",
@@ -398,6 +273,27 @@ def begin(stdscr, config):
         },
     ]
     # ["NAME", function, functionargs, extra]
+    download_options = [
+        ["pause", pause, {}, {}],
+        ["unpause", unpause, {}, {}],
+        ["changePosition", changePosition, {}, {}],
+        ["sendToFrontOfQueue", changePosition, {"pos":0} , {}],
+        ["sendToBackOfQueue", changePosition, {"pos":10000}, {}],
+        ["remove", remove, {}, {}],
+        ["retryDownload", retryDownload, {}, {}],
+        ["forceRemove", forceRemove, {}, {}],
+        ["getFiles", getFiles, {}, {"view":True}],
+        ["getServers", getServers, {}, {"view":True}],
+        ["getPeers", getPeers, {}, {"view":True}],
+        ["getUris", getUris, {}, {"view":True}],
+        ["tellStatus", tellStatus, {}, {"view":True}],
+        ["getOption", getOption, {}, {"view":True}],
+        ["getAllInfo", getAllInfo, {}, {"view":True}],
+        # ["changeOption", changeOption, {}, {"view":True}],
+        ["openDownloadLocation (new window)", openDownloadLocation, {}, {}],
+        ["openDownloadLocation", lambda gid: openDownloadLocation(gid, new_window=False), {}, {}],
+        ["openFile", openFile, {}, {}],
+    ]
     menu_options = [
         ["Watch Downloads", None,{},{}],
         ["View Downloads", None,{},{}],
@@ -413,9 +309,9 @@ def begin(stdscr, config):
         ["Restart Aria", restartAria,{},{}],
     ]
     # appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, options)
-    appLoop2(stdscr, config, highlights, menu_highlights, custom_colours, modes, options, menu_options)
+    appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, download_options, menu_options)
 
-def appLoop2(stdscr, config, highlights, menu_highlights, custom_colours, modes, options, menu_options):
+def appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, download_options, menu_options):
     app_name = "Aria2TUI"
     menu_data = {
         "top_gap": 0,
@@ -449,7 +345,8 @@ def appLoop2(stdscr, config, highlights, menu_highlights, custom_colours, modes,
         "paginate": paginate,
         "title": app_name,
         "colours": custom_colours,
-        "require_option": [False if x[0] != "changePosition" else True for x in options[0][1]["operations"]],
+        # "require_option": [False if x[0] != "changePosition" else True for x in options[0][1]["operations"]],
+        "require_option": [False if x[0] != "changePosition" else True for x in download_options],
         "header": [f"Select operation"],
     }
     while True:
@@ -462,8 +359,8 @@ def appLoop2(stdscr, config, highlights, menu_highlights, custom_colours, modes,
 
         if selected_downloads:
             # operation, operation_function = [operation_list[0] for operation_list in options[dl_type][1]["operations"]]
-            operations = [x[0] for x in options[0][1]["operations"]]
-            operation_functions = [x[1] for x in options[0][1]["operations"]]
+            operations = [x[0] for x in download_options]
+            operation_functions = [x[1] for x in download_options]
             dl_option_data = {key: val for key, val in dl_option_data.items() if key not in ["items", "indexed_items"]}
             header = downloads_data["header"]
             items = downloads_data["items"]
@@ -486,7 +383,7 @@ def appLoop2(stdscr, config, highlights, menu_highlights, custom_colours, modes,
                 operation_name, operation_function = operations[selected_operation[0]], operation_functions[selected_operation[0]]
                 user_opts = dl_option_data["user_opts"]
                 view = False
-                operation_list = options[0][1]["operations"][selected_operation[0]]
+                operation_list = download_options[selected_operation[0]]
                 ## e.g., operation_list = ["getFiles", getFiles, {}, {"view":True}]
                 if len(operation_list) > 2 and "view" in operation_list[-1] and operation_list[-1]["view"]: view=True
                 applyToDownloads(stdscr, gids, operation_name, operation_function, user_opts, view)
@@ -565,195 +462,6 @@ def applyToDownloads(stdscr, gids, operation_name, operation_function, user_opts
         cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0'""" + f" {tmpfile_path}"
         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     stdscr.clear()
-
-
-def appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, options):
-    app_name = "Aria2TUI"
-    dl_type_list = [3]
-    menu_data = {
-        "top_gap": 0,
-        "highlights": menu_highlights,
-        "paginate": paginate,
-        "title": app_name,
-        "colours": custom_colours,
-        "max_selected": 1,
-    }
-    view_loop_data = {
-        "top_gap": 0,
-        "highlights": highlights,
-        "paginate": paginate,
-        "modes": modes,
-        "display_modes": True,
-        "title": app_name,
-        "colours": custom_colours,
-        "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1, 0],
-        "sort_reverse": [False, False, False, True, True, True, True, True, False, False, False],
-        "auto_refresh": False,
-        "get_new_data": False,
-    }
-    watch_loop_data = {
-        "top_gap": 0,
-        "highlights": highlights,
-        "paginate": paginate,
-        "modes": modes,
-        "display_modes": True,
-        "title": app_name,
-        "colours": custom_colours,
-        "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1, 0],
-        "sort_reverse": [False, False, False, True, True, True, True, True, False, False, False,],
-        "auto_refresh": True,
-        "get_new_data": True,
-        "timer": 1,
-    }
-    dl_option_data = {
-        "top_gap": 0,
-        "highlights": menu_highlights,
-        "paginate": paginate,
-        "title": app_name,
-        "colours": custom_colours,
-        "require_option": [False if x[0] != "changePosition" else True for x in options[0][1]["operations"]],
-    }
-
-    while True:
-        menu_data = {key:val for key, val in menu_data.items() if key not in ["items", "indexed_items"]}
-        dl_type_list, opts, menu_data = list_picker(
-            stdscr,
-            items=[[func[0]] for func in options],
-            **menu_data,
-        )
-        if not dl_type_list: break
-        dl_type = dl_type_list[0]
-        if options[dl_type][0] in ["Watch All", "View All"]:
-            items, header = options[dl_type][1]["get_data"]()
-            if options[dl_type][0] == "View All":
-                watch_loop_data["auto_refresh"] = False
-            else:
-                watch_loop_data["auto_refresh"] = True
-
-            ## Remove old data from dict
-            watch_loop_data = {key: val for key, val in watch_loop_data.items() if key not in ["items", "indexed_items"]}
-            selected_downloads, opts, watch_loop_data = list_picker(
-                stdscr,
-                items=items,
-                header=header,
-                refresh_function=options[dl_type][1]["get_data"],
-                **watch_loop_data,
-            )
-            if not selected_downloads: continue
-
-        elif options[dl_type][0] in ["AddURIs", "Edit Config", "Restart Aria", "Add Torrents"]:
-            # Run function
-            options[dl_type][1]["function"]()
-            continue
-
-        ## Global
-        elif options[dl_type][0] in ["Get Global Options", "Get Global Stat", "Get Session Info", "Get Version"]:
-            data = sendReq(options[dl_type][1]["function"]())
-            with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
-                tmpfile.write(json.dumps(data, indent=4))
-                tmpfile_path = tmpfile.name
-            cmd = f"nvim -i NONE {tmpfile_path}"
-            process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-            continue
-
-        elif options[dl_type][0] in ["pauseAll", "Remove completed/errored downloads"]:
-            data = sendReq(options[dl_type][1]["function"]())
-            continue
-
-        ####### THIS SHOULDN'T BE REACHED
-        else:
-            ## select downloads to operate upon
-            items, header = options[dl_type][1]["get_data"]()
-            if len(items) == 0:
-                header = ["items"]
-                items = [[]]
-            watch_loop_data = {key: val for key, val in watch_loop_data.items() if key not in ["items", "indexed_items"]}
-            selected_downloads, opts, watch_loop_data = list_picker(
-                stdscr,
-                items,
-                header=header,
-                **watch_loop_data,
-
-            )
-            if not selected_downloads or items == [[]]: continue
-        gid_index = header.index("gid")
-        fname_index = header.index("fname")
-        gids = [item[gid_index] for i, item in enumerate(items) if i in selected_downloads]
-        fnames = [item[fname_index] for i, item in enumerate(items) if i in selected_downloads]
-
-        ## select action to perform on downloads
-        operations = [operation_list[0] for operation_list in options[dl_type][1]["operations"]]
-        items, header = operations, [f"Select operation"]
-        dl_option_data = {key: val for key, val in dl_option_data.items() if key not in ["items", "indexed_items"]}
-        dl_option_data["display_infobox"] = True
-        dl_option_data["infobox_items"] = fnames
-
-        operation_n, opts, dl_option_data = list_picker(
-            stdscr,
-            items,
-            # colours=custom_colours,
-            header=header,
-            **dl_option_data,
-
-        )
-
-        if not operation_n: 
-            continue
-
-        user_opts = dl_option_data["user_opts"]
-        operation = operation_n[0]
-        operation_f = options[dl_type][1]["operations"][operation][1]
-        operation_list = options[dl_type][1]["operations"][operation]
-        operation_function = operation_list[1]
-
-        # Reset menu after selection
-        # view_loop_data["selections"] = {}
-        watch_loop_data["selections"] = {}
-
-        # print(f"We want to {operations[operation]}")
-        # print(f"    on {gids}")
-        # print(f"    from list {dl_type_list}")
-
-        responses = []
-        for gid in gids:
-            try:
-                # jsonreq = changePosition(gid,0)
-                if operations[operation] == "changePosition":
-                    position = int(user_opts) if user_opts.strip().isdigit() else 0
-                    jsonreq = operation_f(str(gid), position)
-                elif operations[operation] == "getAllInfo":
-                    js_rs = getAllInfo(str(gid))
-                    responses.append(js_rs)
-                    continue
-
-                elif len(operation_list) > 2:
-                    operation_kwargs = operation_list[2]
-                    jsonreq = operation_f(str(gid), **operation_kwargs)
-                else:
-                    jsonreq = operation_f(str(gid))
-
-                js_rs = sendReq(jsonreq)
-                responses.append(js_rs)
-            except:
-                responses.append({})
-                pass
-        if len(operation_list) > 2 and "view" in operation_list[-1].keys() and operation_list[-1]:
-            with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
-                # tmpfile.write(json.dumps(data, indent=4))
-                for i, response in enumerate(responses):
-                    tmpfile.write(f'{"*"*50}\n{str(i)+": "+gids[i]:^50}\n{"*"*50}\n')
-                    tmpfile.write(json.dumps(response, indent=4))
-                # tmpfile.write(operation_f(str(gids[0])))
-                # tmpfile.writelines([json.dumps(response, indent=4) for response in responses])
-                # tmpfile.write(data)
-                tmpfile_path = tmpfile.name
-            # cmd = f"kitty --class=reader-class nvim -i NONE {tmpfile_path}"
-            # cmd = r"nvim -i NONE -c '/^\s*\d'" + f" {tmpfile_path}"
-            cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
-            # cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
-            cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0'""" + f" {tmpfile_path}"
-            process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-        stdscr.clear()
 
 def main():
     ## Load config
