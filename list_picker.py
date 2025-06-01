@@ -105,6 +105,7 @@ from keys import keys_dict, notification_keys
  - sometimes the cursor shows, sometimes it doesn't
     -  cursor shows after opening nvim and returning to listpicker
  - errors thrown when length(header) != length(items[0])
+ - fix resizing when input field active
 
 (!!!) COPY:
 
@@ -256,6 +257,9 @@ def list_picker(
         editable_columns = [],
         last_key=None,
         
+        centre_in_terminal=False,
+        centre_in_cols=False,
+        
 ):
     """
     A simple list picker using ncurses.
@@ -375,16 +379,19 @@ def list_picker(
         return submenu_win
 
     def draw_screen(indexed_items=[], highlights={}, clear=True):
-        nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer, highlights_hide
+        nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols
 
         if clear:
-            # stdscr.clear()
             stdscr.erase()
-        h, w = stdscr.getmaxyx()
 
-        # scroll
-        ## start: 0, current_pos-items_per_page//2, or len(indexed_items)-items_per_page
-        # start_index = max(0, current_pos - items_per_page//2)
+        # Terminal too small to display list_picker
+        h, w = stdscr.getmaxyx()
+        if h<3 or w<len("Terminal"): return None
+        if show_footer and (h<20 or w<60) or (h<12 and w<10):
+            stdscr.addstr(h//2-1, (w-len("Terminal"))//2, "Terminal")
+            stdscr.addstr(h//2, (w-len("Too"))//2, "Too")
+            stdscr.addstr(h//2+1, (w-len("Small"))//2, "Small")
+            return None
         
         # paginate
         if paginate:
@@ -427,13 +434,19 @@ def list_picker(
             top_space += 1
 
             
+        column_widths = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
+        startx = 0
 
+        visible_column_widths = [c for i,c in enumerate(column_widths) if i not in hidden_columns]
+        visible_columns_total_width = sum(visible_column_widths) + len(separator)*(len(visible_column_widths)-1)
+        if visible_columns_total_width < w and centre_in_terminal:
+            startx = (w - visible_columns_total_width) // 2
 
         # Display header
         if header:
             # header_str = format_row(header)
             # stdscr.addstr(top_gap, 0, header_str, curses.color_pair(colours_start+3))
-            column_widths = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
+            
             # header_str = ' '.join(f"{i+1}. {header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
             header_str = ""
             up_to_selected_col = ""
@@ -449,13 +462,13 @@ def list_picker(
             # header_str = ' '.join(f"{i}. " if number_columns else "" + f"{header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
             # header_str = format_row([f"{i+1}. {col}" for i, col in enumerate(header)])
 
-            stdscr.addstr(top_space, 0, header_str[:w], curses.color_pair(colours_start+4) | curses.A_BOLD)
+            stdscr.addstr(top_space, startx, header_str[:min(w, visible_columns_total_width)], curses.color_pair(colours_start+4) | curses.A_BOLD)
 
             # Highlight sort column
             if sort_column != None and sort_column not in hidden_columns and len(up_to_selected_col) < w and len(header) > 1: 
                 number = f"{sort_column}. " if number_columns else ""
                 number = f"{intStringToExponentString(sort_column)}. " if number_columns else ""
-                stdscr.addstr(top_space, len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)], curses.color_pair(colours_start+19) | curses.A_BOLD)
+                stdscr.addstr(top_space, startx + len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)], curses.color_pair(colours_start+19) | curses.A_BOLD)
 
             # stdscr.addstr(top_gap + 1, 0, '-' * len(header_str), curses.color_pair(colours_start+3))
             # stdscr.addstr(top_gap, 0, header_str[:w], curses.color_pair(colours_start+4) | curses.A_BOLD)
@@ -492,29 +505,18 @@ def list_picker(
 
             stdscr.attron(color_pair)
 
-            row_str = format_row(item[1], hidden_columns, column_widths, separator)
+            row_str = format_row(item[1], hidden_columns, column_widths, separator, centre_in_cols)
             h, w = stdscr.getmaxyx()
 
             try:
                 # Display row with potential clipping
-                stdscr.addstr(y, x, row_str[:w], color_pair)
+                stdscr.addstr(y, startx, row_str[:min(w, visible_columns_total_width)], color_pair)
             except curses.error:
                 pass  # Handle errors due to cursor position issues
 
-            # Display selection indicator
-            indicator = '[X]' if selections[item[0]] else '[ ]'
-            indicator = ""
-            try:
-                # stdscr.addstr(y, x + len(row_str), indicator, curses.color_pair(colours_start+1) | curses.A_BOLD)
-                pass
-            except curses.error:
-                pass  # Handle errors due to cursor position issues
 
             stdscr.attroff(color_pair)
 
-            # Add color highlights
-            # if len(highlights) > 0:
-            #     os.system(f"notify-send 'match: {len(highlights)}'")
             if not highlights_hide:
                 for highlight in highlights:
                     try:
@@ -525,13 +527,16 @@ def list_picker(
                             highlight_end = match.end()
                         # elif type(highlight["field"]) == type(4) and  highlight["match"] == item[1][highlight["field"]].strip():
                         elif type(highlight["field"]) == type(4) and highlight["field"] not in hidden_columns:
-                            match = re.search(highlight["match"], item[1][highlight["field"]][:column_widths[highlight["field"]]], re.IGNORECASE)
+                            # match = re.search(highlight["match"], item[1][highlight["field"]][:column_widths[highlight["field"]]], re.IGNORECASE)
+                            match = re.search(highlight["match"], truncate_to_display_width(item[1][highlight["field"]], column_widths[highlight["field"]], centre_in_cols), re.IGNORECASE)
                             if not match: continue
                             field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
                             field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
                             field_start = sum(column_widths[:highlight["field"]]) + highlight["field"]*wcswidth(separator)
                             field_start = sum([width for i, width in enumerate(column_widths[:highlight["field"]]) if i not in hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in hidden_columns])*wcswidth(separator)
-                            highlight_start = wcswidth(item[1][:match.start()]) + field_start
+                            # highlight_start = wcswidth(item[1][:match.start()]) + field_start
+                            # highlight_start = wcswidth(item[1][:match.start()]) + field_start
+                            highlight_start = field_start + match.start()
                             highlight_end = match.end() + field_start
                         else:
                             continue
@@ -546,7 +551,7 @@ def list_picker(
 
                         # stdscr.addstr(y, highlight_start, highlight["match"], color_pair)
                         h, w = stdscr.getmaxyx()
-                        stdscr.addstr(y, highlight_start, row_str[highlight_start:min(w, highlight_end)], color_pair | curses.A_BOLD)
+                        stdscr.addstr(y, startx+highlight_start, row_str[highlight_start:min(w, highlight_end)], color_pair | curses.A_BOLD)
                     # except curses.error:
                     except:
                         pass  # Handle errors due to cursor position issues
@@ -740,6 +745,8 @@ def list_picker(
             "get_data_startup":     get_data_startup,
             "editable_columns":     editable_columns,
             "last_key":             None,
+            "centre_in_terminal":   centre_in_terminal,
+            "centre_in_cols":       centre_in_cols,
             
         }
         return function_data
@@ -783,9 +790,10 @@ def list_picker(
         cursor = 0
         h, w = stdscr.getmaxyx()
 
-        window_width = min(max([len(x) for x in options] + [len(field_name)] + [35]) + 6, w//2)
+        window_width = min(max([len(x) for x in options] + [len(field_name)] + [10]) + 6, w//2)
+        window_height = min(h//2, len(options)-4)
 
-        submenu_win = curses.newwin(12, window_width, h // 2 - 2, w // 2 - 25)
+        submenu_win = curses.newwin(window_height, window_width, (h-window_height)//2, (w-window_width)//2)
 
         
         s, o, f = list_picker(
@@ -797,6 +805,7 @@ def list_picker(
             colours_start=0,
             disabled_keys=[ord('z'), ord('c')],
             top_gap=0,
+            show_footer=False,
             # scroll_bar=False,
         )
 
@@ -988,7 +997,7 @@ def list_picker(
             else:
                 hidden_columns.add(col_index)
 
-    def apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide):
+    def apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide, centre_in_terminal, centre_in_cols):
         
         # nonlocal user_settings, highlights, sort_column, cursor_pos, columns_sort_method
         # settings= usrtxt.split(' ')
@@ -1024,13 +1033,17 @@ def list_picker(
                         sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
                         new_pos = [row[0] for row in indexed_items].index(current_pos)
                         cursor_pos = new_pos
+                elif setting == "ct":
+                    centre_in_terminal = not centre_in_terminal
+                elif setting == "cc":
+                    centre_in_cols = not centre_in_cols
                 elif setting[0] == "":
                     cols = setting[1:].split(",")
                     for col in cols:
                         toggle_column_visibility(int(col))
 
             user_settings = ""
-        return highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide
+        return highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide, centre_in_terminal, centre_in_cols
 
     # Functions for item selection
     def toggle_item(index):
@@ -1199,7 +1212,7 @@ def list_picker(
             function_data["last_key"] = key
             return [], "", function_data
         elif check_key("settings_input", key, keys_dict):
-            usrtxt = f"{user_settings} " if user_settings else ""
+            usrtxt = f"{user_settings.strip()} " if user_settings else ""
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1209,7 +1222,8 @@ def list_picker(
             )
             if return_val:
                 user_settings = usrtxt
-                highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide = apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide)
+                highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide, centre_in_terminal, centre_in_cols = apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide, centre_in_terminal, centre_in_cols)
+                user_settings = ""
 
         elif check_key("move_column_left", key, keys_dict):
             move_column(-1)
@@ -1375,7 +1389,7 @@ def list_picker(
                 column_widths[:] = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
                 draw_screen(indexed_items, highlights)
         elif check_key("increase_column_width", key, keys_dict):
-            if max_column_width < 300:
+            if max_column_width < 1000:
                 max_column_width += 10
                 column_widths[:] = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
                 draw_screen(indexed_items, highlights)
@@ -1395,6 +1409,7 @@ def list_picker(
             items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
             h, w = stdscr.getmaxyx()
             items_per_page = h - top_space-int(bool(header)) - 3*int(bool(show_footer))
+            column_widths[:] = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
 
 
         elif key == ord('r'):

@@ -20,6 +20,7 @@ import tempfile
 import tomllib
 from utils import *
 from aria2c_utils import *
+from aria2_detailing import highlights, menu_highlights, modes
 
 r"""
 todo 
@@ -37,8 +38,6 @@ todo
  - improve menu navigation
     - when downloads are selected and we go back they should still be selected
  - redo menu order
- - fix dir; it should be obtained from getInfo; 
-    - E.g., 4chan downloads don't show filename or dir as dir is based on filename
  - should the colours be:
     - completed: green
     - active: blue
@@ -128,6 +127,7 @@ DONE
  - after nvim is opened (e.g., show all dl info) the display needs to be redrawn
  - (!!!) there is a problem with the path when readding downloads sometimes. It is correct in the download info but is displayed wrong???
     (*) was caused by discordant order of getting download options and the main download information
+ - fix dir; it should be obtained from getInfo; 
 
 """
 
@@ -167,111 +167,6 @@ def begin(stdscr, config):
 
     custom_colours = get_colours(config["appearance"]["theme"])
 
-    highlights = [
-        {
-            "match": "complete",
-            "field": 1,
-            "color": 8,
-        },
-        {
-            "match": "error",
-            "field": 1,
-            "color": 7,
-        },
-        {
-            "match": "active",
-            "field": 1,
-            "color": 9,
-        },
-        {
-            "match": "waiting",
-            "field": 1,
-            "color": 11,
-        },
-        {
-            "match": "paused",
-            "field": 1,
-            "color": 12,
-        },
-        { ## 0-20
-            "match": r'^(0\d?(\.\d*)?\b|\b\d(\.\d*)?)\b%?',
-            "field": 6,
-            "color": 7,
-        },
-        {
-            "match": r'^(2\d(\.\d*)?|3\d(\.\d*)?|40(\.\d*)?)(?!\d)\b%?',  # Pattern for numbers from 20 to 40
-            "field": 6,
-            "color": 11,
-        },
-        {
-            "match": r'^(4\d(\.\d*)?|5\d(\.\d*)?|60(\.\d*)?)(?!\d)\b%?',  # Pattern for numbers from 40 to 60
-            "field": 6,
-            "color": 9,
-        },
-        {
-            "match": r'^(6\d(\.\d*)?|7\d(\.\d*)?|80(\.\d*)?)(?!\d)\b%?',  # Pattern for numbers from 60 to 80
-            "field": 6,
-            "color": 9,
-        },
-        {
-            "match": r'^(8\d(\.\d*)?|9\d(\.\d*)?|100(\.\d*)?)(?!\d)\b%?',  # Pattern for numbers from 80 to 100
-            "field": 6,
-            "color": 8,
-        },
-    ]
-    menu_highlights = [
-        {
-            "match": "complete",
-            "field": 0,
-            "color": 8,
-        },
-        {
-            "match": "error",
-            "field": 0,
-            "color": 7,
-        },
-        {
-            "match": "active",
-            "field": 0,
-            "color": 9,
-        },
-        {
-            "match": "waiting",
-            "field": 0,
-            "color": 11,
-        },
-    ]
-    modes = [
-        {
-            'filter': '',
-            'sort': 0,
-            'name': 'All',
-        },
-        {
-            'filter': '--1 active',
-            'name': 'Active',
-        },
-        {
-            'filter': '--1 waiting',
-            'name': 'Queue',
-        },
-        {
-            'filter': '--1 waiting|active',
-            'name': 'Active+Queue',
-        },
-        {
-            'filter': '--1 paused',
-            'name': 'Paused',
-        },
-        {
-            'filter': '--1 complete',
-            'name': 'Completed',
-        },
-        {
-            'filter': '--1 error',
-            'name': 'Error',
-        },
-    ]
     # ["NAME", function, functionargs, extra]
     download_options = [
         ["pause", pause, {}, {}],
@@ -322,6 +217,8 @@ def appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, 
         "max_selected": 1,
         "items": [menu_option[0] for menu_option in menu_options],
         "header": ["Main Menu"],
+        "centre_in_terminal": True,
+        "centre_in_cols": True,
     }
     downloads_data = {
         "top_gap": 0,
@@ -387,6 +284,8 @@ def appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, 
                 ## e.g., operation_list = ["getFiles", getFiles, {}, {"view":True}]
                 if len(operation_list) > 2 and "view" in operation_list[-1] and operation_list[-1]["view"]: view=True
                 applyToDownloads(stdscr, gids, operation_name, operation_function, user_opts, view)
+                downloads_data["selections"] = {}
+            else: continue
         else: 
             ## SELECT MENU OPTION
             selected_menu, opts, menu_data = list_picker(
@@ -446,19 +345,11 @@ def applyToDownloads(stdscr, gids, operation_name, operation_function, user_opts
             # responses.append({})
     if view:
         with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
-            # tmpfile.write(json.dumps(data, indent=4))
-            # os.system(f"notify-send '{gids}'")
             for i, response in enumerate(responses):
                 tmpfile.write(f'{"*"*50}\n{str(i)+": "+gids[i]:^50}\n{"*"*50}\n')
                 tmpfile.write(json.dumps(response, indent=4))
-            # tmpfile.write(operation_f(str(gids[0])))
-            # tmpfile.writelines([json.dumps(response, indent=4) for response in responses])
-            # tmpfile.write(data)
             tmpfile_path = tmpfile.name
-        # cmd = f"kitty --class=reader-class nvim -i NONE {tmpfile_path}"
-        # cmd = r"nvim -i NONE -c '/^\s*\d'" + f" {tmpfile_path}"
         cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
-        # cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
         cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0'""" + f" {tmpfile_path}"
         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     stdscr.clear()

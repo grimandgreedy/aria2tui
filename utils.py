@@ -2,7 +2,7 @@
 from wcwidth import wcwidth, wcswidth
 from math import log10
 
-def truncate_to_display_width(text, max_column_width):
+def truncate_to_display_width(text, max_column_width, centre=False):
     result = ''
     width = 0
     for char in text:
@@ -16,8 +16,11 @@ def truncate_to_display_width(text, max_column_width):
     # Pad if it's shorter
     padding = max_column_width - wcswidth(result)
     # return result + ' ' * padding
-    return result + ' ' * padding
-
+    if centre:
+        result = ' '*(padding//2) + result + ' '*(padding//2 + padding%2)
+    else:
+        result = result + ' ' * padding 
+    return result
 
 def format_row_full(row, hidden_columns):
     return '\t'.join(str(row[i]) for i in range(len(row)) if i not in hidden_columns)
@@ -26,11 +29,11 @@ def format_full_row(row):
     return '\t'.join(row)
 
 
-def format_row(row, hidden_columns, column_widths, separator):
+def format_row(row, hidden_columns, column_widths, separator, centre=False):
     row_str = ""
     for i, cell in enumerate(row):
         if i in hidden_columns: continue
-        val = truncate_to_display_width(str(cell), column_widths[i])
+        val = truncate_to_display_width(str(cell), column_widths[i], centre)
         row_str += val + separator
     return row_str
     # return row_str.strip()
