@@ -19,95 +19,107 @@ from help_screen import help_lines
 from keys import keys_dict, notification_keys
 
 """
- - (!!!) fix crash when terminal is too small
-- c,y copies filtered rows but Y says out of range
-- adjust width of particular columns
-- Add a set of themes that are changeable
-- if no items are selected pipe cursor to command
- - add option to start with X rows already selected (for watch active selection)
- - prevent overspill on last row
- - help screen doesn't adjust when terminal resized
- - add search/filter on help page
- - when +,* is added to the filter it errors out
- - pass colours to list_picker in a more intuitive way
- - some capture groups don't work [^0]
- - show/hide col based on name; have tab auto complete
- - option to search visible columns only
- - remain on same row when resizing with +/-
- - +/- don't work when using scroll (rather than paginate)
- - add option for padding/border
-    - stdscr.box??
- - disable visual selection when # is greater than max_selected
- - put help in a popup like opts
- - redo keybinds
-     - n/N search next/prev
- - should general search be cell-wise?
-    - e.g., wmv$ shows no matches but --3 wmv$ shows matches
- - add option to go to next dissimilar value in column
-    - e.g., select column 2 (complete download), and pressing tab will go to the next that is not complete 
- - when column is selected try best guess search method
- - adjust default column width based on current page?
- - (!!!) there is a difference between search matches and highlights because the highlights operate on what is displayed
-    - What to do?
-    - allow visual matches with searches?
-    - hide highlights across fields?
-    - e.g., mkv$ shows no highlights but does match
- - add notification system
- - Add error handling
-    - apply_settings("sjjj") 
- - redo settings
- - complete get_colours loop
- - toggle cursor visibility
- - change hidden_columns from set() to list()
- - make unselectable_indices work with filtering
- - look at adjustment for cursor position and hidden unselectable indices
- - each time we pass options it will resort and refilter; add an option to simply load the items that are passed
- - flickering when "watching"
-    - Is it the delay caused by fetching the data? Maybe fetch and then refresh?
- - moving columns:
-    - ruins highlighting
-    - is not preserved in function_data
-    - implement indexed_columns
-    - will have to put header in function_data to track location of fields
- - when visually selecting sometimes single rows above are highlighted (though not selected)
- - add key-chain support 
-    - gg
-    - count
- - change the cursor tracker from current_row, current_page to current_pos
- - add option to require options
- - filter problems
-    - "--1 error .*" doesn't work but ".* --1" error does
- - add return value; e.g., refreshing
- - option to number columns or not
- - make sure `separator` works with header
- - add cursor when inputing filter, opts, etc.
- - weird alignment problem when following characters are in cells:
-    - ： 
- - add support for multiple aria servers
- - add different selection styles
-    - row highlighted   
-    - selection indicator
- - should require_option skip the prompt if an option has already been given?
- - force option type; show notification to user if option not appropriate
- - add disable options for:
-    - sort
-    - visual selection
- - redo help
- - (!!!) allow key remappings; have a dictionary to remap
- - add indexed
- - restrict functionality of notification list_picker
- - why does curses crash when writing to the final char on the final line?
-    - is there a way to colour it?
- - (!!!) Need to remove nonlocal args and pass all variables as arguments
- - Colour problems
-    - we have arbitrarily set application colours to be 0-50, notification 50-100 and help 100-150
- - finish implementing modes; currently only supports filters
- - sometimes the cursor shows, sometimes it doesn't
-    -  cursor shows after opening nvim and returning to listpicker
- - errors thrown when length(header) != length(items[0])
- - fix resizing when input field active
+( ) Errors
+    ( ) place cursor on last row and hold +.
+    ( ) why does curses crash when writing to the final char on the final line?
+        ( ) is there a way to colour it?
+    ( ) errors thrown when length(header) != length(items[0])
+    ( ) Error handling needed
+        ( ) apply_settings("sjjj") 
+    ( ) Error when drawing highlights. Have to put them in a try-except block
 
-(!!!) COPY:
+( ) Bugs
+    ( ) sometimes the cursor shows, sometimes it doesn't
+        - cursor shows after opening nvim and returning to listpicker
+    ( ) fix resizing when input field active
+    ( ) Visual selection
+        ( ) when visually selecting sometimes single rows above are highlighted (though not selected)
+    ( ) weird alignment problem when following characters are in cells:
+           - ： 
+    ( ) moving columns:
+        - ruins highlighting
+        - is not preserved in function_data
+        - implement indexed_columns
+        - will have to put header in function_data to track location of fields
+    ( ) regexp and field entry errors
+        ( ) filter
+        ( ) "--1 error .*" doesn't work but ".* --1" error does
+        ( ) search
+        ( ) highlights
+        ( ) when +,* is added to the filter it errors out
+        ( ) some capture groups don't work [^0]
+        ( ) should general search be cell-wise?
+        ( ) option to search visible columns only
+
+
+
+( ) Improvements
+    ( ) (!!!) Need to remove nonlocal args and pass all variables as arguments
+    ( ) change hidden_columns from set() to list()
+    ( ) make unselectable_indices work with filtering
+    ( ) look at adjustment for cursor position and hidden unselectable indices
+    ( ) each time we pass options it will resort and refilter; add an option to simply load the items that are passed
+    ( ) require_option should skip the prompt if an option has already been given
+    ( ) force option type; show notification to user if option not appropriate
+    ( ) add the ability to disable options for:
+        (*) show footer
+        (*) auto-refresh
+        (*) edit cell
+        ( ) sort
+        ( ) visual selection
+        ( ) disable visual selection when # is greater than max_selected
+        ( ) NOTIFICATIONS
+        ( ) OPTIONS
+    ( ) Colours
+        ( ) Redo colours
+        ( ) pass colours to list_picker in a more intuitive way
+        ( ) complete get_colours loop
+        (?) we have arbitrarily set application colours to be 0-50, notification 50-100 and help 100-150
+
+    ( ) Highlights
+        ( ) (!!!) there is a difference between search matches and highlights because the highlights operate on what is displayed
+            (?) allow visual matches with searches?
+            (?) hide highlights across fields?
+            (?) e.g., mkv$ shows no highlights but does match
+        ( )  - e.g., wmv$ shows no matches but --3 wmv$ shows matches
+    ( ) Pipe
+        ( ) if no items are selected pipe cursor to command
+    ( ) Redo keybinds
+        ( )  n/N search next/prev
+        ( ) (!!!) allow key remappings; have a dictionary to remap
+            ( ) escape should close option selections and notifications
+    (?) adjust default column width based on current page?
+
+
+( ) Features
+    (*) add notification system
+        ( ) add transient non-blocking notifications
+    ( ) add different selection styles
+        ( ) row highlighted   
+        ( ) selection indicator (selection char at end of line)
+    ( ) add key-chain support. Can use the timeout to clear the key.
+        ( ) gg
+        ( ) count
+    ( ) add return value; e.g., refreshing
+    ( ) add indexed columns
+        ( ) will fix highlighting when column order is switched
+
+    ( ) Modes
+        (*) Allow filtering in mode
+        (*) Display modes
+        ( ) Search
+        ( ) ...
+    ( ) adjust width of particular columns
+    ( ) merge columns
+    ( ) show/hide col based on name; have tab auto complete
+    ( ) add option for padding/border
+        ( ) stdscr.box??
+    ( ) add option to go to next dissimilar value in column
+        ( ) e.g., select column 2 (download: complete), and pressing tab will go to the next entry that is not complete 
+    ( ) when column is selected try best guess search method
+
+--------------
+(*) (!!!) COPY:
 
     copy IDs of selected rows (currently 'y')
     copy selected rows, visible values of visible cols (currently 'Y')
@@ -126,68 +138,87 @@ from keys import keys_dict, notification_keys
     
     hidden cols, selected rows, 
 
-???
         selections = [False] * len(items)
         selections = {i: False for i in range(len(items))}
+--------------
 
 DONE
- - Make escape work with : (as it does with | and f)
- - make filter work with regular expressions
-   - adjust page after resize
-   - fix not resizing properly
-   - fix header columns not being aligned (fixed by replacing tabs with spaces so char count clipped properly)
- - rows not aligned with chinese characters (need to trim display rows based on wcswidth)
-- fix problems with empty lists both [] and [[],[]] 
- - fix issue where item when filtering the cursor goes to a nonexistent item
- - add unselectable_indices support for filtered rows and visual selection
- - allow a keyword match for colours in columns (error, completed)
- - fix time sort
- - add colour highlighting for search and filter
- - fix highlights when columns are shortened
- - highlights wrap on bottom row
- - add search count
-    - add option to continue search rather than finding all matches every time
-        - problem when filter is applied
-- (!!!) Fix visual selection in the entries are sorted differently.
-  - when filtered it selects entries outside of those visible and throws an error
- - add config file
- - add highlight colour differentiation for selected and under cursor
- - remain on same row when sorting (23-5-25)
- - add option to stay on item when sorting
- - fix highlighting when cols are hidden
- - Add hidden columns to function so that they remain hidden on refresh
-- Fix the position of a filter and options when terminal resizes
-- fix the filtering so that it works with more than one arg
- - fix error when filtering to non-existing rows
- - implement settings:
-     - !11 show/hide 11th column
-     - ???
- - allow state to be restored
-      - allow search/filter to be passed to list_picker so that search can resume
-      - cursor postion (x)
-      - page number
-      - sort
-      - filter state
-      - search
-      - show/hide cols
- - implement scroll as well as page view
- - why the delay when pressing escape to cancel selection, remove filter, search, etc.
-    * the problem is that ESCDELAY has to be set
- - (!!!) high CPU usage
-    * when val in `stdscr.timeout(val)` is low the cpu usage is high
- - (!!!) When the input_field is too long the application crashes
- - crash when selecting column from empty list
- - sendReq()...
- - add tabs for quick switching
- - add header for title
- - add header tabs
- - add colour for active setting; e.g., when filter is being entered the bg should be blue
- - check if mode filter in query when updating the query and if not change the mode
- - when sorting on empty data it throws an error
- - hiding a column doesn't hide the corresponding header cell
- - add colour for selected column
- - highlighting doesn't disappear when columns are hidden
- - add scroll bar
+(*) Make escape work with : (as it does with | and f)
+(*) make filter work with regular expressions
+(*) adjust page after resize
+(*) fix not resizing properly
+(*) fix header columns not being aligned (fixed by replacing tabs with spaces so char count clipped properly)
+(*) rows not aligned with chinese characters (need to trim display rows based on wcswidth)
+(*) fix problems with empty lists both [] and [[],[]] 
+(*) fix issue where item when filtering the cursor goes to a nonexistent item
+(*) add unselectable_indices support for filtered rows and visual selection
+(*) allow a keyword match for colours in columns (error, completed)
+(*) fix time sort
+(*) add colour highlighting for search and filter
+(*) fix highlights when columns are shortened
+(*) highlights wrap on bottom row
+(*) Search
+    (*) add search count
+    (*) add option to continue search rather than finding all matches every time
+    (*) problem when filter is applied
+(*) Visual selection
+    (*) (!!!) Fix visual selection in the entries are sorted differently.
+    (*) when filtered it selects entries outside of those visible and throws an error
+(*) add config file
+(*) Highlights
+    (*) add highlight colour differentiation for selected and under cursor
+    (*) remain on same row when sorting (23-5-25)
+    (*) add option to stay on item when sorting
+(*) fix highlighting when cols are hidden
+(*) Add hidden columns to function so that they remain hidden on refresh
+(*) Fix the position of a filter and options when terminal resizes
+(*) fix the filtering so that it works with more than one arg
+(*) fix error when filtering to non-existing rows
+(*) implement settings:
+     (*) !11 show/hide 11th column
+     (*) ???
+(*) Allow state to be restored
+    (*) allow search/filter to be passed to list_picker so that search can resume
+    (*) cursor postion (x)
+    (*) page number
+    (*) sort
+    (*) filter state
+    (*) search
+    (*) show/hide cols
+(*) implement scroll as well as page view
+(*) why the delay when pressing escape to cancel selection, remove filter, search, etc.
+    (*) the problem is that ESCDELAY has to be set
+(*) (!!!) high CPU usage
+    (*) when val in `stdscr.timeout(val)` is low the cpu usage is high
+(*) (!!!) When the input_field is too long the application crashes
+(*) crash when selecting column from empty list
+(*) sendReq()...
+(*) add tabs for quick switching
+(*) add header for title
+(*) add header tabs
+(*) add colour for active setting; e.g., when filter is being entered the bg should be blue
+(*) check if mode filter in query when updating the query and if not change the mode
+(*) when sorting on empty data it throws an error
+(*) hiding a column doesn't hide the corresponding header cell
+(*) add colour for selected column
+(*) highlighting doesn't disappear when columns are hidden
+(*) add scroll bar
+(*) (!!!) fix crash when terminal is too small
+(*) add option to start with X rows already selected (for watch active selection)
+(*) prevent overspill on last row
+(*) redo help
+    (*) help screen doesn't adjust when terminal resized
+    (*) add search/filter on help page
+    (*) use list_picker to implement help
+(*) +/- don't work when using scroll (rather than paginate)
+(*) flickering when "watching"
+(*) change the cursor tracker from current_row, current_page to current_pos
+(*) add flag to require options for a given entry
+(*) option to number columns or not
+(*) make sure `separator` works with header
+(*) add cursor when inputing filter, opts, etc.
+
+(*) remain on same row when resizing with +/-
 
 """
 
@@ -341,6 +372,7 @@ def list_picker(
         curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
         curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
         curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
+        curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
         return start+21
 
     def infobox(stdscr, message="", title="Infobox",  colours_end=0, duration=4):
@@ -435,12 +467,12 @@ def list_picker(
 
             
         column_widths = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
-        startx = 0
+        startx = 2
 
         visible_column_widths = [c for i,c in enumerate(column_widths) if i not in hidden_columns]
         visible_columns_total_width = sum(visible_column_widths) + len(separator)*(len(visible_column_widths)-1)
         if visible_columns_total_width < w and centre_in_terminal:
-            startx = (w - visible_columns_total_width) // 2
+            startx += (w - visible_columns_total_width) // 2
 
         # Display header
         if header:
@@ -462,7 +494,8 @@ def list_picker(
             # header_str = ' '.join(f"{i}. " if number_columns else "" + f"{header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
             # header_str = format_row([f"{i+1}. {col}" for i, col in enumerate(header)])
 
-            stdscr.addstr(top_space, startx, header_str[:min(w, visible_columns_total_width)], curses.color_pair(colours_start+4) | curses.A_BOLD)
+            stdscr.addstr(top_space, 0, ' '*w, curses.color_pair(colours_start+4) | curses.A_BOLD)
+            stdscr.addstr(top_space, startx, header_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+4) | curses.A_BOLD)
 
             # Highlight sort column
             if sort_column != None and sort_column not in hidden_columns and len(up_to_selected_col) < w and len(header) > 1: 
@@ -473,49 +506,103 @@ def list_picker(
             # stdscr.addstr(top_gap + 1, 0, '-' * len(header_str), curses.color_pair(colours_start+3))
             # stdscr.addstr(top_gap, 0, header_str[:w], curses.color_pair(colours_start+4) | curses.A_BOLD)
 
+        #
+        # # Display items
+        # for idx in range(start_index, end_index):
+        #     y = idx - start_index + top_space + (1 if header else 0)
+        #     item = indexed_items[idx]
+        #     x = 0
+        #
+        #     # Set colour based on state of item (e.g., selected, unselected)
+        #     if idx == cursor_pos:
+        #         color_pair = curses.color_pair(colours_start+5) | curses.A_BOLD  # Selected item
+        #     else:
+        #         color_pair = curses.color_pair(colours_start+2)  # Unselected item
+        #         if selections[item[0]]:
+        #             color_pair = curses.color_pair(colours_start+1)  # Selected item
+        #         if is_selecting and item[0] == start_selection:
+        #             color_pair = curses.color_pair(colours_start+1)  # Selected item
+        #         ## is_selecting and cursor is above start_selection and entryinforloop between start_line and cursor
+        #         elif is_selecting and idx <= cursor_pos and idx >= start_selection:
+        #             color_pair = curses.color_pair(colours_start+1)  # Selected item
+        #         elif is_selecting and idx >= cursor_pos and idx <= start_selection:
+        #             color_pair = curses.color_pair(colours_start+1)  # Selected item
+        #         elif is_deselecting and idx <= cursor_pos and idx >= start_selection:
+        #             color_pair = curses.color_pair(colours_start+2)  # Selected item
+        #         # elif is_deselecting and cursor_pos <= start_selection and idx >= current_pos and idx <= start_selection:
+        #         elif is_deselecting and idx >=cursor_pos and idx <= start_selection:
+        #             color_pair = curses.color_pair(colours_start+2)  # Selected item
+        #
+        #         # else:
+        #         #     color_pair = curses.color_pair(colours_start+2)  # Unselected item
+        #
+        #     stdscr.attron(color_pair)
+        #
+        #     row_str = format_row(item[1], hidden_columns, column_widths, separator, centre_in_cols)
+        #     h, w = stdscr.getmaxyx()
+        #
+        #     try:
+        #         # Display row with potential clipping
+        #         stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], color_pair)
+        #         pass
+        #     except curses.error:
+        #         pass  # Handle errors due to cursor position issues
+        #
+        #
+        #     stdscr.attroff(color_pair)
+        #
+        #     if not highlights_hide:
+        #         for highlight in highlights:
+        #             try:
+        #                 if highlight["field"] == "all":
+        #                     match = re.search(highlight["match"], row_str, re.IGNORECASE)
+        #                     if not match: continue
+        #                     highlight_start = match.start()
+        #                     highlight_end = match.end()
+        #                 # elif type(highlight["field"]) == type(4) and  highlight["match"] == item[1][highlight["field"]].strip():
+        #                 elif type(highlight["field"]) == type(4) and highlight["field"] not in hidden_columns:
+        #                     # match = re.search(highlight["match"], item[1][highlight["field"]][:column_widths[highlight["field"]]], re.IGNORECASE)
+        #                     match = re.search(highlight["match"], truncate_to_display_width(item[1][highlight["field"]], column_widths[highlight["field"]], centre_in_cols), re.IGNORECASE)
+        #                     if not match: continue
+        #                     field_start = sum([width for i, width in enumerate(column_widths[:highlight["field"]]) if i not in hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in hidden_columns])*wcswidth(separator)
+        #                     highlight_start = field_start + match.start()
+        #                     highlight_end = match.end() + field_start
+        #                 else:
+        #                     continue
+        #                 color_pair = curses.color_pair(colours_start+highlight["color"])  # Selected item
+        #                 if idx == cursor_pos:
+        #                     color_pair = curses.color_pair(colours_start+highlight["color"])  | curses.A_REVERSE
+        #                 stdscr.attron(color_pair)
+        #                 h, w = stdscr.getmaxyx()
+        #                 stdscr.addstr(y, startx+highlight_start, row_str[highlight_start:min(w, highlight_end)], color_pair | curses.A_BOLD)
+        #             # except curses.error:
+        #             except:
+        #                 pass  # Handle errors due to cursor position issues
+        #             stdscr.attroff(color_pair)
+        #             # os.system(f"notify-send 'match: {y}, {highlight_start}'")
 
-        # Display items
         for idx in range(start_index, end_index):
-            y = idx - start_index + top_space + (1 if header else 0)
             item = indexed_items[idx]
-            x = 0
-
-            # Set colour based on state of item (e.g., selected, unselected)
-            if idx == cursor_pos:
-                color_pair = curses.color_pair(colours_start+5) | curses.A_BOLD  # Selected item
-            else:
-                color_pair = curses.color_pair(colours_start+2)  # Unselected item
-                if selections[item[0]]:
-                    color_pair = curses.color_pair(colours_start+1)  # Selected item
-                if is_selecting and item[0] == start_selection:
-                    color_pair = curses.color_pair(colours_start+1)  # Selected item
-                ## is_selecting and cursor is above start_selection and entryinforloop between start_line and cursor
-                elif is_selecting and idx <= cursor_pos and idx >= start_selection:
-                    color_pair = curses.color_pair(colours_start+1)  # Selected item
-                elif is_selecting and idx >= cursor_pos and idx <= start_selection:
-                    color_pair = curses.color_pair(colours_start+1)  # Selected item
-                elif is_deselecting and idx <= cursor_pos and idx >= start_selection:
-                    color_pair = curses.color_pair(colours_start+2)  # Selected item
-                # elif is_deselecting and cursor_pos <= start_selection and idx >= current_pos and idx <= start_selection:
-                elif is_deselecting and idx >=cursor_pos and idx <= start_selection:
-                    color_pair = curses.color_pair(colours_start+2)  # Selected item
-
-                # else:
-                #     color_pair = curses.color_pair(colours_start+2)  # Unselected item
-
-            stdscr.attron(color_pair)
+            y = idx - start_index + top_space + (1 if header else 0)
 
             row_str = format_row(item[1], hidden_columns, column_widths, separator, centre_in_cols)
-            h, w = stdscr.getmaxyx()
-
-            try:
-                # Display row with potential clipping
-                stdscr.addstr(y, startx, row_str[:min(w, visible_columns_total_width)], color_pair)
-            except curses.error:
-                pass  # Handle errors due to cursor position issues
-
-
-            stdscr.attroff(color_pair)
+            if idx == cursor_pos:
+                stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+5) | curses.A_BOLD)
+            else:
+                stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+2))
+            # In selections
+            if selections[item[0]]:
+                stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
+            # Visually selected
+            if is_selecting and start_selection <= idx <= cursor_pos:
+                stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
+            elif is_selecting and start_selection >= idx >= cursor_pos:
+                stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
+            # Visually deslected
+            if is_deselecting and start_selection >= idx >= cursor_pos:
+                stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+10))
+            elif is_deselecting and start_selection <= idx <= cursor_pos:
+                stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+10))
 
             if not highlights_hide:
                 for highlight in highlights:
@@ -525,17 +612,10 @@ def list_picker(
                             if not match: continue
                             highlight_start = match.start()
                             highlight_end = match.end()
-                        # elif type(highlight["field"]) == type(4) and  highlight["match"] == item[1][highlight["field"]].strip():
                         elif type(highlight["field"]) == type(4) and highlight["field"] not in hidden_columns:
-                            # match = re.search(highlight["match"], item[1][highlight["field"]][:column_widths[highlight["field"]]], re.IGNORECASE)
                             match = re.search(highlight["match"], truncate_to_display_width(item[1][highlight["field"]], column_widths[highlight["field"]], centre_in_cols), re.IGNORECASE)
                             if not match: continue
-                            field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
-                            field_start =  + sum([wcswidth(x) for x in item[1][:highlight["field"]]]) + highlight["field"]*len(separator) + 1
-                            field_start = sum(column_widths[:highlight["field"]]) + highlight["field"]*wcswidth(separator)
                             field_start = sum([width for i, width in enumerate(column_widths[:highlight["field"]]) if i not in hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in hidden_columns])*wcswidth(separator)
-                            # highlight_start = wcswidth(item[1][:match.start()]) + field_start
-                            # highlight_start = wcswidth(item[1][:match.start()]) + field_start
                             highlight_start = field_start + match.start()
                             highlight_end = match.end() + field_start
                         else:
@@ -543,21 +623,16 @@ def list_picker(
                         color_pair = curses.color_pair(colours_start+highlight["color"])  # Selected item
                         if idx == cursor_pos:
                             color_pair = curses.color_pair(colours_start+highlight["color"])  | curses.A_REVERSE
-                        stdscr.attron(color_pair)
-                        # highlight_start = row_str.index(highlight["match"])
-                        # highlight_end = highlight_start + len(highlight["match"])
-                        highlight_len = highlight_start - highlight_end
-
-
-                        # stdscr.addstr(y, highlight_start, highlight["match"], color_pair)
-                        h, w = stdscr.getmaxyx()
-                        stdscr.addstr(y, startx+highlight_start, row_str[highlight_start:min(w, highlight_end)], color_pair | curses.A_BOLD)
-                    # except curses.error:
-                    except:
-                        pass  # Handle errors due to cursor position issues
-                    stdscr.attroff(color_pair)
-                    # os.system(f"notify-send 'match: {y}, {highlight_start}'")
-
+                        stdscr.addstr(y, startx+highlight_start, row_str[highlight_start:min(w-startx, highlight_end)], curses.color_pair(colours_start+highlight["color"]) | curses.A_BOLD)
+                    except:pass
+            # elif is_selecting and idx >= cursor_pos and idx <= start_selection:
+            #     color_pair = curses.color_pair(colours_start+1)  # Selected item
+            # elif is_deselecting and idx <= cursor_pos and idx >= start_selection:
+            #     color_pair = curses.color_pair(colours_start+2)  # Selected item
+            # # elif is_deselecting and cursor_pos <= start_selection and idx >= current_pos and idx <= start_selection:
+            # elif is_deselecting and idx >=cursor_pos and idx <= start_selection:
+            #     color_pair = curses.color_pair(colours_start+2)  # Selected item
+            
         ## Display scrollbar
         if scroll_bar and len(indexed_items) and len(indexed_items) > (items_per_page):
             scroll_bar_length = int(items_per_page*items_per_page/len(indexed_items))
@@ -798,7 +873,7 @@ def list_picker(
         
         s, o, f = list_picker(
             submenu_win,
-            options,
+            items=options,
             colours=colours,
             title=field_name,
             # show_footer=False,
@@ -808,6 +883,10 @@ def list_picker(
             show_footer=False,
             # scroll_bar=False,
         )
+        if s:
+            return {s[i]: options[i] for i in range(len(s))}
+        return {}
+
 
     def open_submenu(stdscr, user_opts):
         h, w = stdscr.getmaxyx()
@@ -1548,7 +1627,9 @@ def list_picker(
                 user_opts = usrtxt
         elif check_key("opts_select", key, keys_dict):
             # open_submenu(stdscr, user_opts)
-            choose_option(stdscr)
+            s = choose_option(stdscr)
+            if user_opts.strip(): user_opts += " "
+            user_opts += " ".join(s.values())
         elif check_key("notification_toggle", key, keys_dict):
             notification(stdscr, colours_end=colours_end)
         elif check_key("mode_next", key, keys_dict): # tab key

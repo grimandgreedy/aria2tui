@@ -52,24 +52,33 @@ highlights = [
 ]
 menu_highlights = [
     {
-        "match": "complete",
+        "match": "watch|view",
         "field": 0,
         "color": 8,
     },
     {
-        "match": "error",
+        "match": "add",
         "field": 0,
-        "color": 7,
+        "color": 13,
     },
     {
-        "match": "active",
+        "match": "pause|remove",
         "field": 0,
-        "color": 9,
+        "color": 22,
     },
     {
-        "match": "waiting",
+        "match": "get",
         "field": 0,
         "color": 11,
+    },
+    {
+        "match": "edit",
+        "field": 0, "color": 10,
+    },
+    {
+        "match": "restart",
+        "field": 0,
+        "color": 10,
     },
 ]
 modes = [

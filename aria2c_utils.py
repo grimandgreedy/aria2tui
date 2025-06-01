@@ -369,7 +369,9 @@ def printResults(items, header=[]):
 
 def restartAria():
     cmd = f"systemctl --user restart aria2d.service"
-    subprocess.run(cmd, shell=True)
+    subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+    # Wait before trying to reconnect
+    subprocess.run("sleep 2", shell=True, stderr=subprocess.PIPE)
 
 def editConfig():
     cmd = f"NVIM_APPNAME=nvim-nvchad nvim ~/.config/aria2/aria2.conf"

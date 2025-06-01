@@ -44,6 +44,8 @@ def get_colours(pick=0):
         'footer_bg': 253,
         'refreshing_fg': 25,
         'refreshing_bg': 253,
+        '40pc_fg': 166,
+        '40pc_bg': 232,
     },
     {
         'background': 232,
@@ -258,6 +260,8 @@ help_colours = {
         'footer_bg': 253,
         'refreshing_fg': 25,
         'refreshing_bg': 253,
+        '40pc_fg': 166,
+        '40pc_bg': 232,
     }
 notification_colours = {
         'background': 25,
@@ -298,4 +302,6 @@ notification_colours = {
         'footer_bg': 253,
         'refreshing_fg': 25,
         'refreshing_bg': 253,
+        '40pc_fg': 166,
+        '40pc_bg': 232,
     }
