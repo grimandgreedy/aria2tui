@@ -263,6 +263,7 @@ def list_picker(
         scroll_bar = True,
 
         selections = {},
+        highlight_full_row=False,
         items_per_page = -1,
         sort_method = 0,
         sort_reverse = [0],  # Default sort order (ascending)
@@ -411,12 +412,12 @@ def list_picker(
         return submenu_win
 
     def draw_screen(indexed_items=[], highlights={}, clear=True):
-        nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols
+        nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row
 
         if clear:
             stdscr.erase()
 
-        # Terminal too small to display list_picker
+        ## Terminal too small to display list_picker
         h, w = stdscr.getmaxyx()
         if h<3 or w<len("Terminal"): return None
         if show_footer and (h<20 or w<60) or (h<12 and w<10):
@@ -424,26 +425,25 @@ def list_picker(
             stdscr.addstr(h//2, (w-len("Too"))//2, "Too")
             stdscr.addstr(h//2+1, (w-len("Small"))//2, "Small")
             return None
-        
-        # paginate
-        if paginate:
-            start_index = (cursor_pos//items_per_page) * items_per_page
-            end_index = min(start_index + items_per_page, len(indexed_items))
-        # scroll
-        else:
-            scrolloff = items_per_page//2
-            start_index = max(0, min(cursor_pos - (items_per_page-scrolloff), len(indexed_items)-items_per_page))
-            end_index = min(start_index + items_per_page, len(indexed_items))
-        if len(indexed_items) == 0: start_index, end_index = 0, 0
 
+        column_widths = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
+        visible_column_widths = [c for i,c in enumerate(column_widths) if i not in hidden_columns]
+        visible_columns_total_width = sum(visible_column_widths) + len(separator)*(len(visible_column_widths)-1)
+        startx = 0 if highlight_full_row else 2
+        if visible_columns_total_width < w and centre_in_terminal:
+            startx += (w - visible_columns_total_width) // 2
+        
         top_space = top_gap
-        # Display title (if applicable)
+
+        ## Display title (if applicable)
         if title:
             stdscr.addstr(top_gap, 0, f"{' ':^{w}}", curses.color_pair(colours_start+17))
             title_x = (w-wcswidth(title))//2
             # title = f"{title:^{w}}"
             stdscr.addstr(top_gap, title_x, title, curses.color_pair(colours_start+16) | curses.A_BOLD)
             top_space += 1
+
+        ## Display modes
         if display_modes and modes not in [[{}], []]:
             stdscr.addstr(top_space, 0, ' '*w, curses.A_REVERSE)
             modes_list = [f"{mode['name']}" if 'name' in mode else f"{i}. " for i, mode in enumerate(modes)]
@@ -465,21 +465,8 @@ def list_picker(
                 xmode += split_space+mode_widths[i]
             top_space += 1
 
-            
-        column_widths = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
-        startx = 2
-
-        visible_column_widths = [c for i,c in enumerate(column_widths) if i not in hidden_columns]
-        visible_columns_total_width = sum(visible_column_widths) + len(separator)*(len(visible_column_widths)-1)
-        if visible_columns_total_width < w and centre_in_terminal:
-            startx += (w - visible_columns_total_width) // 2
-
-        # Display header
+        ## Display header
         if header:
-            # header_str = format_row(header)
-            # stdscr.addstr(top_gap, 0, header_str, curses.color_pair(colours_start+3))
-            
-            # header_str = ' '.join(f"{i+1}. {header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
             header_str = ""
             up_to_selected_col = ""
             for i in range(len(header)):
@@ -488,11 +475,8 @@ def list_picker(
                 number = f"{i}. " if number_columns else ""
                 number = f"{intStringToExponentString(i)}. " if number_columns else ""
                 header_str += number
-                # header_str +=f"{header[i].ljust(column_widths[i])}"
                 header_str +=f"{header[i]:^{column_widths[i]}}"
                 header_str += " "
-            # header_str = ' '.join(f"{i}. " if number_columns else "" + f"{header[i].ljust(column_widths[i])}" for i in range(len(header)) if i not in hidden_columns)
-            # header_str = format_row([f"{i+1}. {col}" for i, col in enumerate(header)])
 
             stdscr.addstr(top_space, 0, ' '*w, curses.color_pair(colours_start+4) | curses.A_BOLD)
             stdscr.addstr(top_space, startx, header_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+4) | curses.A_BOLD)
@@ -502,85 +486,18 @@ def list_picker(
                 number = f"{sort_column}. " if number_columns else ""
                 number = f"{intStringToExponentString(sort_column)}. " if number_columns else ""
                 stdscr.addstr(top_space, startx + len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)], curses.color_pair(colours_start+19) | curses.A_BOLD)
+        ## Paginate
+        if paginate:
+            start_index = (cursor_pos//items_per_page) * items_per_page
+            end_index = min(start_index + items_per_page, len(indexed_items))
+        ## Scroll
+        else:
+            scrolloff = items_per_page//2
+            start_index = max(0, min(cursor_pos - (items_per_page-scrolloff), len(indexed_items)-items_per_page))
+            end_index = min(start_index + items_per_page, len(indexed_items))
+        if len(indexed_items) == 0: start_index, end_index = 0, 0
 
-            # stdscr.addstr(top_gap + 1, 0, '-' * len(header_str), curses.color_pair(colours_start+3))
-            # stdscr.addstr(top_gap, 0, header_str[:w], curses.color_pair(colours_start+4) | curses.A_BOLD)
-
-        #
-        # # Display items
-        # for idx in range(start_index, end_index):
-        #     y = idx - start_index + top_space + (1 if header else 0)
-        #     item = indexed_items[idx]
-        #     x = 0
-        #
-        #     # Set colour based on state of item (e.g., selected, unselected)
-        #     if idx == cursor_pos:
-        #         color_pair = curses.color_pair(colours_start+5) | curses.A_BOLD  # Selected item
-        #     else:
-        #         color_pair = curses.color_pair(colours_start+2)  # Unselected item
-        #         if selections[item[0]]:
-        #             color_pair = curses.color_pair(colours_start+1)  # Selected item
-        #         if is_selecting and item[0] == start_selection:
-        #             color_pair = curses.color_pair(colours_start+1)  # Selected item
-        #         ## is_selecting and cursor is above start_selection and entryinforloop between start_line and cursor
-        #         elif is_selecting and idx <= cursor_pos and idx >= start_selection:
-        #             color_pair = curses.color_pair(colours_start+1)  # Selected item
-        #         elif is_selecting and idx >= cursor_pos and idx <= start_selection:
-        #             color_pair = curses.color_pair(colours_start+1)  # Selected item
-        #         elif is_deselecting and idx <= cursor_pos and idx >= start_selection:
-        #             color_pair = curses.color_pair(colours_start+2)  # Selected item
-        #         # elif is_deselecting and cursor_pos <= start_selection and idx >= current_pos and idx <= start_selection:
-        #         elif is_deselecting and idx >=cursor_pos and idx <= start_selection:
-        #             color_pair = curses.color_pair(colours_start+2)  # Selected item
-        #
-        #         # else:
-        #         #     color_pair = curses.color_pair(colours_start+2)  # Unselected item
-        #
-        #     stdscr.attron(color_pair)
-        #
-        #     row_str = format_row(item[1], hidden_columns, column_widths, separator, centre_in_cols)
-        #     h, w = stdscr.getmaxyx()
-        #
-        #     try:
-        #         # Display row with potential clipping
-        #         stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], color_pair)
-        #         pass
-        #     except curses.error:
-        #         pass  # Handle errors due to cursor position issues
-        #
-        #
-        #     stdscr.attroff(color_pair)
-        #
-        #     if not highlights_hide:
-        #         for highlight in highlights:
-        #             try:
-        #                 if highlight["field"] == "all":
-        #                     match = re.search(highlight["match"], row_str, re.IGNORECASE)
-        #                     if not match: continue
-        #                     highlight_start = match.start()
-        #                     highlight_end = match.end()
-        #                 # elif type(highlight["field"]) == type(4) and  highlight["match"] == item[1][highlight["field"]].strip():
-        #                 elif type(highlight["field"]) == type(4) and highlight["field"] not in hidden_columns:
-        #                     # match = re.search(highlight["match"], item[1][highlight["field"]][:column_widths[highlight["field"]]], re.IGNORECASE)
-        #                     match = re.search(highlight["match"], truncate_to_display_width(item[1][highlight["field"]], column_widths[highlight["field"]], centre_in_cols), re.IGNORECASE)
-        #                     if not match: continue
-        #                     field_start = sum([width for i, width in enumerate(column_widths[:highlight["field"]]) if i not in hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in hidden_columns])*wcswidth(separator)
-        #                     highlight_start = field_start + match.start()
-        #                     highlight_end = match.end() + field_start
-        #                 else:
-        #                     continue
-        #                 color_pair = curses.color_pair(colours_start+highlight["color"])  # Selected item
-        #                 if idx == cursor_pos:
-        #                     color_pair = curses.color_pair(colours_start+highlight["color"])  | curses.A_REVERSE
-        #                 stdscr.attron(color_pair)
-        #                 h, w = stdscr.getmaxyx()
-        #                 stdscr.addstr(y, startx+highlight_start, row_str[highlight_start:min(w, highlight_end)], color_pair | curses.A_BOLD)
-        #             # except curses.error:
-        #             except:
-        #                 pass  # Handle errors due to cursor position issues
-        #             stdscr.attroff(color_pair)
-        #             # os.system(f"notify-send 'match: {y}, {highlight_start}'")
-
+        ## Display rows and highlights
         for idx in range(start_index, end_index):
             item = indexed_items[idx]
             y = idx - start_index + top_space + (1 if header else 0)
@@ -590,19 +507,35 @@ def list_picker(
                 stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+5) | curses.A_BOLD)
             else:
                 stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+2))
-            # In selections
-            if selections[item[0]]:
-                stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
-            # Visually selected
-            if is_selecting and start_selection <= idx <= cursor_pos:
-                stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
-            elif is_selecting and start_selection >= idx >= cursor_pos:
-                stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
-            # Visually deslected
-            if is_deselecting and start_selection >= idx >= cursor_pos:
-                stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+10))
-            elif is_deselecting and start_selection <= idx <= cursor_pos:
-                stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+10))
+            # Highlight the whole string of the selected rows
+            if highlight_full_row:
+                if selections[item[0]]:
+                    stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
+                # Visually selected
+                if is_selecting and start_selection <= idx <= cursor_pos:
+                    stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
+                elif is_selecting and start_selection >= idx >= cursor_pos:
+                    stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
+                # Visually deslected
+                if is_deselecting and start_selection >= idx >= cursor_pos:
+                    stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
+                elif is_deselecting and start_selection <= idx <= cursor_pos:
+                    stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
+
+            # Highlight the first char of the selected rows
+            else:
+                if selections[item[0]]:
+                    stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
+                # Visually selected
+                if is_selecting and start_selection <= idx <= cursor_pos:
+                    stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
+                elif is_selecting and start_selection >= idx >= cursor_pos:
+                    stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
+                # Visually deslected
+                if is_deselecting and start_selection >= idx >= cursor_pos:
+                    stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+10))
+                elif is_deselecting and start_selection <= idx <= cursor_pos:
+                    stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+10))
 
             if not highlights_hide:
                 for highlight in highlights:
@@ -624,14 +557,8 @@ def list_picker(
                         if idx == cursor_pos:
                             color_pair = curses.color_pair(colours_start+highlight["color"])  | curses.A_REVERSE
                         stdscr.addstr(y, startx+highlight_start, row_str[highlight_start:min(w-startx, highlight_end)], curses.color_pair(colours_start+highlight["color"]) | curses.A_BOLD)
-                    except:pass
-            # elif is_selecting and idx >= cursor_pos and idx <= start_selection:
-            #     color_pair = curses.color_pair(colours_start+1)  # Selected item
-            # elif is_deselecting and idx <= cursor_pos and idx >= start_selection:
-            #     color_pair = curses.color_pair(colours_start+2)  # Selected item
-            # # elif is_deselecting and cursor_pos <= start_selection and idx >= current_pos and idx <= start_selection:
-            # elif is_deselecting and idx >=cursor_pos and idx <= start_selection:
-            #     color_pair = curses.color_pair(colours_start+2)  # Selected item
+                    except:
+                        pass
             
         ## Display scrollbar
         if scroll_bar and len(indexed_items) and len(indexed_items) > (items_per_page):
@@ -647,51 +574,47 @@ def list_picker(
                 v = max(top_space+int(bool(header)), scroll_bar_start-scroll_bar_length//2)
                 stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(colours_start+18))
 
-        # Display page number and count
-        # stdscr.addstr(h - 3, 0, f"Page {current_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}", curses.color_pair(colours_start+4))
-
+        ## Display footer
         if show_footer:
+            # Fill background
             stdscr.addstr(h-3, 0, ' '*w, curses.color_pair(colours_start+20))
             stdscr.addstr(h-2, 0, ' '*w, curses.color_pair(colours_start+20))
             stdscr.addstr(h-1, 0, ' '*(w-1), curses.color_pair(colours_start+20)) # Problem with curses that you can't write to the last char
 
-
             if filter_query:
-                stdscr.addstr(h - 2, 2, f" Filter: {filter_query} "[:w-40], curses.color_pair(colours_start+20) | curses.A_BOLD)  # Display filter query
+                stdscr.addstr(h - 2, 2, f" Filter: {filter_query} "[:w-40], curses.color_pair(colours_start+20) | curses.A_BOLD)
             if search_query:
                 stdscr.addstr(h - 3, 2, f" Search: {search_query} [{search_index}/{search_count}] "[:w-3], curses.color_pair(colours_start+20) | curses.A_BOLD)
             if user_opts:
-                stdscr.addstr(h-1, 2, f" Opts: {user_opts} "[:w-3], curses.color_pair(colours_start+20) | curses.A_BOLD)  # Display additional text
+                stdscr.addstr(h-1, 2, f" Opts: {user_opts} "[:w-3], curses.color_pair(colours_start+20) | curses.A_BOLD)
             # Display sort information
             sort_column_info = f"{sort_column if sort_column is not None else 'None'}"
             sort_method_info = f"{SORT_METHODS[columns_sort_method[sort_column]]}" if sort_column != None else "NA"
             sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
-            # stdscr.addstr(h - 3, 0, f" Sort: {sort_column_info} | {sort_method_info} | {sort_order_info} ", curses.color_pair(colours_start+4))
             stdscr.addstr(h - 2, w-35, f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) ", curses.color_pair(colours_start+20) | curses.A_BOLD)
+
             # Display selection count
             selected_count = sum(selections.values())
-            
             if paginate:
                 stdscr.addstr(h - 1, w-35, f" {cursor_pos+1}/{len(indexed_items)}  Page {cursor_pos//items_per_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}  Selected {selected_count} ", curses.color_pair(colours_start+20) | curses.A_BOLD)
             else:
                 stdscr.addstr(h - 1, w-35, f" {cursor_pos+1}/{len(indexed_items)}  |  Selected {selected_count} ", curses.color_pair(colours_start+20) | curses.A_BOLD)
 
+            # Display cursor mode
             select_mode = "Cursor"
             if is_selecting: select_mode = "Visual Selection"
             elif is_deselecting: select_mode = "Visual deselection"
-
-            # stdscr.addstr(h - 1, 0, f" {select_mode} {int(bool(key_chain))*'    '}", curses.color_pair(colours_start+4))
             stdscr.addstr(h - 3, w-35, f" {select_mode}", curses.color_pair(colours_start+4) | curses.A_BOLD)
+            # Show auto-refresh
             if auto_refresh:
                 stdscr.addstr(h - 3, w-35+len(select_mode)+2, f"Auto-refresh", curses.color_pair(colours_start+21) | curses.A_BOLD | curses.A_REVERSE)
 
             stdscr.refresh()
+        
+        ## Display infobox
         if display_infobox:
             infobox(stdscr, message=infobox_items)
             stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
-            # stdscr.refresh()
-        curses.setsyx(h-1, w-1)
-        
 
     def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=False):
         if get_data and refresh_function != None:
@@ -822,6 +745,7 @@ def list_picker(
             "last_key":             None,
             "centre_in_terminal":   centre_in_terminal,
             "centre_in_cols":       centre_in_cols,
+            "highlight_full_row":   highlight_full_row,
             
         }
         return function_data
@@ -884,7 +808,8 @@ def list_picker(
             # scroll_bar=False,
         )
         if s:
-            return {s[i]: options[i] for i in range(len(s))}
+            return {x: options[x] for x in s}
+
         return {}
 
 
