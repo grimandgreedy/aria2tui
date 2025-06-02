@@ -93,6 +93,7 @@ Improvements
         ( ) open files of the same type in one instance
     (*) make remove work with errored download
        (*) remove all errored/completed downloads works
+    ( ) fix operation loop to ensure that specific if/else can be removed; e.g., changePosition
 
 
 
@@ -150,35 +151,7 @@ DONE
 
 """
 
-
-
-# def run_with_timeout(function, args, kwargs, timeout):
-#     result_queue = multiprocessing.Queue()
-#
-#     # Create a wrapper function to pass both positional and keyword arguments, and a result queue
-#     def wrapper():
-#         function(*args, result_queue=result_queue, **kwargs)
-#
-#     p = multiprocessing.Process(target=wrapper)
-#     p.start()
-#     p.join(timeout)  # Wait for `timeout` seconds or until process finishes
-#
-#     if p.is_alive():
-#         p.terminate()  # Terminate the process if still alive after timeout
-#         p.join()  # Ensure process has terminated
-#         result = None
-#         print("Curses application terminated due to timeout")
-#     else:
-#         print("Curses application completed successfully")
-#         try:
-#             result = result_queue.get_nowait()
-#         except queue.Empty:
-#             result = None
-#
-#     return result
-
-
-def begin(stdscr, config):
+def begin(stdscr : curses.window, config: dict):
     url = config["general"]["url"]
     port = config["general"]["port"]
     token = config["general"]["token"]
@@ -226,9 +199,9 @@ def begin(stdscr, config):
         ["Restart Aria", restartAria,{},{}],
     ]
     # appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, options)
-    appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, download_options, menu_options)
+    appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, download_options, menu_options, paginate)
 
-def appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, download_options, menu_options):
+def appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, download_options, menu_options, paginate=False):
     app_name = "Aria2TUI"
     menu_data = {
         "top_gap": 0,
@@ -241,6 +214,7 @@ def appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, 
         "header": ["Main Menu"],
         "centre_in_terminal": True,
         "centre_in_cols": False,
+        "paginate": paginate,
     }
     downloads_data = {
         "top_gap": 0,
@@ -257,6 +231,7 @@ def appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, 
         "get_new_data": True,
         "get_data_startup": True,
         "timer": 1,
+        "paginate": paginate,
     }
     dl_option_data = {
         "top_gap": 0,
@@ -267,6 +242,7 @@ def appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, 
         # "require_option": [False if x[0] != "changePosition" else True for x in options[0][1]["operations"]],
         "require_option": [False if x[0] != "changePosition" else True for x in download_options],
         "header": [f"Select operation"],
+        "paginate": paginate,
     }
     while True:
         downloads_data = {key: val for key, val in downloads_data.items() if key not in ["items", "indexed_items"]}
@@ -383,11 +359,6 @@ def main():
     CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"
     with open(os.path.expanduser(CONFIGPATH), "rb") as f:
         config = tomllib.load(f)
-
-    url = config["general"]["url"]
-    port = config["general"]["port"]
-    token = config["general"]["token"]
-    paginate = config["general"]["paginate"]
 
     custom_colours = get_colours(config["appearance"]["theme"])
 

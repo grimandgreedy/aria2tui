@@ -14,7 +14,8 @@ import tempfile
 from aria_adduri import addDownloadFull
 import tabulate
 
-def testConnectionFull(url="http://localhost", port=6800):
+def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
+    """ Tests the connection to the Aria2 server. """
     url = f'{url}:{port}/jsonrpc'
     try:
         getVersion()
@@ -25,7 +26,8 @@ def testConnectionFull(url="http://localhost", port=6800):
         return False
 
 
-def getQueue():
+def getQueue() -> (list[list[str]], list[str]):
+    """ Retrieves download queue and corresponding header from aria2 over rpc. """
     js_rs = sendReq(tellWaiting())
 
     items = []
@@ -72,64 +74,9 @@ def getQueue():
     header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
     return items, header
 
-def getFromQueue(pos=[]):
-    if type(pos) ==  type(1): pos = [pos]
 
-    jsonreq = tellWaiting()
-
-    js_rs = sendReq(jsonreq)
-    entries = []
-
-
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        if i not in pos: continue
-        dl = js_rs["result"][i]
-        colsize = 14
-        try:
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-        
-            dl_speed = int(dl['downloadSpeed'])
-        except:
-            pass
-
-def getQueueCompact():
-    jsonreq = tellWaiting()
-    js_rs = sendReq(jsonreq)
-
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        dl = js_rs["result"][i]
-        colsize = 14
-        # print(f"{'Queue Position':<{colsize}}: {i}")
-        try:
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            status = dl['status'].strip()
-            status_chars = {
-                    'waiting':'w',
-                    'paused':'p',
-                    'active':'a', 
-                    'error': 'e',
-                    'complete':'c'
-                    }
-            status_char = status_chars[status]
-            
-            fn_width = 65
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-        
-            dl_speed = int(dl['downloadSpeed'])
-
-            line = f"{i:0>{len(str(len(js_rs['result'])-1))}} {status_char}  {fname[:fn_width]:{fn_width}}  {size}  {pc_complete}%"
-        
-        except:
-            pass
-
-def getStopped():
+def getStopped() -> (list[list[str]], list[str]):
+    """ Retrieves stopped downloads and corresponding header from aria2 over rpc. """
     jsonreq = tellStopped()
 
     js_rs = sendReq(tellStopped())
@@ -159,6 +106,13 @@ def getStopped():
             if fname == "":   # get from url
                 url = dl['files'][0]['uris'][0]["uri"]
                 fname = url[url.rfind("/")+1:]
+            status_chars = {
+                    'waiting':'w',
+                    'paused':'p',
+                    'active':'a', 
+                    'error': 'e',
+                    'complete':'c'
+                    }
             status = dl['status']
             size = int(dl['files'][0]['length'])
             completed = int(dl['files'][0]['completedLength'])
@@ -175,48 +129,12 @@ def getStopped():
     header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
     return items[::-1], header
 
-def getStoppedCompact():
-    jsonreq = tellStopped()
 
-    js_rs = sendReq(jsonreq)
-    entries = []
-
-    for i in range(len(js_rs["result"])-1, -1, -1):
-        dl = js_rs["result"][i]
-        colsize = 14
-        try:
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            status = dl['status'].strip()
-            status_chars = {
-                    'waiting':'w',
-                    'paused':'p',
-                    'active':'a', 
-                    'error': 'e',
-                    'complete':'c'
-                    }
-            status_char = status_chars[status]
-            
-            fn_width = 65
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-        
-            dl_speed = int(dl['downloadSpeed'])
-
-            line = f"{i:0>{len(str(len(js_rs['result'])-1))}} {status_char}  {fname[:fn_width]:{fn_width}}  {size}  {pc_complete}%"
-        
-        except:
-            pass
-
-def getActive(print_output=False):
+def getActive() -> (list[list[str]], list[str]):
+    """ Retrieves active downloads and corresponding header from aria2 over rpc. """
 
     js_rs = sendReq(tellActive())
     items = []
-
-    if print_output:
-        print(f"{' Active ':*^50}")
-        print("*"*50)
 
     options_batch = []
     for i in range(len(js_rs["result"])):
@@ -257,80 +175,17 @@ def getActive(print_output=False):
             if time_left: time_left_s = convert_seconds(time_left)
             else: time_left_s = "INF"
 
-            if print_output:
-                print(f"{'Path':<{colsize}}: {pth[:70]}")
-                print(f"{'Filename':<{colsize}}: {fname}")
-                print(f"{'Status':<{colsize}}: {dl['status']}")
-                print(f"{'GID':<{colsize}}: {dl['gid']}")
-                print(f"{'Size':<{colsize}}: {size/1024**2:.02f}MB")
-                print(f"{'Completed':<{colsize}}: {completed/1024**2:.02f}MB")
-                print(f"{'% Completed':<{colsize}}: {100*pc_complete:.02f}%")
-                print(f"{'D/l speed':<{colsize}}: {dl_speed/1024:.02f}kB/s")
-                print(f"{'D/l speed':<{colsize}}: {dl_speed/1024**2:.02f}MB/s")
-                print(f"{'Time Left':<{colsize}}: {time_left_s}")
-
             row = ["NA", status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
             items.append(row)
         except:
             pass
 
-        if print_output:
-            print("*"*50)
     header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
     return items, header
 
-def getActiveCompact():
-    jsonreq = tellActive()
 
-    js_rs = sendReq(jsonreq)
-
-    fn_width = 65
-    header = f"{'Q'} {'S'}  {'File Name':{fn_width}}  {'Size':8}  {'%done'}  {'DL speed'}  {'Time Left'}"
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
-        try:
-            colsize = 14
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-        
-            dl_speed = int(dl['downloadSpeed'])
-            time_left = int((size-completed)/dl_speed) if dl_speed > 0 else None
-            if time_left:
-                time_left_s = ""
-                time_left_s += f"{time_left//60**2%60}h" if time_left//60**2 > 1 else ""
-                time_left_s += f"{time_left//60%60}m" if time_left//60 > 1 else ""
-                time_left_s += f"{time_left%60}s"
-            else: time_left_s = "INF"
-            
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-            status = dl['status'].strip()
-            status_chars = {
-                    'waiting':'w',
-                    'paused':'p',
-                    'active':'a', 
-                    'error': 'e',
-                    'complete':'c'
-                    }
-            status_char = status_chars[status]
-            
-            fn_width = 65
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-        
-            dl_speed = int(dl['downloadSpeed'])
-
-            line = f"{i:0>{len(str(len(js_rs['result'])-1))}} {status_char}  {fname[:fn_width]:{fn_width}}  {size/1024**2:.02f}MB  {pc_complete*100:.01f}%  {dl_speed/1024:.02f}KB/s  {time_left_s}s"
-
-
-        except:
-            pass
-
-def getPaused():
+def getPaused() -> (list[list[str]], list[str]):
+    """ Retrieves paused downloads and corresponding header from aria2 over rpc. """
     jsonreq = tellWaiting()
     js_rs = sendReq(jsonreq)
     gids=[]
@@ -361,24 +216,33 @@ def getPaused():
         except:
             pass
 
-def printResults(items, header=[]):
+
+def printResults(items: list[list[str]], header: list[str]=[]) -> None:
+    """ Print download items along with the header to stdout """
     if header:
         items=header+items
         print(tabulate.tabulate(items, headers='firstrow', tablefmt='grid'))
     else:
         print(tabulate.tabulate(items, tablefmt='grid'))
 
-def restartAria():
+
+def restartAria() -> None:
+    """Restart aria2 daemon."""
     cmd = f"systemctl --user restart aria2d.service"
     subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     # Wait before trying to reconnect
     subprocess.run("sleep 2", shell=True, stderr=subprocess.PIPE)
 
-def editConfig():
+
+def editConfig() -> None:
+    """ Edit the config file in nvim. """
     cmd = f"NVIM_APPNAME=nvim-nvchad nvim ~/.config/aria2/aria2.conf"
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
-def addUrisFull(url="http://localhost", port=6800, token=None):
+
+def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> None:
+    """Add URIs to aria server"""
+
     s = "!!\n"
     s +=  '# https://docs.python.org/3/_static/py.svg\n#    pythonlogo.svg\n#    dir=/home/user/tmp/trash/'
 
@@ -388,7 +252,6 @@ def addUrisFull(url="http://localhost", port=6800, token=None):
         tmpfile_path = tmpfile.name
     cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
     subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-    # process = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     with open(tmpfile_path, "r") as f:
         lines = f.readlines()
@@ -399,15 +262,13 @@ def addUrisFull(url="http://localhost", port=6800, token=None):
     valid_keys = ["out", "uri", "dir"]
     for dl in dls:
         os.system(f"notify-send {dl}")
-        # addDownload(**dl, url=url, port=port, token=token)
         addDownload(**{key:val for key,val in dl.items() if key in valid_keys})
-        # jsonreq = pyperclip.copy(addUri(**dl))
-        # sendReq(jsonreq)
 
     os.system(f"notify-send '{len(dls)} downloads added'")
 
-def input_file_lines_to_dict(lines):
-    '''
+
+def input_file_lines_to_dict(lines: list[str]) -> (dict, list[str]):
+    """
     Converts lines to list of download dicts.
 
     Syntax
@@ -418,15 +279,15 @@ def input_file_lines_to_dict(lines):
         if the line immediately follows the url and has leading spaces it will be interpreted as the filename
         any other line that succeeds the uri that has leading whitespace must have a = separating the option from the value
 
-
     Example
-    ```
-    https://example.com/image.iso
-        exampleimage.iso
-        dir=/home/user/images/
-
-    ```
-    '''
+        ```
+        !!
+        # comment
+        https://example.com/image.iso
+            exampleimage.iso
+            dir=/home/user/images/
+        ```
+    """
 
     downloads = []
     download = {}
@@ -457,25 +318,17 @@ def input_file_lines_to_dict(lines):
 
     return downloads, argstrings
 
-def addTorrentsFull(url="http://localhost", port=6800, token=None):
-    '''
+
+def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> None:
+    """
     Open a kitty prompt to add torrents to Aria2. The file will accept torrent file paths or magnet links and they should be placed on successive lines.
-
-
-    Args:
-        url (str): The URL of the Aria2 server.
-        port (int): The port of the Aria2 server.
-        token (str): The authorization token for the Aria2 server.
-
-    Returns:
-        None
 
     Example entry for the prompt:
         ```
         /home/user/Downloads/torrents/example.torrent
         magnet:?xt=urn:btih:...
         ```
-    '''
+    """
 
     s = "!!\n"
     s +=  "# path\n\n"
@@ -514,7 +367,15 @@ def addTorrentsFull(url="http://localhost", port=6800, token=None):
     os.system(f"notify-send '{len(dls)} torrent files added'")
     os.system(f"notify-send '{len(uris)} magnet links added'")
 
-def getAllInfo(gid):
+
+def getAllInfo(gid: str) -> list[dict]:
+    """
+    Retrieves all information about an aria2 download.
+
+    Returns:
+        list: A list of key/value dictionaries containing the options and information about the downloads.
+    """
+
     responses = []
     names = ["getFiles", "getServers", "getPeers", "getUris", "getOption", "tellStatus"]
     # for op in [getFiles, getServers, getPeers, getUris, getOption, tellStatus]:
@@ -527,14 +388,11 @@ def getAllInfo(gid):
         except:
             responses.append(json.loads(f'{{"function": "{names[i]}", "response": "NONE"}}'))
     return responses
-    file_info = sendReq(getFiles(gid))
-    server_info = sendReq(getServers(gid)) 
 
-    vals = [file_info]
-    return file_info
-    return [val if val else json.loads("{}") for val in vals]
 
-def retryDownloadFull(gid, url="http://localhost", port=6800, token=None):
+def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str =None) -> None:
+    """ Retries a download. By getting the key information and using it to add a new download. Does not remove the old download. """
+
     status = sendReq(tellStatus(gid))
     options = sendReq(getOption(gid))
 
@@ -544,17 +402,17 @@ def retryDownloadFull(gid, url="http://localhost", port=6800, token=None):
     os.system(f"notify-send '{dir}'")
     addDownload(uri=uri, dir=dir, out=fname)
 
-def getAll():
+
+def getAll() -> (list[list[str]], list[str]):
+    """ Retrieves all downloads: active, stopped, and queue. Also returns the header. """
     active, aheader = getActive()
     stopped, sheader = getStopped()
     waiting, wheader = getQueue()
 
     return active + waiting + stopped, wheader
 
-def openDownloadLocation(gid, new_window=True):
-    """
-
-    """
+def openDownloadLocation(gid: str, new_window: bool = True) -> None:
+    """ Opens the download location for a given download in yazi. """
     try:
         os.system('cls' if os.name == 'nt' else 'clear')
         req = getFiles(str(gid))
@@ -569,24 +427,23 @@ def openDownloadLocation(gid, new_window=True):
             val = json.loads(json.dumps(response))
             loc = val["dir"]
 
-        # val = json.loads(response.encode('utf-8'))
         if new_window:
             cmd = f"kitty yazi {repr(loc)}"
-            # subprocess.run(cmd, shell=True)
             subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
-            # os.system(f'kitty yazi "{loc}"')
         else:
             cmd = f"yazi {repr(loc)}"
-            # subprocess.run(cmd, shell=True)
             subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-            # os.system(f'kitty yazi "{loc}"')
 
     except:
         pass
 
-def openFile(gids, group=True):
+def openFile(gids: list[str], group: bool = True) -> None:
     """
-
+    Open files downloads based on their gid.
+        If group is False then we open each download separately.
+        If group is True then we use xdg-mime and gio to get the default applications
+            and group files by application and open them in one instance of the application. 
+            E.g., video and audio files will be opened with mpv and images will be opened with gimp
     """
     if isinstance(gids, str): gids=[gids]
     files_list = []
@@ -597,7 +454,7 @@ def openFile(gids, group=True):
             response = sendReq(req)
             val = json.loads(json.dumps(response))
             files = val["result"]
-            if len(files) == 0: return None
+            if len(files) == 0: continue
             loc = files[0]["path"]
             if "/" not in loc:
                 req = getOption(str(gid))
@@ -615,11 +472,18 @@ def openFile(gids, group=True):
     if group:
         openFiles(files_list)
 
-def openFiles(files):
+def openFiles(files: list[str]) -> None:
     """
-    Get mime types
-    Get default application for each mime type
-    Open all files; files with the same default application will be opened in one instance
+    Opens multiple files using their associated applications.
+        Get mime types
+        Get default application for each mime type
+        Open all files; files with the same default application will be opened in one instance
+
+    Args:
+        files (list[str]): A list of file paths.
+
+    Returns:
+        None
     """
     def get_mime_types(files):
         types = {}

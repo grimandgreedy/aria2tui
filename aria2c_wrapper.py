@@ -1,8 +1,10 @@
-import copy
 import json
 from urllib import request as rq
 import base64
 
+"""
+Wrapper for rpc communication with aria2c daemon as described in https://aria2.github.io/manual/en/html/aria2c.html#rpc-interface
+"""
 
 def addUriFull(uri, out="", dir=None, queue_pos=10000, token=None):
     jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer', 'params' : [f"token:{token}"] }

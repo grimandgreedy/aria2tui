@@ -229,7 +229,7 @@ def list_picker(
         cursor_pos=0,
         colours=None,
         max_selected=None,
-        top_gap=1,
+        top_gap=0,
         title="",
         header=[],
         max_column_width=70,
@@ -421,7 +421,7 @@ def list_picker(
         ## Terminal too small to display list_picker
         h, w = stdscr.getmaxyx()
         if h<3 or w<len("Terminal"): return None
-        if show_footer and (h<20 or w<60) or (h<12 and w<10):
+        if show_footer and (h<20 or w<45) or (h<12 and w<10):
             stdscr.addstr(h//2-1, (w-len("Terminal"))//2, "Terminal")
             stdscr.addstr(h//2, (w-len("Too"))//2, "Too")
             stdscr.addstr(h//2+1, (w-len("Small"))//2, "Small")
@@ -1209,6 +1209,7 @@ def list_picker(
                 title=f"{title} Help",
                 disabled_keys=[ord('?'), ord('v'), ord('V'), ord('m'), ord('M'), ord('l'), curses.KEY_ENTER, ord('\n')],
                 colours_start=100,
+                paginate=paginate,
             )
 
         elif check_key("exit", key, keys_dict):
