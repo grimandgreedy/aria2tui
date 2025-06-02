@@ -1,3 +1,4 @@
+import pyperclip
 from aria2c_wrapper import *
 import os
 import subprocess
@@ -20,7 +21,7 @@ def testConnectionFull(url="http://localhost", port=6800):
         with rq.urlopen(url, getVersion()) as c:
             response = c.read()
         return True
-    except urllib.error.URLError:
+    except:
         return False
 
 
@@ -455,7 +456,27 @@ def input_file_lines_to_dict(lines):
         downloads.append(download)
 
     return downloads, argstrings
+
 def addTorrentsFull(url="http://localhost", port=6800, token=None):
+    '''
+    Open a kitty prompt to add torrents to Aria2. The file will accept torrent file paths or magnet links and they should be placed on successive lines.
+
+
+    Args:
+        url (str): The URL of the Aria2 server.
+        port (int): The port of the Aria2 server.
+        token (str): The authorization token for the Aria2 server.
+
+    Returns:
+        None
+
+    Example entry for the prompt:
+        ```
+        /home/user/Downloads/torrents/example.torrent
+        magnet:?xt=urn:btih:...
+        ```
+    '''
+
     s = "!!\n"
     s +=  "# path\n\n"
 
@@ -481,19 +502,10 @@ def addTorrentsFull(url="http://localhost", port=6800, token=None):
             uris.append({"uri": line.strip()})
         else:
             dls.append({"path": line.strip()})
-            # sp = line.find(",")
-            # if sp == -1:
-            #     # os.system(f"notify-send '{len(dls)} downloads added'")
-            #     dls.append({"path": line.strip()})
-            # else:
-            #     dls.append({"path": line[:sp].strip(), "filename": line[sp+1:].strip()})
 
     for dl in dls:
-        # with open(dl["path"], "rb") as f:
-        #     torrent_data = f.read()
         jsonreq = addTorrent(dl["path"])
 
-        # jsonreq = pyperclip.copy(addUri(**dl))
         sendReq(jsonreq)
 
     for uri in uris:
@@ -572,31 +584,82 @@ def openDownloadLocation(gid, new_window=True):
     except:
         pass
 
-def openFile(gid):
+def openFile(gids, group=True):
     """
 
     """
-    try:
-        req = getFiles(str(gid))
-        response = sendReq(req)
-        val = json.loads(json.dumps(response))
-        files = val["result"]
-        if len(files) == 0: return None
-        loc = files[0]["path"]
-        if "/" not in loc:
-            req = getOption(str(gid))
+    if isinstance(gids, str): gids=[gids]
+    files_list = []
+
+    for gid in gids:
+        try:
+            req = getFiles(str(gid))
             response = sendReq(req)
             val = json.loads(json.dumps(response))
-            loc = val["dir"]
+            files = val["result"]
+            if len(files) == 0: return None
+            loc = files[0]["path"]
+            if "/" not in loc:
+                req = getOption(str(gid))
+                response = sendReq(req)
+                val = json.loads(json.dumps(response))
+                loc = val["dir"]
 
-        # val = json.loads(response.encode('utf-8'))
-        cmd = f"xdg-open {repr(loc)}"
-        # subprocess.run(cmd, shell=True)
-        subprocess.Popen(cmd, shell=True)
-        # os.system(f'kitty yazi "{loc}"')
+            files_list.append(repr(loc))
 
-    except:
-        pass
+            if not group:
+                cmd = f"xdg-open {repr(loc)}"
+                subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        except:
+            pass
+    if group:
+        openFiles(files_list)
+
+def openFiles(files):
+    """
+    Get mime types
+    Get default application for each mime type
+    Open all files; files with the same default application will be opened in one instance
+    """
+    def get_mime_types(files):
+        types = {}
+
+        for file in files:
+            resp = subprocess.run(f"xdg-mime query filetype {file}", stdout=subprocess.PIPE, shell=True)
+            ftype = resp.stdout.decode("utf-8").strip()
+            if ftype in types:
+                types[ftype] += [file]
+            else:
+                types[ftype] = [file]
+
+        return types
+
+    def get_applications(types):
+        apps = {}
+
+        for t in types:
+            resp = subprocess.run(f"xdg-mime query default {t}", stdout=subprocess.PIPE, shell=True)
+            app = resp.stdout.decode("utf-8").strip()
+            if app in apps:
+                apps[app] += [t]
+            else:
+                apps[app] = [t]
+
+        return apps
+
+    types = get_mime_types(files)
+    apps = get_applications(types.keys())
+
+    apps_files = {}
+    for app, filetypes in apps.items():
+        flist = []
+        for filetype in filetypes:
+            flist += types[filetype]
+        apps_files[app] = flist
+
+    for app, files in apps_files.items():
+        files_str = ' '.join(files)
+        subprocess.Popen(f"gio launch /usr/share/applications/{app} {files_str}", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
 CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"
 with open(os.path.expanduser(CONFIGPATH), "rb") as f:
@@ -625,6 +688,7 @@ unpause = lambda gid:  unpauseFull(gid, token=token)
 remove = lambda gid:  removeFull(gid, token=token)
 forceRemove = lambda gid:  forceRemoveFull(gid, token=token)
 removeStopped = lambda gid:  removeStoppedFull(gid, token=token)
+removeDownloadResult = lambda gid:  removeDownloadResultFull(gid, token=token)
 getFiles = lambda gid:  getFilesFull(gid, token=token)
 removeCompleted = lambda : removeCompletedFull(token=token)
 changePosition = lambda gid, pos, how="POS_SET":  changePositionFull(gid, pos, how=how, token=token)

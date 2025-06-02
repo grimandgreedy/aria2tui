@@ -88,15 +88,16 @@ from keys import keys_dict, notification_keys
         ( )  n/N search next/prev
         ( ) (!!!) allow key remappings; have a dictionary to remap
             ( ) escape should close option selections and notifications
+        ( ) Add keybind to focus on next (visible) column
     (?) adjust default column width based on current page?
 
 
 ( ) Features
-    (*) add notification system
+    (*) Create notification system
         ( ) add transient non-blocking notifications
-    ( ) add different selection styles
-        ( ) row highlighted   
-        ( ) selection indicator (selection char at end of line)
+    (*) add different selection styles
+        (*) row highlighted   
+        (*) selection indicator (selection char at end of line)
     ( ) add key-chain support. Can use the timeout to clear the key.
         ( ) gg
         ( ) count
@@ -798,10 +799,10 @@ def list_picker(
         s, o, f = list_picker(
             submenu_win,
             items=options,
-            colours=colours,
+            colours=notification_colours,
+            colours_start=50,
             title=field_name,
             # show_footer=False,
-            colours_start=0,
             disabled_keys=[ord('z'), ord('c')],
             top_gap=0,
             show_footer=False,

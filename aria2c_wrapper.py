@@ -138,7 +138,7 @@ def forceRemoveFull(gid, token=None):
         jsonreq["params"] = [gid]
     return json.dumps(jsonreq).encode('utf-8')
 
-def removeStoppedFull(gid, token=None):
+def removeDownloadResultFull(gid, token=None):
     jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer', 'params' : [f"token:{token}"] }
     jsonreq["params"] = [] if token in [None, ""] else [f"token:{token}"]
     jsonreq["method"] = "aria2.removeDownloadResult"

@@ -28,6 +28,7 @@ Errors
     ( ) fix adding uris with filename. Data is the same but it is corrupted somehow.
        - works:        https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg
        - doesn't work: https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBVWNXUrlGnx3VtnPULUE6v0EteQg
+    ( ) When downloads are updating quickly and I try to operate upon them it sometimes says that the indices are not in the list...
 
 Bugs
     ( ) Fix order upon refresh
@@ -60,7 +61,7 @@ Features
     ( ) implement changeOption for downloads
     ( ) add key to open download location using 'o'
     ( ) (!!!) make operations upon downloads work only with certain download types:
-       ( ) make remove work with all
+       (*) make remove work with all
        ( ) queue operations only on those in the queue
        ( ) retry only on errored
     ( ) add column to show download type (e.g., torrent)
@@ -90,10 +91,8 @@ Improvements
         (?) I don't think this is possible to change in aria2c
     (*) open files 
         ( ) open files of the same type in one instance
-    ( ) make remove work with errored download
+    (*) make remove work with errored download
        (*) remove all errored/completed downloads works
-        - but remove doesn't work with sigular downloads
-        - ForceRemove doesn't seem to do anything (with stopped download)
 
 
 
@@ -194,9 +193,11 @@ def begin(stdscr, config):
         ["changePosition", changePosition, {}, {}],
         ["sendToFrontOfQueue", changePosition, {"pos":0} , {}],
         ["sendToBackOfQueue", changePosition, {"pos":10000}, {}],
-        ["remove", remove, {}, {}],
         ["retryDownload", retryDownload, {}, {}],
-        ["forceRemove", forceRemove, {}, {}],
+        # ["remove", remove, {}, {}],
+        # ["forceRemove", forceRemove, {}, {}],
+        # ["removeStopped", removeDownloadResult, {}, {}],
+        ["Remove Download", removeDownloadResult, {}, {}],
         ["getFiles", getFiles, {}, {"view":True}],
         ["getServers", getServers, {}, {"view":True}],
         ["getPeers", getPeers, {}, {"view":True}],
@@ -207,7 +208,8 @@ def begin(stdscr, config):
         # ["changeOption", changeOption, {}, {"view":True}],
         ["openDownloadLocation (new window)", openDownloadLocation, {}, {}],
         ["openDownloadLocation", lambda gid: openDownloadLocation(gid, new_window=False), {}, {}],
-        ["openFile", openFile, {}, {}],
+        ["Open File(s)", openFile, {}, {}],
+        ["Open File(s) (do not group)", lambda gids: openFile(gids, group=False), {}, {}],
     ]
     menu_options = [
         ["Watch Downloads", None,{},{}],
@@ -335,45 +337,45 @@ def appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, 
                 # stdscr.curs_set(False)
             else:
                 func(**kwargs)
-
-            
-        
     
 def applyToDownloads(stdscr, gids, operation_name, operation_function, user_opts, view):
     responses = []
-    for gid in gids:
-        try:
-            jsonreq = {}
-            if operation_name == "changePosition":
-                position = int(user_opts) if user_opts.strip().isdigit() else 0
-                jsonreq = operation_function(str(gid), position)
-            elif operation_name == "getAllInfo":
-                js_rs = getAllInfo(str(gid))
-                responses.append(js_rs)
-            elif operation_name == "sendToBackOfQueue":
-                jsonreq = operation_function(str(gid), pos=10000)
-            elif operation_name == "sendToFrontOfQueue":
-                jsonreq = operation_function(str(gid), pos=0)
-            # elif len(operation_list) > 2:
-            #     operation_kwargs = operation_list[2]
-            #     jsonreq = operation_function(str(gid), **operation_kwargs)
-            else:
-                jsonreq = operation_function(str(gid))
+    if operation_name in ["Open File(s) (do not group)", "Open File(s)"]:
+        operation_function(gids)
+    else:
+        for gid in gids:
+            try:
+                jsonreq = {}
+                if operation_name == "changePosition":
+                    position = int(user_opts) if user_opts.strip().isdigit() else 0
+                    jsonreq = operation_function(str(gid), position)
+                elif operation_name == "getAllInfo":
+                    js_rs = getAllInfo(str(gid))
+                    responses.append(js_rs)
+                elif operation_name == "sendToBackOfQueue":
+                    jsonreq = operation_function(str(gid), pos=10000)
+                elif operation_name == "sendToFrontOfQueue":
+                    jsonreq = operation_function(str(gid), pos=0)
+                # elif len(operation_list) > 2:
+                #     operation_kwargs = operation_list[2]
+                #     jsonreq = operation_function(str(gid), **operation_kwargs)
+                else:
+                    jsonreq = operation_function(str(gid))
 
-            js_rs = sendReq(jsonreq)
-            responses.append(js_rs)
-        except:
-            pass
-            # responses.append({})
-    if view:
-        with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
-            for i, response in enumerate(responses):
-                tmpfile.write(f'{"*"*50}\n{str(i)+": "+gids[i]:^50}\n{"*"*50}\n')
-                tmpfile.write(json.dumps(response, indent=4))
-            tmpfile_path = tmpfile.name
-        cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
-        cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0'""" + f" {tmpfile_path}"
-        process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+                js_rs = sendReq(jsonreq)
+                responses.append(js_rs)
+            except:
+                pass
+                # responses.append({})
+        if view:
+            with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
+                for i, response in enumerate(responses):
+                    tmpfile.write(f'{"*"*50}\n{str(i)+": "+gids[i]:^50}\n{"*"*50}\n')
+                    tmpfile.write(json.dumps(response, indent=4))
+                tmpfile_path = tmpfile.name
+            cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
+            cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0'""" + f" {tmpfile_path}"
+            process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     stdscr.clear()
 
 def main():
