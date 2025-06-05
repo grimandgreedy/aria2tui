@@ -1,3 +1,8 @@
+"""
+Detailings for aria2TUI. 
+    - highlights
+    - modes
+"""
 highlights = [
     {
         "match": "complete",

@@ -7,7 +7,12 @@ import tempfile
 import subprocess
 import re
 
-def addDownloadFull(uri, out=None, token=None, url="http://localhost", port=6800, queue_position=None, cookies_file=None, dir=None, proxy=None, prompt=False):
+def addDownloadFull(uri: str, out:str = str, token: str = "", url: str = "http://localhost", port: int = 6800, queue_position: int = 0, cookies_file: str = "", dir: str = "", proxy: str = str, prompt: bool = False) -> None:
+    """
+    Send download to aria2c server at $url:$port. 
+    If prompt is true then we open a new kitty window with a neovim buffer to enter any uris.
+    """
+
     url = f'{url}:{port}/jsonrpc'
    
     if prompt:
@@ -44,8 +49,6 @@ def addDownloadFull(uri, out=None, token=None, url="http://localhost", port=6800
         "params": params
     }
 
-
-    
     # Send request
     response = requests.post(url, headers={"Content-Type": "application/json"}, data=json.dumps(request_data))
     
@@ -56,7 +59,8 @@ def addDownloadFull(uri, out=None, token=None, url="http://localhost", port=6800
     else:
         print(f"Success! Download ID: {response_json['result']}")
 
-def parse_string_to_list(s):
+def parse_string_to_list(s: str):
+    """ Turn a string containing a list of integers ("5,3,1,3,222") or a slice (e.g., "4:199") into a python list. """
     # Use regular expressions to find all lists and slices
     pattern = r'\[([^]]*)\]'
     matches = re.findall(pattern, s)
@@ -74,10 +78,11 @@ def parse_string_to_list(s):
     
     return result
 
-def argstring_to_argdict(argstring):
+def argstring_to_argdict(argstring: str):
     r"""
-    desc: takes an argstring (see below for examples) as input and returns
-            a dictionary for each arg.
+    desc: takes an argstring (see below for examples) as input and returns a dictionary for each arg.
+
+    the argstring can be used to pass key-value pairs.
 
     argstring: r'\w([(\d+,)*(\d+)?]|(\d+:\d+))*'
     examples:
@@ -99,14 +104,14 @@ def argstring_to_argdict(argstring):
         argdict[c] = l
     return argdict
 
-def kitty_prompt(name, url):
+def kitty_prompt(name: str, url: str) -> (dict, list[str]):
+    """ Open a nvim buffer and return the lines of the saved buffer. """
     s = f"!!\n{name}\n{url}"
     with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
         tmpfile.write(s)
         tmpfile_path = tmpfile.name
     
     # Open the temporary file in nvim within a new kitty window
-    # cmd = f"kitty --class=reader-class nvim -i NONE -c 'normal VGk' {tmpfile_path}"
     cmd = f"kitty --class=reader-class nvim -i NONE {tmpfile_path}"
     ps = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 

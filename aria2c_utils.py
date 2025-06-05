@@ -1,18 +1,17 @@
-import pyperclip
+import curses
 from aria2c_wrapper import *
 import os
 import subprocess
 import tomllib
 from urllib import request as rq
 from subprocess import run
-import urllib
-import copy
 import json
 from sqlalchemy.engine import cursor
 from utils import *
 import tempfile
 from aria_adduri import addDownloadFull
 import tabulate
+from typing import Callable, Tuple
 
 def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests the connection to the Aria2 server. """
@@ -25,8 +24,7 @@ def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
     except:
         return False
 
-
-def getQueue() -> (list[list[str]], list[str]):
+def getQueue() -> Tuple[list[list[str]], list[str]]:
     """ Retrieves download queue and corresponding header from aria2 over rpc. """
     js_rs = sendReq(tellWaiting())
 
@@ -43,7 +41,6 @@ def getQueue() -> (list[list[str]], list[str]):
 
     for i in range(len(js_rs["result"])):
         dl = js_rs["result"][i]
-        colsize = 14
         try:
             gid = dl['gid']
             options = options_batch[i]
@@ -75,7 +72,7 @@ def getQueue() -> (list[list[str]], list[str]):
     return items, header
 
 
-def getStopped() -> (list[list[str]], list[str]):
+def getStopped() -> Tuple[list[list[str]], list[str]]:
     """ Retrieves stopped downloads and corresponding header from aria2 over rpc. """
     jsonreq = tellStopped()
 
@@ -96,7 +93,6 @@ def getStopped() -> (list[list[str]], list[str]):
 
     for i in range(len(js_rs["result"])):
         dl = js_rs["result"][i]
-        colsize = 14
         try:
             gid = dl['gid']
             options = options_batch[i]
@@ -130,7 +126,7 @@ def getStopped() -> (list[list[str]], list[str]):
     return items[::-1], header
 
 
-def getActive() -> (list[list[str]], list[str]):
+def getActive() -> Tuple[list[list[str]], list[str]]:
     """ Retrieves active downloads and corresponding header from aria2 over rpc. """
 
     js_rs = sendReq(tellActive())
@@ -148,7 +144,6 @@ def getActive() -> (list[list[str]], list[str]):
     for i in range(len(js_rs["result"])):
         dl = js_rs["result"][i]
         try:
-            colsize = 14
             gid = dl['gid']
             options = options_batch[i]
             pth = options["result"]["dir"]
@@ -184,43 +179,10 @@ def getActive() -> (list[list[str]], list[str]):
     return items, header
 
 
-def getPaused() -> (list[list[str]], list[str]):
-    """ Retrieves paused downloads and corresponding header from aria2 over rpc. """
-    jsonreq = tellWaiting()
-    js_rs = sendReq(jsonreq)
-    gids=[]
-
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
-        if "paused" not in dl['status']: continue
-        try:
-            colsize = 14
-            pth = dl['files'][0]['path']
-            fname = pth[pth.rfind("/")+1:]
-
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-            pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
-        
-            dl_speed = int(dl['downloadSpeed'])
-            time_left = int((size-completed)/dl_speed) if dl_speed > 0 else None
-            if time_left:
-                time_left_s = ""
-                time_left_s += f"{time_left//60**2%60}h" if time_left//60**2 > 1 else ""
-                time_left_s += f"{time_left//60%60}m" if time_left//60 > 1 else ""
-                time_left_s += f"{time_left%60}s"
-            else: time_left_s = "INF"
-            gids.append(dl['gid'])
-
-        except:
-            pass
-
-
 def printResults(items: list[list[str]], header: list[str]=[]) -> None:
     """ Print download items along with the header to stdout """
     if header:
-        items=header+items
+        items=[header]+items
         print(tabulate.tabulate(items, headers='firstrow', tablefmt='grid'))
     else:
         print(tabulate.tabulate(items, tablefmt='grid'))
@@ -267,7 +229,7 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
     os.system(f"notify-send '{len(dls)} downloads added'")
 
 
-def input_file_lines_to_dict(lines: list[str]) -> (dict, list[str]):
+def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[str], list[dict]]:
     """
     Converts lines to list of download dicts.
 
@@ -403,7 +365,7 @@ def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, 
     addDownload(uri=uri, dir=dir, out=fname)
 
 
-def getAll() -> (list[list[str]], list[str]):
+def getAll() -> Tuple[list[list[str]], list[str]]:
     """ Retrieves all downloads: active, stopped, and queue. Also returns the header. """
     active, aheader = getActive()
     stopped, sheader = getStopped()
@@ -525,7 +487,51 @@ def openFiles(files: list[str]) -> None:
         files_str = ' '.join(files)
         subprocess.Popen(f"gio launch /usr/share/applications/{app} {files_str}", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
+
+def applyToDownloads(stdscr: curses.window, gids: list, operation_name: str, operation_function: Callable, user_opts: str, view) -> None:
+
+    responses = []
+    if operation_name in ["Open File(s) (do not group)", "Open File(s)"]:
+        operation_function(gids)
+    else:
+        for gid in gids:
+            try:
+                jsonreq = {}
+                if operation_name == "changePosition":
+                    position = int(user_opts) if user_opts.strip().isdigit() else 0
+                    jsonreq = operation_function(str(gid), position)
+                elif operation_name == "getAllInfo":
+                    js_rs = getAllInfo(str(gid))
+                    responses.append(js_rs)
+                elif operation_name == "sendToBackOfQueue":
+                    jsonreq = operation_function(str(gid), pos=10000)
+                elif operation_name == "sendToFrontOfQueue":
+                    jsonreq = operation_function(str(gid), pos=0)
+                # elif len(operation_list) > 2:
+                #     operation_kwargs = operation_list[2]
+                #     jsonreq = operation_function(str(gid), **operation_kwargs)
+                else:
+                    jsonreq = operation_function(str(gid))
+
+                js_rs = sendReq(jsonreq)
+                responses.append(js_rs)
+            except:
+                pass
+                # responses.append({})
+        if view:
+            with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
+                for i, response in enumerate(responses):
+                    tmpfile.write(f'{"*"*50}\n{str(i)+": "+gids[i]:^50}\n{"*"*50}\n')
+                    tmpfile.write(json.dumps(response, indent=4))
+                tmpfile_path = tmpfile.name
+            cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
+            cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0'""" + f" {tmpfile_path}"
+            process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+    stdscr.clear()
+
+## Load config
 CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"
+
 with open(os.path.expanduser(CONFIGPATH), "rb") as f:
     config = tomllib.load(f)
 url = config["general"]["url"]
@@ -533,7 +539,9 @@ port = config["general"]["port"]
 token = config["general"]["token"]
 paginate = config["general"]["paginate"]
 
-# send_req = lambda req: sendReqFull(req, url=url, port=port)
+## Create lambda functions which fill the url, port, and token for our aria2c rpc operations
+
+
 addUri = lambda uri, out="", dir=None, queue_pos=10000:  addUriFull(uri, out=out, dir=dir, queue_pos=queue_pos, token=token)
 addTorrent = lambda path, out="", dir=None, queue_pos=10000:  addTorrentFull(path, out=out, dir=dir, queue_pos=queue_pos, token=token)
 addDownload = lambda uri, out=None, dir=None, url=url, port=port, token=token, queue_pos=None, proxy=None, prompt=False, cookies_file=None:  addDownloadFull(uri, out=out, dir=dir, queue_position=queue_pos, url=url, port=port, token=token, prompt=prompt, proxy=proxy, cookies_file=cookies_file)
@@ -551,7 +559,7 @@ pauseAll = lambda : pauseAllFull(token=token)
 unpause = lambda gid:  unpauseFull(gid, token=token)
 remove = lambda gid:  removeFull(gid, token=token)
 forceRemove = lambda gid:  forceRemoveFull(gid, token=token)
-removeStopped = lambda gid:  removeStoppedFull(gid, token=token)
+# removeStopped = lambda gid:  removeStoppedFull(gid, token=token)
 removeDownloadResult = lambda gid:  removeDownloadResultFull(gid, token=token)
 getFiles = lambda gid:  getFilesFull(gid, token=token)
 removeCompleted = lambda : removeCompletedFull(token=token)

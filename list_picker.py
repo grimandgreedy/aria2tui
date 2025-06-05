@@ -17,300 +17,88 @@ from clipboard_operations import *
 from searching import search
 from help_screen import help_lines
 from keys import keys_dict, notification_keys
-
-"""
-( ) Errors
-    ( ) place cursor on last row and hold +.
-    ( ) why does curses crash when writing to the final char on the final line?
-        ( ) is there a way to colour it?
-    ( ) errors thrown when length(header) != length(items[0])
-    ( ) Error handling needed
-        ( ) apply_settings("sjjj") 
-    ( ) Error when drawing highlights. Have to put them in a try-except block
-
-( ) Bugs
-    ( ) sometimes the cursor shows, sometimes it doesn't
-        - cursor shows after opening nvim and returning to listpicker
-    ( ) fix resizing when input field active
-    ( ) Visual selection
-        ( ) when visually selecting sometimes single rows above are highlighted (though not selected)
-    ( ) weird alignment problem when following characters are in cells:
-           - ： 
-    ( ) moving columns:
-        - ruins highlighting
-        - is not preserved in function_data
-        - implement indexed_columns
-        - will have to put header in function_data to track location of fields
-    ( ) regexp and field entry errors
-        ( ) filter
-        ( ) "--1 error .*" doesn't work but ".* --1" error does
-        ( ) search
-        ( ) highlights
-        ( ) when +,* is added to the filter it errors out
-        ( ) some capture groups don't work [^0]
-        ( ) should general search be cell-wise?
-        ( ) option to search visible columns only
-
-
-
-( ) Improvements
-    ( ) (!!!) Need to remove nonlocal args and pass all variables as arguments
-    ( ) change hidden_columns from set() to list()
-    ( ) make unselectable_indices work with filtering
-    ( ) look at adjustment for cursor position and hidden unselectable indices
-    ( ) each time we pass options it will resort and refilter; add an option to simply load the items that are passed
-    ( ) require_option should skip the prompt if an option has already been given
-    ( ) force option type; show notification to user if option not appropriate
-    ( ) add the ability to disable options for:
-        (*) show footer
-        (*) auto-refresh
-        (*) edit cell
-        ( ) sort
-        ( ) visual selection
-        ( ) disable visual selection when # is greater than max_selected
-        ( ) NOTIFICATIONS
-        ( ) OPTIONS
-    ( ) Colours
-        ( ) Redo colours
-        ( ) pass colours to list_picker in a more intuitive way
-        ( ) complete get_colours loop
-        (?) we have arbitrarily set application colours to be 0-50, notification 50-100 and help 100-150
-
-    ( ) Highlights
-        ( ) (!!!) there is a difference between search matches and highlights because the highlights operate on what is displayed
-            (?) allow visual matches with searches?
-            (?) hide highlights across fields?
-            (?) e.g., mkv$ shows no highlights but does match
-        ( )  - e.g., wmv$ shows no matches but --3 wmv$ shows matches
-    ( ) Pipe
-        ( ) if no items are selected pipe cursor to command
-    ( ) Redo keybinds
-        ( )  n/N search next/prev
-        ( ) (!!!) allow key remappings; have a dictionary to remap
-            ( ) escape should close option selections and notifications
-        ( ) Add keybind to focus on next (visible) column
-    (?) adjust default column width based on current page?
-
-
-( ) Features
-    (*) Create notification system
-        ( ) add transient non-blocking notifications
-    (*) add different selection styles
-        (*) row highlighted   
-        (*) selection indicator (selection char at end of line)
-    ( ) add key-chain support. Can use the timeout to clear the key.
-        ( ) gg
-        ( ) count
-    ( ) add return value; e.g., refreshing
-    ( ) add indexed columns
-        ( ) will fix highlighting when column order is switched
-
-    ( ) Modes
-        (*) Allow filtering in mode
-        (*) Display modes
-        ( ) Search
-        ( ) ...
-    ( ) adjust width of particular columns
-    ( ) merge columns
-    ( ) show/hide col based on name; have tab auto complete
-    ( ) add option for padding/border
-        ( ) stdscr.box??
-    ( ) add option to go to next dissimilar value in column
-        ( ) e.g., select column 2 (download: complete), and pressing tab will go to the next entry that is not complete 
-    ( ) when column is selected try best guess search method
-
---------------
-(*) (!!!) COPY:
-
-    copy IDs of selected rows (currently 'y')
-    copy selected rows, visible values of visible cols (currently 'Y')
-    copy selected rows, full values of visible cols (currently 'c') (NEW 'y')
-    copy full python table (currently/NEW 'C')
-
-    copy selected rows, full values of all cols (NEW 'Y')
-
-    copy selected rows as python table
-    copy selected rows as python table without hidden cols (NEW 'c')
-
-    m + c: copies all visible rows
-    
-    Y = toggle_cols() + y
-    C = toggle_cols() + c
-    
-    hidden cols, selected rows, 
-
-        selections = [False] * len(items)
-        selections = {i: False for i in range(len(items))}
---------------
-
-DONE
-(*) Make escape work with : (as it does with | and f)
-(*) make filter work with regular expressions
-(*) adjust page after resize
-(*) fix not resizing properly
-(*) fix header columns not being aligned (fixed by replacing tabs with spaces so char count clipped properly)
-(*) rows not aligned with chinese characters (need to trim display rows based on wcswidth)
-(*) fix problems with empty lists both [] and [[],[]] 
-(*) fix issue where item when filtering the cursor goes to a nonexistent item
-(*) add unselectable_indices support for filtered rows and visual selection
-(*) allow a keyword match for colours in columns (error, completed)
-(*) fix time sort
-(*) add colour highlighting for search and filter
-(*) fix highlights when columns are shortened
-(*) highlights wrap on bottom row
-(*) Search
-    (*) add search count
-    (*) add option to continue search rather than finding all matches every time
-    (*) problem when filter is applied
-(*) Visual selection
-    (*) (!!!) Fix visual selection in the entries are sorted differently.
-    (*) when filtered it selects entries outside of those visible and throws an error
-(*) add config file
-(*) Highlights
-    (*) add highlight colour differentiation for selected and under cursor
-    (*) remain on same row when sorting (23-5-25)
-    (*) add option to stay on item when sorting
-(*) fix highlighting when cols are hidden
-(*) Add hidden columns to function so that they remain hidden on refresh
-(*) Fix the position of a filter and options when terminal resizes
-(*) fix the filtering so that it works with more than one arg
-(*) fix error when filtering to non-existing rows
-(*) implement settings:
-     (*) !11 show/hide 11th column
-     (*) ???
-(*) Allow state to be restored
-    (*) allow search/filter to be passed to list_picker so that search can resume
-    (*) cursor postion (x)
-    (*) page number
-    (*) sort
-    (*) filter state
-    (*) search
-    (*) show/hide cols
-(*) implement scroll as well as page view
-(*) why the delay when pressing escape to cancel selection, remove filter, search, etc.
-    (*) the problem is that ESCDELAY has to be set
-(*) (!!!) high CPU usage
-    (*) when val in `stdscr.timeout(val)` is low the cpu usage is high
-(*) (!!!) When the input_field is too long the application crashes
-(*) crash when selecting column from empty list
-(*) sendReq()...
-(*) add tabs for quick switching
-(*) add header for title
-(*) add header tabs
-(*) add colour for active setting; e.g., when filter is being entered the bg should be blue
-(*) check if mode filter in query when updating the query and if not change the mode
-(*) when sorting on empty data it throws an error
-(*) hiding a column doesn't hide the corresponding header cell
-(*) add colour for selected column
-(*) highlighting doesn't disappear when columns are hidden
-(*) add scroll bar
-(*) (!!!) fix crash when terminal is too small
-(*) add option to start with X rows already selected (for watch active selection)
-(*) prevent overspill on last row
-(*) redo help
-    (*) help screen doesn't adjust when terminal resized
-    (*) add search/filter on help page
-    (*) use list_picker to implement help
-(*) +/- don't work when using scroll (rather than paginate)
-(*) flickering when "watching"
-(*) change the cursor tracker from current_row, current_page to current_pos
-(*) add flag to require options for a given entry
-(*) option to number columns or not
-(*) make sure `separator` works with header
-(*) add cursor when inputing filter, opts, etc.
-
-(*) remain on same row when resizing with +/-
-
-"""
+from typing import Callable, Optional, Tuple
 
 def list_picker(
-        stdscr, 
-        items=[],
-        cursor_pos=0,
-        colours=None,
-        max_selected=None,
-        top_gap=0,
-        title="",
-        header=[],
-        max_column_width=70,
+        stdscr: curses.window, 
+        items: list = [],
+        cursor_pos: int = 0,
+        colours: dict = {},
+        max_selected: int = -1,
+        top_gap: int =0,
+        title: str ="",
+        header: list =[],
+        max_column_width: int =70,
         
-        auto_refresh=False,
-        timer=5,
-        get_new_data=False,
-        refresh_function=None,
-        get_data_startup=False,
+        auto_refresh: bool =False,
+        timer: float = 5,
 
-        unselectable_indices=[],
-        highlights=[],
-        highlights_hide=False,
-        number_columns=True,
+        get_new_data: bool =False,
+        refresh_function: Optional[Callable] =None,
+        get_data_startup: bool =False,
+
+        unselectable_indices: list =[],
+        highlights: list =[],
+        highlights_hide: bool =False,
+        number_columns: bool =True,
 
 
-        current_row = 0,
-        current_page = 0,
-        is_selecting = False,
-        is_deselecting = False,
-        start_selection = None,
-        end_selection = None,
-        user_opts = "",
-        user_settings = "",
-        separator = "    ",
-        search_query = "",
-        search_count = 0,
-        search_index = 0,
-        filter_query = "",
-        hidden_columns = set(),  # Track hidden columns
-        indexed_items = [],
-        scroll_bar = True,
+        current_row : int = 0,
+        current_page : int = 0,
+        is_selecting : bool = False,
+        is_deselecting : int = False,
+        start_selection: Optional[int] = -1,
+        end_selection: Optional[int] = -1,
+        user_opts : str = "",
+        user_settings : str = "",
+        separator : str = "    ",
+        search_query : str = "",
+        search_count : int = 0,
+        search_index : int = 0,
+        filter_query : str = "",
+        hidden_columns: set = set(),
+        indexed_items: list = [],
+        scroll_bar : int = True,
 
-        selections = {},
-        highlight_full_row=False,
-        items_per_page = -1,
-        sort_method = 0,
-        sort_reverse = [0],  # Default sort order (ascending)
-        sort_column = 0,
-        columns_sort_method = [0],
-        key_chain = "",
+        selections: dict = {},
+        highlight_full_row: bool =False,
 
-        paginate=False,
-        mode_index=0,
-        modes=[{}],
-        display_modes=False,
-        require_option=[],
-        disabled_keys=[],
+        items_per_page : int = -1,
+        sort_method : int = 0,
+        sort_reverse: list[int] = [0],
+        sort_column : int = 0,
+        columns_sort_method: list[int] = [0],
+        key_chain: str = "",
+        last_key: Optional[str] = None,
 
-        show_footer=True,
-        colours_start=0,
-        colours_end=-1,
-        key_remappings = {},
-        display_infobox = False,
-        infobox_items = [[]],
-        display_only=False,
+        paginate: bool =False,
+        mode_index: int =0,
+        modes: list[dict] = [{}],
+        display_modes: bool =False,
+        require_option: list=[],
+        disabled_keys: list=[],
 
-        editable_columns = [],
-        last_key=None,
+        show_footer: bool =True,
+        colours_start: int =0,
+        colours_end: int =-1,
+        key_remappings: dict = {},
+        display_infobox : bool = False,
+        infobox_items: list[list[str]] = [[]],
+        display_only: bool = False,
+
+        editable_columns: list[int] = [],
         
-        centre_in_terminal=False,
-        centre_in_cols=False,
+        centre_in_terminal: bool = False,
+        centre_in_cols: bool = False,
         
-):
+) -> Tuple[list[int], str, dict]:
     """
-    A simple list picker using ncurses.
-    Args:
-        items (list of lists): A list of rows to be displayed in the list picker.
-        colours (dict, optional): A dictionary mapping indices to color pairs. Defaults to None.
-        max_selected (int, optional): The maximum number of items that can be selected. Defaults to None.
-        top_gap (int, optional): The number of lines to leave at the top of the screen. Defaults to 1.
-        header (str, optional): A string to display as a header above the list picker. Defaults to empty list.
-        max_column_width (int, optional): The maximum width of the list picker window. Defaults to 70.
-        timer (bool, optional): Whether to display a timer at the bottom of the screen. Defaults to False.
-        get_new_data (bool, optional): Whether to call refresh_function when new data is available. Defaults to False.
-        refresh_function (function, optional): A function to call when new data is available. Defaults to None.
-        highlights (list[dicts]): any fields that should be highlighted with the given color pair
+    A list picker using ncurses. Pass a list of lists and a header (optional) and it will display them as tabulated data.
+
 
     Returns:
         list, opts, cursor_pos: A list of indices representing the selected items along with any options passed
-        selected, opts, cursor_pos
+        selected, opts, funcition_data
 
         selected (list of ints): list of selected indices
         opts (str): any opts that are entered
@@ -318,41 +106,47 @@ def list_picker(
     """
 
 
-        # Helper function to parse numerical values
-
-        # def time_sort(time_str):
-        #     """A sorting key function that converts a time string to total seconds."""
-        #     return time_to_seconds(time_str)
-
-        # Sort items initially
-        # sort_items()
-
     curses.set_escdelay(25)
 
-    def move_column(direction):
-        nonlocal items, column_widths,sort_column, header
-        try:
-            if sort_column == None: return None
-        except:
-            return None
-        if not (0 <= sort_column + direction < len(column_widths)):
-            return
+    def move_column(items: list[list[str]], header: list[str], direction: int, sort_column: int, column_widths: list[int]) -> Tuple[list[list[str]], list[str], int, list[int]]:
+        """ 
+        Cycles the column $direction places. 
+        E.g., If $direction == -1 and the sort column is 3, then column 3 will swap with column 2
+            in each of the rows in $items and 2 will become the new sort column.
+
+        sort_column = 3, direction = -1
+            [[0,1,2,*3*,4],
+             [5,6,7,*8*,9]]
+                -->
+            [[0,1,*3*,2,4],
+             [5,6,*8*,7,9]]
+
+        returns:
+            adjusted items, header, sort_column and column_widths
+        """
+        if len(items) < 1: return items, header, sort_column, column_widths
+        if (sort_column+direction) < 0 or (sort_column+direction) >= len(items[0]): return items, header, sort_column, column_widths
+
         new_index = sort_column + direction
 
         # Swap columns in each row
         for row in items:
             row[sort_column], row[new_index] = row[new_index], row[sort_column]
-        header[sort_column], header[new_index] = header[new_index], header[sort_column]
+        if header:
+            header[sort_column], header[new_index] = header[new_index], header[sort_column]
 
         # Swap column widths
         column_widths[sort_column], column_widths[new_index] = column_widths[new_index], column_widths[sort_column]
 
         # Update current column index
         sort_column = new_index
+        return items, header, sort_column, column_widths
 
-        draw_screen(indexed_items, highlights)
 
-    def set_colours(colours, start=0):
+    def set_colours(colours: dict, start: int = 0):
+        """ Initialise curses colour pairs using dictionary with colour keys. """
+
+        if not colours: return None
         curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
         curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
         curses.init_pair(start+3, colours['normal_fg'], colours['background'])
@@ -377,7 +171,8 @@ def list_picker(
         curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
         return start+21
 
-    def infobox(stdscr, message="", title="Infobox",  colours_end=0, duration=4):
+    def infobox(stdscr: curses.window, message: str ="", title: str ="Infobox",  colours_end: int = 0, duration: int = 4) -> curses.window:
+        """ Display non-interactive infobox window. """
         h, w = stdscr.getmaxyx()
         notification_width, notification_height = w//2, h-8
         message_width = notification_width-5
@@ -412,7 +207,7 @@ def list_picker(
 
         return submenu_win
 
-    def draw_screen(indexed_items=[], highlights={}, clear=True):
+    def draw_screen(indexed_items: list = [], highlights: list[dict] = {}, clear: bool = True) -> None:
         nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row
 
         if clear:
@@ -618,6 +413,7 @@ def list_picker(
             stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
 
     def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=False):
+        """ Initialise the variables that keep track of the data. """
         if get_data and refresh_function != None:
             items, header = refresh_function()
 
@@ -768,7 +564,7 @@ def list_picker(
         draw_screen(indexed_items, highlights)
 
 
-    def choose_option(stdscr, options=[], field_name="Input", x=0, y=0, literal=False, colours_start=0):
+    def choose_option(stdscr: curses.window, options=[], field_name="Input", x=0, y=0, literal=False, colours_start=0):
         """
         Display input field at x,y
 
@@ -814,7 +610,7 @@ def list_picker(
         return {}
 
 
-    def open_submenu(stdscr, user_opts):
+    def open_submenu(stdscr: curses.window, user_opts):
         h, w = stdscr.getmaxyx()
         submenu_win = curses.newwin(6, 50, h // 2 - 2, w // 2 - 25)
         submenu_win.box()
@@ -877,7 +673,7 @@ def list_picker(
                 stdscr.refresh()
                 break
 
-    def notification(stdscr, message="", colours_end=0, duration=4):
+    def notification(stdscr: curses.window, message="", colours_end=0, duration=4):
         notification_width, notification_height = 50, 7
         message_width = notification_width-5
 
@@ -913,7 +709,7 @@ def list_picker(
             draw_screen(indexed_items, highlights)
         # set_colours(colours=get_colours(0))
 
-    def notification2(stdscr, message="", duration=4):
+    def notification2(stdscr: curses.window, message="", duration=4):
 
         notification_width, notification_height = 50, 7
         message_width = notification_width-8
@@ -1077,27 +873,27 @@ def list_picker(
         elif is_selecting:
             # end_selection = indexed_items[current_page * items_per_page + current_row][0]
             end_selection = cursor_pos
-            if start_selection is not None:
+            if start_selection != -1:
                 start = min(start_selection, end_selection)
                 end = max(start_selection, end_selection)
                 for i in range(start, end + 1):
                     if indexed_items[i][0] not in unselectable_indices:
                         selections[indexed_items[i][0]] = True
-            start_selection = None
-            end_selection = None
+            start_selection = -1
+            end_selection = -1
             is_selecting = False
             draw_screen(indexed_items, highlights)
         elif is_deselecting:
             end_selection = indexed_items[cursor_pos][0]
             end_selection = cursor_pos
-            if start_selection is not None:
+            if start_selection != -1:
                 start = min(start_selection, end_selection)
                 end = max(start_selection, end_selection)
                 for i in range(start, end + 1):
                     # selections[i] = False
                     selections[indexed_items[i][0]] = False
-            start_selection = None
-            end_selection = None
+            start_selection = -1
+            end_selection = -1
             is_deselecting = False
             draw_screen(indexed_items, highlights)
     def cursor_down():
@@ -1232,10 +1028,10 @@ def list_picker(
                 user_settings = ""
 
         elif check_key("move_column_left", key, keys_dict):
-            move_column(-1)
+            items, header, sort_column, column_widths = move_column(items, header, -1, sort_column, column_widths)
 
         elif check_key("move_column_right", key, keys_dict):
-            move_column(1)
+            items, header, sort_column, column_widths = move_column(items, header, 1, sort_column, column_widths)
         elif check_key("cursor_down", key, keys_dict):
             page_turned = cursor_down()
             if not page_turned: clear_screen = False
@@ -1263,7 +1059,7 @@ def list_picker(
             if len(indexed_items) > 0:
                 item_index = indexed_items[cursor_pos][0]
                 selected_count = sum(selections.values())
-                if max_selected == None or selected_count >= max_selected:
+                if max_selected == -1 or selected_count >= max_selected:
                     toggle_item(item_index)
             cursor_down()
         elif check_key("select_all", key, keys_dict):  # Select all (m or ctrl-a)
@@ -1512,8 +1308,8 @@ def list_picker(
             # nonlocal highlights
 
             if is_selecting or is_deselecting:
-                start_selection = None
-                end_selection = None
+                start_selection = -1
+                end_selection = -1
                 is_selecting = False
                 is_deselecting = False
             elif search_query:

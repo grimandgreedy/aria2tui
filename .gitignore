@@ -3,3 +3,4 @@ data_stuff.py
 *.pyc
 __pycache__/
 oldcode.py
+todo.md
