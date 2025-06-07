@@ -87,7 +87,6 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "centre_in_terminal": True,
         "centre_in_cols": False,
         "paginate": paginate,
-        "selections": {},
     }
     downloads_data = {
         "top_gap": 0,
@@ -105,7 +104,6 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "get_data_startup": True,
         "timer": 1,
         "paginate": paginate,
-        "selections": {},
     }
     dl_option_data = {
         "top_gap": 0,
@@ -116,7 +114,6 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "require_option": [False if x[0] != "changePosition" else True for x in download_options],
         "header": [f"Select operation"],
         "paginate": paginate,
-        "selections": {},
     }
     while True:
         downloads_data = {key: val for key, val in downloads_data.items() if key not in ["items", "indexed_items"]}

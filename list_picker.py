@@ -21,7 +21,7 @@ from typing import Callable, Optional, Tuple
 
 def list_picker(
         stdscr: curses.window, 
-        items: list[list[str]] = [],
+        items: list = [],
         cursor_pos: int = 0,
         colours: dict = {},
         max_selected: int = -1,
@@ -47,7 +47,7 @@ def list_picker(
         current_page : int = 0,
         is_selecting : bool = False,
         is_deselecting : int = False,
-        start_selection: int = -1,
+        start_selection: Optional[int] = -1,
         end_selection: Optional[int] = -1,
         user_opts : str = "",
         user_settings : str = "",
@@ -207,9 +207,8 @@ def list_picker(
 
         return submenu_win
 
-    def draw_screen(indexed_items: list = [], highlights: list[dict] = [], clear: bool = True) -> None:
-        """ Draw the screen. """
-        # nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row
+    def draw_screen(indexed_items: list = [], highlights: list[dict] = {}, clear: bool = True) -> None:
+        nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row
 
         if clear:
             stdscr.erase()
@@ -306,27 +305,33 @@ def list_picker(
                 stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+2))
             # Highlight the whole string of the selected rows
             if highlight_full_row:
-                # Visually deslected
-                if is_deselecting and start_selection >= idx >= cursor_pos or is_deselecting and start_selection <= idx <= cursor_pos:
-                    stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
-                # Already selected
-                elif selections[item[0]]:
+                if selections[item[0]]:
                     stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
                 # Visually selected
-                elif is_selecting and start_selection <= idx <= cursor_pos or is_selecting and start_selection >= idx >= cursor_pos:
+                if is_selecting and start_selection <= idx <= cursor_pos:
+                    stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
+                elif is_selecting and start_selection >= idx >= cursor_pos:
+                    stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
+                # Visually deslected
+                if is_deselecting and start_selection >= idx >= cursor_pos:
+                    stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
+                elif is_deselecting and start_selection <= idx <= cursor_pos:
                     stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+1))
 
             # Highlight the first char of the selected rows
             else:
-                # Visually deslected
-                if is_deselecting and start_selection >= idx >= cursor_pos or is_deselecting and start_selection <= idx <= cursor_pos:
-                    stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+10))
-                # Already selected
-                elif selections[item[0]]:
+                if selections[item[0]]:
                     stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
                 # Visually selected
-                elif is_selecting and start_selection <= idx <= cursor_pos or is_selecting and start_selection >= idx >= cursor_pos:
+                if is_selecting and start_selection <= idx <= cursor_pos:
                     stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
+                elif is_selecting and start_selection >= idx >= cursor_pos:
+                    stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+1))
+                # Visually deslected
+                if is_deselecting and start_selection >= idx >= cursor_pos:
+                    stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+10))
+                elif is_deselecting and start_selection <= idx <= cursor_pos:
+                    stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+10))
 
             if not highlights_hide:
                 for highlight in highlights:
@@ -407,21 +412,21 @@ def list_picker(
             infobox(stdscr, message=infobox_items)
             stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
 
-    def initialise_variables(items: list[list[str]], header: list[str], selections: dict[int, bool], indexed_items: list[Tuple[int, list[list[str]]]] , columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=False):
+    def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=False):
         """ Initialise the variables that keep track of the data. """
         if get_data and refresh_function != None:
-            items[:], header[:] = refresh_function()
+            items, header = refresh_function()
 
-        if items == []: items[:] = [[]]
+        if items == []: items = [[]]
         ## Ensure that items is a List[List[Str]] object
         if not isinstance(items[0], list):
-            items[:] = [[item] for item in items]
-        items[:] = [[str(cell) for cell in row] for row in items]
+            items = [[item] for item in items]
+        items = [[str(cell) for cell in row] for row in items]
 
 
         # Ensure that header is of the same length as the rows
         if header and len(header) != len(items[0]):
-            header[:] = [str(header[i]) if i < len(header) else "" for i in range(len(items[0]))]
+            header = [str(header[i]) if i < len(header) else "" for i in range(len(items[0]))]
 
         # Constants
         # DEFAULT_ITEMS_PER_PAGE = os.get_terminal_size().lines - top_gap*2-2-int(bool(header))
@@ -435,26 +440,28 @@ def list_picker(
 
         # Initial states
         if len(selections) != len(items):
-            selections.update({i : False if i not in selections else bool(selections[i]) for i in range(len(items))})
+            selections = {i : False if i not in selections else bool(selections[i]) for i in range(len(items))}
         h, w = stdscr.getmaxyx()
         items_per_page = h - top_space-int(bool(header)) - 3*int(bool(show_footer))
-        indexed_items[:] = list(enumerate(items))
+        indexed_items = list(enumerate(items))
         column_widths = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
         if require_option == []:
-            require_option[:] = [False for x in indexed_items]
+            require_option = [False for x in indexed_items]
 
         if len(items)>0 and len(columns_sort_method) < len(items[0]):
-            columns_sort_method[:] = columns_sort_method + [0 for i in range(len(items[0])-len(columns_sort_method))]
+            columns_sort_method = columns_sort_method + [0 for i in range(len(items[0])-len(columns_sort_method))]
         if len(items)>0 and len(sort_reverse) < len(items[0]):
-            sort_reverse[:] = sort_reverse + [False for i in range(len(items[0])-len(sort_reverse))]
+            sort_reverse = sort_reverse + [False for i in range(len(items[0])-len(sort_reverse))]
         if len(items)>0 and len(editable_columns) < len(items[0]):
-            editable_columns[:] = editable_columns + [False for i in range(len(items[0])-len(editable_columns))]
+            editable_columns = editable_columns + [False for i in range(len(items[0])-len(editable_columns))]
+        if sort_reverse == [] and len(items) > 0:
+            sort_reverse = [False for i in items[0]]
 
         # If a filter is passed then refilter
         if filter_query:
             # prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
             # prev_index = indexed_items[cursor_pos][0] if len(indexed_items)>0 else 0
-            indexed_items[:] = filter_items(items, indexed_items, filter_query)
+            indexed_items = filter_items(items, indexed_items, filter_query)
             if cursor_pos in [x[0] for x in indexed_items]: cursor_pos = [x[0] for x in indexed_items].index(cursor_pos)
             else: cursor_pos = 0
         # If a sort is passed
@@ -469,21 +476,20 @@ def list_picker(
 
         # Adjust variables to ensure correctness if errors
         ## Move to a selectable row (if applicable)
-        if len(items) <= len(unselectable_indices): unselectable_indices[:] = []
+        if len(items) <= len(unselectable_indices): unselectable_indices = []
         new_pos = (cursor_pos)%len(items)
         while new_pos in unselectable_indices and new_pos != cursor_pos:
             new_pos = (new_pos + 1) % len(items)
 
         assert new_pos < len(items)
         cursor_pos = new_pos
-        return cursor_pos, number_columns, filter_query, max_column_width, items_per_page, column_widths, SORT_METHODS, h, w
+        return items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns
 
-    cursor_pos, number_columns, filter_query, max_column_width, items_per_page, column_widths, SORT_METHODS, h, w = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=get_data_startup)
+    items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=get_data_startup)
 
     draw_screen(indexed_items, highlights)
     
     def get_function_data():
-        """ Return a dict with the data to restart the function. """
         function_data = {
             "selections": selections,
             "items_per_page":       items_per_page,
@@ -544,16 +550,19 @@ def list_picker(
 
 
 
-    def delete_entries(items: list[list[str]], indexed_items: list[Tuple[int, list[list[str]]]], selections: dict):
+    def delete_entries():
+        nonlocal indexed_items, selections, items
         # Remove selected items from the list
         selected_indices = [index for index, selected in selections.items() if selected]
         if not selected_indices:
             # Remove the currently focused item if nothing is selected
             selected_indices = [indexed_items[cursor_pos][0]]
 
-        items[:] = [item for i, item in enumerate(items) if i not in selected_indices]
-        indexed_items[:] = list([(i, item) for i, item in enumerate(items)])
-        selections.update({i:False for i in range(len(indexed_items))})
+        items = [item for i, item in enumerate(items) if i not in selected_indices]
+        indexed_items = [(i, item) for i, item in enumerate(items)]
+        selections = {i:False for i in range(len(indexed_items))}
+        draw_screen(indexed_items, highlights)
+
 
     def choose_option(stdscr: curses.window, options=[], field_name="Input", x=0, y=0, literal=False, colours_start=0):
         """
@@ -975,7 +984,7 @@ def list_picker(
                 # items = f(*args, **kwargs)
 
                 items, header = refresh_function()
-                cursor_pos, number_columns, filter_query, max_column_width, items_per_page, column_widths, SORT_METHODS, h, w = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=True)
+                items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=True)
 
                 initial_time = time.time()
                 draw_screen(indexed_items, highlights, clear=False)
@@ -1168,7 +1177,7 @@ def list_picker(
             copy_selected_rows_to_clipboard(items, selections)
             notification(stdscr, f"{sum(selections.values())} full rows copied to clipboard", colours_end=colours_end)
         elif check_key("delete", key, keys_dict):  # Delete key
-            delete_entries(items, indexed_items, selections)
+            delete_entries()
         elif check_key("increase_lines_per_page", key, keys_dict):
             items_per_page += 1
             draw_screen(indexed_items, highlights)
