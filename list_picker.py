@@ -11,13 +11,17 @@ from wcwidth import wcwidth, wcswidth
 from utils import *
 from sorting import *
 from filtering import *
-from data_stuff import test_items, test_highlights, test_header
 from input_field import *
 from clipboard_operations import *
 from searching import search
 from help_screen import help_lines
 from keys import keys_dict, notification_keys
 from typing import Callable, Optional, Tuple
+
+try:
+    from data_stuff import test_items, test_highlights, test_header
+except:
+    test_items, test_highlights, test_header = [[]], [], []
 
 def list_picker(
         stdscr: curses.window, 
