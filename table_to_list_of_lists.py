@@ -5,12 +5,15 @@ import pandas as pd
 from openpyxl import load_workbook
 from io import StringIO
 import argparse
+from typing import Tuple, Iterable, Optional
 
-def read_file_content(file_path):
+def read_file_content(file_path: str) -> str:
+    """ Read lines from file. """
     with open(file_path, 'r') as file:
         return file.read()
 
-def strip_whitespace(item):
+def strip_whitespace(item: Iterable) -> Iterable:
+    """ Strip whitespace from string or from list of strings. """
     if isinstance(item, list):
         return [strip_whitespace(sub_item) for sub_item in item]
     elif isinstance(item, str):
@@ -20,11 +23,16 @@ def strip_whitespace(item):
 
 
 
-def table_to_list(input_arg, delimiter='\t', file_type=None):
+def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=None) -> list[list[str]]:
+    """ 
+    Convert data string to list. The input_arg
+    Currently accepts: csv, tsv, json, xlsx, ods
+    """
     table_data = []
 
-    # Helper function to handle TSV and CSV using csv.reader
-    def parse_csv_like(data, delimiter):
+    def parse_csv_like(data:str, delimiter:str) -> list[list[str]]:
+        """ Convert value-separated data (e.g., CSV or TSV) to list of lists. """
+
         try:
             reader = csv.reader(StringIO(data), delimiter=delimiter)
             return [row for row in reader]
@@ -32,12 +40,10 @@ def table_to_list(input_arg, delimiter='\t', file_type=None):
             print(f"Error reading CSV-like input: {e}")
             return []
 
-    def csv_string_to_list(csv_string):
-        # Use StringIO to treat the string as a file
+    def csv_string_to_list(csv_string:str) -> list[list[str]]:
+        """ Convert csv string to list of lists using csv.reader. """
         f = StringIO(csv_string)
-        # Use csv.reader to parse the CSV
         reader = csv.reader(f, skipinitialspace=True)
-        # Convert the reader to a list of lists
         return [row for row in reader]
 
     if file_type == 'csv' or delimiter in [',']:
@@ -140,7 +146,6 @@ def table_to_list(input_arg, delimiter='\t', file_type=None):
     else:
         input_data = read_file_content(input_arg)
     
-    # Default to handling as a generic text table with delimiter
     table_data = parse_csv_like(input_data, delimiter)
 
     return table_data

@@ -1,7 +1,9 @@
 import re
 from datetime import datetime
+from typing import Tuple
 
-def parse_numerical(value):
+def parse_numerical(value: str) -> float:
+    """ Match first number in string and return it as a float. If not number then return INF. """
     try:
         match = re.search(r'(\d+(\.\d+)?)', value)
         if match:
@@ -10,8 +12,8 @@ def parse_numerical(value):
     except ValueError:
         return float('inf')
 
-# Helper function to parse human-readable sizes
-def parse_size(value):
+def parse_size(value: str) -> float:
+    """ Match size in string and return it as a float. If no match then return INF."""
     size_units = {
         'B': 1,
         'KB': 1024,
@@ -35,7 +37,7 @@ def parse_size(value):
         return number * size_units.get(unit, 1)
     return float('inf')  # Default for non-size values
 
-def time_to_seconds(time_str):
+def time_to_seconds(time_str: str) -> float:
     """Convert a time string to total seconds."""
     if time_str.strip().upper() == "INF":
         return float('inf')  # Assign infinity for "INF"
@@ -69,7 +71,8 @@ def time_to_seconds(time_str):
 
     return total_seconds
 
-def time_sort(time_str):
+def time_sort(time_str: str) -> datetime:
+    """ If there is a date in the string then convert it to strptime. If no match then return 00:00 (as datetime)."""
     formats = [
         "%Y-%m-%d %H:%M",     # "2021-03-16 15:30"
         "%Y-%m-%d",           # "2021-03-16"
@@ -91,7 +94,8 @@ def time_sort(time_str):
     
     return datetime.strptime("00:00", "%H:%M")
 
-def sort_items(indexed_items, sort_method=0, sort_column=0, sort_reverse=False):
+def sort_items(indexed_items: list[Tuple[int,list[str]]], sort_method:int=0, sort_column:int=0, sort_reverse:bool=False):
+    """ Sort indexed_items based on the sort_method on sort_column. """
     SORT_METHODS = ['original', 'lexical', 'LEXICAL', 'alphanum', 'ALPHANUM', 'time', 'numerical', 'size']
     if sort_column is not None:
         try:

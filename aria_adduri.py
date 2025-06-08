@@ -6,6 +6,7 @@ import requests
 import tempfile
 import subprocess
 import re
+from typing import Callable, Optional, Tuple
 
 def addDownloadFull(uri: str, out:str = str, token: str = "", url: str = "http://localhost", port: int = 6800, queue_position: int = 0, cookies_file: str = "", dir: str = "", proxy: str = str, prompt: bool = False) -> None:
     """
@@ -59,7 +60,7 @@ def addDownloadFull(uri: str, out:str = str, token: str = "", url: str = "http:/
     else:
         print(f"Success! Download ID: {response_json['result']}")
 
-def parse_string_to_list(s: str):
+def parse_string_to_list(s: str) -> list[int]:
     """ Turn a string containing a list of integers ("5,3,1,3,222") or a slice (e.g., "4:199") into a python list. """
     # Use regular expressions to find all lists and slices
     pattern = r'\[([^]]*)\]'
@@ -78,7 +79,7 @@ def parse_string_to_list(s: str):
     
     return result
 
-def argstring_to_argdict(argstring: str):
+def argstring_to_argdict(argstring: str) -> dict:
     r"""
     desc: takes an argstring (see below for examples) as input and returns a dictionary for each arg.
 
@@ -104,7 +105,7 @@ def argstring_to_argdict(argstring: str):
         argdict[c] = l
     return argdict
 
-def kitty_prompt(name: str, url: str) -> (dict, list[str]):
+def kitty_prompt(name: str, url: str) -> Tuple[dict, str, list[str]]:
     """ Open a nvim buffer and return the lines of the saved buffer. """
     s = f"!!\n{name}\n{url}"
     with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:

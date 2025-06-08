@@ -1,7 +1,26 @@
 import re
+from typing import Tuple
 
-def filter_items(items, indexed_items, query):
-    def apply_filter(row):
+def filter_items(items: list[list[str]], indexed_items: list[Tuple[int, list[str]]], query: str) -> list[Tuple[int, list[str]]]:
+    """ 
+    Filter items based on the query.
+
+    Accepts:
+        regular expressions
+        --# to specify column to match
+        --i to specify case-sensitivity (it is case insensitive by default)
+        --v to specify inverse match
+
+    E.g.,
+
+        --1 query       matches query in the 1 column
+
+
+    Returns indexed_items, which is a list of tuples; each tuple consists of the index and the data of the matching row in the original items list. 
+    """
+
+    def apply_filter(row: list[str], filters: dict) -> bool:
+        """ Checks if row matches the filter. """
         for col, value in filters.items():
             if case_sensitive or (value != value.lower()):
                 pattern = re.compile(value)
@@ -21,52 +40,44 @@ def filter_items(items, indexed_items, query):
 
         return True
 
-    filters = {}
+    def tokenize(query:str) -> dict:
+        """ Convert query into dict consisting of filters. """
+        filters = {}
+
+        # tokens = re.split(r'(\s+--\d+|\s+--i)', query)
+        tokens = re.split(r'((\s+|^)--\w)', query)
+        tokens = [token.strip() for token in tokens if token.strip()]  # Remove empty tokens
+        i = 0
+        while i < len(tokens):
+            token = tokens[i]
+            if token:
+                if token.startswith("--"):
+                    flag = token
+                    if flag == '--v':
+                        invert_filter = True 
+                        i += 1
+                    elif flag == '--i':
+                        case_sensitive = True
+                        i += 1
+                    else:
+                        if i+1 >= len(tokens):
+                            print("Not enough args")
+                            break
+                        col = int(flag[2:])
+                        arg = tokens[i+1].strip()
+                        filters[col] = arg
+                        i+=2
+                else:
+                    filters[-1] = token
+                    i += 1
+            else:
+                i += 1
+        return filters
+
     invert_filter = False
     case_sensitive = False
 
-    # tokens = re.split(r'(\s+--\d+|\s+--i)', query)
-    tokens = re.split(r'((\s+|^)--\w)', query)
-    tokens = [token.strip() for token in tokens if token.strip()]  # Remove empty tokens
-    i = 0
-    while i < len(tokens):
-        token = tokens[i]
-        if token:
-            if token.startswith("--"):
-                flag = token
-                if flag == '--v':
-                    invert_filter = True 
-                    i += 1
-                elif flag == '--i':
-                    case_sensitive = True
-                    i += 1
-                else:
-                    if i+1 >= len(tokens):
-                        print("Not enough args")
-                        break
-                    col = int(flag[2:])
-                    arg = tokens[i+1].strip()
-                    filters[col] = arg
-                    i+=2
-            else:
-                filters[-1] = token
-                i += 1
-        else:
-            i += 1
+    filters = tokenize(query)
 
-
-
-    indexed_items = [(i, item) for i, item in enumerate(items) if apply_filter(item)]
+    indexed_items = [(i, item) for i, item in enumerate(items) if apply_filter(item, filters)]
     return indexed_items
-
-
-    # after_count = len(indexed_items)
-    # number_of_pages_after = (len(indexed_items) + items_per_page - 1) // items_per_page
-    # cursor = (current_page * items_per_page) + current_row
-    # if cursor > after_count:
-    #     cursor = 0
-    #     # current_row = 0
-    #     current_page  = number_of_pages_after - 1
-    #     current_row = (len(indexed_items) +items_per_page - 1) % items_per_page
-
-    # draw_screen()

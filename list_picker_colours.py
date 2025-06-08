@@ -1,9 +1,13 @@
 import curses
-def get_colours(pick=0):
-    # Define custom colors
-    forall = {
 
-    }
+"""
+
+Define colour options for list_picker, help, and notification
+
+"""
+
+def get_colours(pick:int=0) -> dict[str, int]:
+    """ Define colour options for list_picker. """
     colours = [
     {
         'background': 232,

@@ -25,7 +25,7 @@ except:
 
 def list_picker(
         stdscr: curses.window, 
-        items: list = [],
+        items: list = [[]],
         cursor_pos: int = 0,
         colours: dict = {},
         max_selected: int = -1,
@@ -45,14 +45,15 @@ def list_picker(
         highlights: list =[],
         highlights_hide: bool =False,
         number_columns: bool =True,
+        column_widths = [],
 
 
         current_row : int = 0,
         current_page : int = 0,
         is_selecting : bool = False,
         is_deselecting : int = False,
-        start_selection: Optional[int] = -1,
-        end_selection: Optional[int] = -1,
+        start_selection: int = -1,
+        end_selection: int = -1,
         user_opts : str = "",
         user_settings : str = "",
         separator : str = "    ",
@@ -61,7 +62,7 @@ def list_picker(
         search_index : int = 0,
         filter_query : str = "",
         hidden_columns: set = set(),
-        indexed_items: list = [],
+        indexed_items: list[list[str]] = [[]],
         scroll_bar : int = True,
 
         selections: dict = {},
@@ -97,7 +98,7 @@ def list_picker(
         
 ) -> Tuple[list[int], str, dict]:
     """
-    A list picker using ncurses. Pass a list of lists and a header (optional) and it will display them as tabulated data.
+    A list picker implemented using curses. Pass a list of lists and a header (optional) and it will display them as tabulated data.
 
 
     Returns:
@@ -112,7 +113,8 @@ def list_picker(
 
     curses.set_escdelay(25)
 
-    def move_column(items: list[list[str]], header: list[str], direction: int, sort_column: int, column_widths: list[int]) -> Tuple[list[list[str]], list[str], int, list[int]]:
+    def move_column(direction: int) -> None:
+        nonlocal items, header, column_widths, sort_column
         """ 
         Cycles the column $direction places. 
         E.g., If $direction == -1 and the sort column is 3, then column 3 will swap with column 2
@@ -144,10 +146,9 @@ def list_picker(
 
         # Update current column index
         sort_column = new_index
-        return items, header, sort_column, column_widths
 
 
-    def set_colours(colours: dict, start: int = 0):
+    def set_colours(colours: dict, start: int = 0) -> None:
         """ Initialise curses colour pairs using dictionary with colour keys. """
 
         if not colours: return None
@@ -211,8 +212,13 @@ def list_picker(
 
         return submenu_win
 
-    def draw_screen(indexed_items: list = [], highlights: list[dict] = {}, clear: bool = True) -> None:
-        nonlocal filter_query, search_query, search_count, search_index, column_widths, start_selection, is_deselecting, is_selecting, paginate, title, modes, cursor_pos, hidden_columns, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row
+    def draw_screen(indexed_items: list[list[str]], highlights: list[dict] = [{}], clear: bool = True) -> None:
+        """ Draw the list_picker screen. """
+        nonlocal items, header
+        nonlocal filter_query, search_query, search_count, search_index 
+        nonlocal column_widths, hidden_columns 
+        nonlocal start_selection, is_deselecting, is_selecting
+        nonlocal paginate, title, modes, cursor_pos, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row
 
         if clear:
             stdscr.erase()
@@ -416,8 +422,15 @@ def list_picker(
             infobox(stdscr, message=infobox_items)
             stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
 
-    def initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=False):
+    def initialise_variables(get_data: bool = False) -> None:
         """ Initialise the variables that keep track of the data. """
+        nonlocal items, indexed_items, header, selections, indexed_items, unselectable_indices, editable_columns
+        nonlocal filter_query, search_query, search_count, search_index
+        nonlocal columns_sort_method, hidden_columns, sort_reverse
+        nonlocal refresh_function
+        nonlocal start_selection, is_deselecting, is_selecting
+        nonlocal paginate, title, modes, cursor_pos, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row, require_option, number_columns, max_column_width
+
         if get_data and refresh_function != None:
             items, header = refresh_function()
 
@@ -487,13 +500,14 @@ def list_picker(
 
         assert new_pos < len(items)
         cursor_pos = new_pos
-        return items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns
+        return SORT_METHODS, h, w, items_per_page
 
-    items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=get_data_startup)
+    SORT_METHODS, h, w, items_per_page = initialise_variables(get_data=True)
 
     draw_screen(indexed_items, highlights)
     
-    def get_function_data():
+    def get_function_data() -> dict:
+        """ Returns a dict of the main variables needed to restore the state of list_pikcer. """
         function_data = {
             "selections": selections,
             "items_per_page":       items_per_page,
@@ -547,6 +561,7 @@ def list_picker(
             "centre_in_terminal":   centre_in_terminal,
             "centre_in_cols":       centre_in_cols,
             "highlight_full_row":   highlight_full_row,
+            "column_widths":        column_widths,
             
         }
         return function_data
@@ -554,7 +569,8 @@ def list_picker(
 
 
 
-    def delete_entries():
+    def delete_entries() -> None:
+        """ Delete entries from view. """
         nonlocal indexed_items, selections, items
         # Remove selected items from the list
         selected_indices = [index for index, selected in selections.items() if selected]
@@ -568,7 +584,7 @@ def list_picker(
         draw_screen(indexed_items, highlights)
 
 
-    def choose_option(stdscr: curses.window, options=[], field_name="Input", x=0, y=0, literal=False, colours_start=0):
+    def choose_option(stdscr: curses.window, options: list =[str], field_name: str = "Input", x:int=0, y:int=0, literal:bool=False, colours_start:int=0) -> None:
         """
         Display input field at x,y
 
@@ -578,6 +594,7 @@ def list_picker(
             field_name (str): The text to be displayed at the start of the text input
             x (int): prompt begins at (x,y) in the screen given
             y (int): prompt begins at (x,y) in the screen given
+            colours_start (bool): start index of curses init_pair.
 
         ---Returns
             usrtxt, return_code
@@ -614,70 +631,8 @@ def list_picker(
         return {}
 
 
-    def open_submenu(stdscr: curses.window, user_opts):
-        h, w = stdscr.getmaxyx()
-        submenu_win = curses.newwin(6, 50, h // 2 - 2, w // 2 - 25)
-        submenu_win.box()
-        submenu_win.addstr(0, 2, "Select an option", curses.A_BOLD)
-        submenu_items = ["green", "blue", "red", "purple", "orange", "gray"]
-        current_submenu_row = 0
-        submenu_page = 0
-        items_per_page_submenu = 4
-        total_pages_submenu = (len(submenu_items) + items_per_page_submenu - 1) // items_per_page_submenu
-
-        while True:
-            submenu_win.clear()
-            submenu_win.box()
-            submenu_win.addstr(0, 2, "Select an option", curses.A_BOLD)
-            start = submenu_page * items_per_page_submenu
-            end = min(start + items_per_page_submenu, len(submenu_items))
-
-            for i in range(start, end):
-                if i == start + current_submenu_row:
-                    submenu_win.addstr(i - start + 1, 2, f"> {submenu_items[i]}", curses.A_REVERSE)
-                else:
-                    submenu_win.addstr(i - start + 1, 2, f"  {submenu_items[i]}")
-
-            # Show page numbers
-            submenu_win.addstr(4, 40, f"Page {submenu_page + 1}/{total_pages_submenu}", curses.color_pair(colours_start+7))
-            submenu_win.refresh()
-
-            key = submenu_win.getch()
-
-            if key == ord('j'):
-                if current_submenu_row < min(items_per_page_submenu - 1, len(submenu_items) - start - 1):
-                    current_submenu_row += 1
-                elif submenu_page < total_pages_submenu - 1:
-                    submenu_page += 1
-                    current_submenu_row = 0
-
-            elif key == ord('k'):
-                if current_submenu_row > 0:
-                    current_submenu_row -= 1
-                elif submenu_page > 0:
-                    submenu_page -= 1
-                    current_submenu_row = items_per_page_submenu - 1
-
-            elif key == ord('n'):
-                if submenu_page < total_pages_submenu - 1:
-                    submenu_page += 1
-
-
-            elif key == ord('p'):
-                if submenu_page > 0:
-                    submenu_page -= 1
-
-            elif key == 27:  # ESC key
-                break
-
-            elif key == 10:  # Enter key
-                choice = submenu_items[start + current_submenu_row]
-                user_opts = user_opts + choice
-                stdscr.addstr(h - 1, 50, f"Selected: {choice}")
-                stdscr.refresh()
-                break
-
-    def notification(stdscr: curses.window, message="", colours_end=0, duration=4):
+    def notification(stdscr: curses.window, message: str="", colours_end: int=0, duration:int=4) -> None:
+        """ Notification box. """
         notification_width, notification_height = 50, 7
         message_width = notification_width-5
 
@@ -713,98 +668,19 @@ def list_picker(
             draw_screen(indexed_items, highlights)
         # set_colours(colours=get_colours(0))
 
-    def notification2(stdscr: curses.window, message="", duration=4):
-
-        notification_width, notification_height = 50, 7
-        message_width = notification_width-8
-
-        h, w = stdscr.getmaxyx()
-
-        submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
-
-        if not message: message = "!!"
-        submenu_items = [message[i*message_width:(i+1)*message_width] for i in range(len(message)//message_width+1)]
-
-        current_submenu_row = 0
-        submenu_page = 0
-        items_per_page_submenu = 3
-        total_pages_submenu = (len(submenu_items) + items_per_page_submenu - 1) // items_per_page_submenu
-
-        while True:
-            submenu_win.clear()
-            submenu_win.box()
-            # submenu_win.bkgd(curses.color_pair(colours_start+(1)))
-            submenu_win.addstr(0, 2, "Notification:", curses.color_pair(colours_start+5) | curses.A_BOLD)
-            submenu_win.addstr(notification_height-1, 2, "ESC, RET, q to dismiss", curses.color_pair(colours_start+5) | curses.A_BOLD)
-            start = max(min(current_submenu_row, len(submenu_items)-items_per_page_submenu), 0)
-            end = min(current_submenu_row+items_per_page_submenu, len(submenu_items)-1)
-
-            for i in range(start, end):
-                if i == start + current_submenu_row or True == True:
-                    submenu_win.addstr(i - start + 2, 2, f"{submenu_items[i]}", curses.A_REVERSE)
-                else:
-                    submenu_win.addstr(i - start + 2, 2, f"  {submenu_items[i]}")
-
-            # Show page numbers
-            # submenu_win.addstr(notification_height-1, notification_width-10, f"Page {submenu_page + 1}/{total_pages_submenu}", curses.color_pair(colours_start+4))
-            submenu_win.addstr(notification_height-1, notification_width-10, f"Row {current_submenu_row + 1}/{len(submenu_items)}", curses.color_pair(colours_start+4))
-            submenu_win.refresh()
-
-
-            key = submenu_win.getch()
-
-            if key == ord('j'):
-                current_submenu_row = min(current_submenu_row+1, len(submenu_items)-1)
-                # if current_submenu_row < min(items_per_page_submenu - 1, len(submenu_items) - start - 1):
-                #     current_submenu_row += 1
-                # elif submenu_page < total_pages_submenu - 1:
-                #     submenu_page += 1
-                #     current_submenu_row = 0
-
-            elif key == ord('k'):
-                if current_submenu_row > 0:
-                    current_submenu_row -= 1
-                elif submenu_page > 0:
-                    submenu_page -= 1
-                    current_submenu_row = items_per_page_submenu - 1
-
-            elif key == ord('n'):
-                if submenu_page < total_pages_submenu - 1:
-                    submenu_page += 1
-
-
-            elif key == ord('p'):
-                if submenu_page > 0:
-                    submenu_page -= 1
-
-            elif key in [10, 27, ord('q')]:  # Enter, escape or q
-                break
-            elif key == curses.KEY_RESIZE:  # Terminal resize signal
-                submenu_win.clear()
-                submenu_win.refresh()
-                del submenu_win
-                h, w = stdscr.getmaxyx()
-                stdscr.clear()
-                stdscr.refresh()
-                draw_screen(indexed_items, highlights)
-                submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
-                # h, w = stdscr.getmaxyx()
-                # top_space = top_gap
-                # if title: top_space+=1
-                # if display_modes: top_space+=1
-                # items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
-
-    
-    def toggle_column_visibility(col_index):
+    def toggle_column_visibility(col_index:int) -> None:
+        """ Toggle the visibility of the column at col_index. """
         if 0 <= col_index < len(items[0]):
             if col_index in hidden_columns:
                 hidden_columns.remove(col_index)
             else:
                 hidden_columns.add(col_index)
 
-    def apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide, centre_in_terminal, centre_in_cols):
+    def apply_settings() -> None:
+        """ The users settings will be stored in the user_settings variable. This function applies those settings. """
         
-        # nonlocal user_settings, highlights, sort_column, cursor_pos, columns_sort_method
+        nonlocal user_settings, highlights, sort_column, columns_sort_method
+        nonlocal auto_refresh, cursor_pos, centre_in_cols, centre_in_terminal, highlights_hide
         # settings= usrtxt.split(' ')
         # split settings and appy them
         """
@@ -820,7 +696,7 @@ def list_picker(
                 if len(setting) == 0: continue
 
                 if setting[0] == "!" and len(setting) > 1:
-                    if isinstance(setting[1], int):
+                    if setting[1:].isnumeric():
                         cols = setting[1:].split(",")
                         for col in cols:
                             toggle_column_visibility(int(col))
@@ -848,24 +724,26 @@ def list_picker(
                         toggle_column_visibility(int(col))
 
             user_settings = ""
-        return highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide, centre_in_terminal, centre_in_cols
 
-    # Functions for item selection
-    def toggle_item(index):
+    def toggle_item(index: int) -> None:
+        """ Toggle selection of item at index. """
         selections[index] = not selections[index]
         draw_screen(indexed_items, highlights)
 
-    def select_all():
+    def select_all() -> None:
+        """ Select all in indexed_items. """
         for i in range(len(indexed_items)):
             selections[indexed_items[i][0]] = True
         draw_screen(indexed_items, highlights)
 
-    def deselect_all():
+    def deselect_all() -> None:
+        """ Deselect all items in indexed_items. """
         for i in range(len(selections)):
             selections[i] = False
         draw_screen(indexed_items, highlights)
 
-    def handle_visual_selection(selecting=True):
+    def handle_visual_selection(selecting:bool = True) -> None:
+        """ Toggle visual selection or deselection. """
         nonlocal start_selection, end_selection, is_selecting, is_deselecting, cursor_pos
         if not is_selecting and not is_deselecting:
             # start_selection = indexed_items[current_page * items_per_page + current_row][0]
@@ -900,7 +778,8 @@ def list_picker(
             end_selection = -1
             is_deselecting = False
             draw_screen(indexed_items, highlights)
-    def cursor_down():
+    def cursor_down() -> None:
+        """ Move cursor down. """
         # Returns: whether page is turned
         nonlocal cursor_pos
         new_pos = cursor_pos + 1
@@ -911,7 +790,8 @@ def list_picker(
         cursor_pos = new_pos
         return True
 
-    def cursor_up():
+    def cursor_up() -> None:
+        """ Move cursor up. """
         # Returns: whether page is turned
         nonlocal cursor_pos
         new_pos = cursor_pos - 1
@@ -922,15 +802,19 @@ def list_picker(
         cursor_pos = new_pos
         return True
 
-    def remapped_key(key, val, key_remappings):
-        """
-        if key has been remapped to val in key_remappings
-        """
+    def remapped_key(key: int, val: int, key_remappings: dict) -> bool:
+        """ Check if key has been remapped to val in key_remappings. """
         if key in key_remappings:
             if key_remappings[key] == val or (isinstance(key_remappings[key], list) and val in key_remappings[key]):
                 return True
         return False
-    def check_key(function, key,  keys_dict):
+    def check_key(function: str, key: int,  keys_dict: dict) -> bool:
+        """
+        Check if $key is assigned to $function in the keys_dict. 
+            Allows us to redefine functions to different keys in the keys_dict.
+
+        E.g., keys_dict = { $key, "help": ord('?') }, 
+        """
         if function in keys_dict and key in keys_dict[function]:
             return True
         return False
@@ -988,7 +872,7 @@ def list_picker(
                 # items = f(*args, **kwargs)
 
                 items, header = refresh_function()
-                items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, items_per_page, column_widths, unselectable_indices, SORT_METHODS, h, w, editable_columns = initialise_variables(items, header, selections, indexed_items, columns_sort_method, sort_reverse, cursor_pos, require_option, number_columns, filter_query, max_column_width, unselectable_indices, editable_columns, refresh_function, get_data=True)
+                SORT_METHODS, h, w, items_per_page = initialise_variables(get_data=True)
 
                 initial_time = time.time()
                 draw_screen(indexed_items, highlights, clear=False)
@@ -1028,14 +912,14 @@ def list_picker(
             )
             if return_val:
                 user_settings = usrtxt
-                highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide, centre_in_terminal, centre_in_cols = apply_settings(user_settings, highlights, sort_column, cursor_pos, columns_sort_method, auto_refresh, highlights_hide, centre_in_terminal, centre_in_cols)
+                apply_settings()
                 user_settings = ""
 
         elif check_key("move_column_left", key, keys_dict):
-            items, header, sort_column, column_widths = move_column(items, header, -1, sort_column, column_widths)
+            move_column(direction=-1)
 
         elif check_key("move_column_right", key, keys_dict):
-            items, header, sort_column, column_widths = move_column(items, header, 1, sort_column, column_widths)
+            move_column(direction=1)
         elif check_key("cursor_down", key, keys_dict):
             page_turned = cursor_down()
             if not page_turned: clear_screen = False
@@ -1353,7 +1237,6 @@ def list_picker(
             if return_val:
                 user_opts = usrtxt
         elif check_key("opts_select", key, keys_dict):
-            # open_submenu(stdscr, user_opts)
             s = choose_option(stdscr)
             if user_opts.strip(): user_opts += " "
             user_opts += " ".join(s.values())
@@ -1450,6 +1333,7 @@ def list_picker(
 
 
 def parse_arguments():
+    """ Parse arguments. """
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')
     parser.add_argument('-i', dest='file', help='File containing the table to be converted')
     parser.add_argument('--stdin', action='store_true', help='Table passed on stdin')
@@ -1465,7 +1349,7 @@ def parse_arguments():
     elif args.stdin2:
         input_arg = '--stdin2'
     else:
-        print("Error: Please provide input file or use --stdin option.")
+        print("Error: Please provide input file or use --stdin flag.")
         return None, None
         # sys.exit(1)
     

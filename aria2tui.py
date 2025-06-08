@@ -21,7 +21,7 @@ from aria2c_utils import *
 from aria2_detailing import highlights, menu_highlights, modes
 from collections.abc import Callable
 
-def begin(stdscr : curses.window, config: dict):
+def begin(stdscr : curses.window, config: dict) -> None:
     """ Initialise data and start application. """
 
     url = config["general"]["url"]
@@ -184,7 +184,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
                 func(**kwargs)
 
 
-def main():
+def main() -> None:
     """ Main function """
     ## Load config
     CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"

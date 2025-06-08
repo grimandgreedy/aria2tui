@@ -1,3 +1,6 @@
+"""
+Lines to be displayed on the help screen.
+"""
 help_lines = [
     ['Navigation:',                     ''],
     ['    Up/Down or k/j',              'Move up/down'],

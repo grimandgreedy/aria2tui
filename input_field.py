@@ -1,8 +1,9 @@
 import curses
+from typing import Tuple
 
-def input_field(stdscr, usrtxt="", field_name="Input", x=0, y=0, literal=False, colours_start=0):
+def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:int=0, y:int=0, colours_start:int=0, literal:bool=False) -> Tuple[str, bool]:
     """
-    Display input field at x,y
+    Display input field at x,y for the user to enter text.
 
     ---Arguments
         stdscr: curses screen
@@ -10,6 +11,9 @@ def input_field(stdscr, usrtxt="", field_name="Input", x=0, y=0, literal=False, 
         field_name (str): The text to be displayed at the start of the text input
         x (int): prompt begins at (x,y) in the screen given
         y (int): prompt begins at (x,y) in the screen given
+        colours_start (int): where to start when initialising the colour pairs with curses.
+        literal: whether to display the repr() of the string; e.g., if we want to display escape sequences literally
+
 
     ---Returns
         usrtxt, return_code
@@ -21,12 +25,6 @@ def input_field(stdscr, usrtxt="", field_name="Input", x=0, y=0, literal=False, 
     cursor = 0
     h, w = stdscr.getmaxyx()
     while True:
-        # stdscr.addstr(h - 2, 50, f"{field_name}: {repr(usrtxt)}", curses.color_pair(colours_start+13))
-        # if usrtxt and cursor != 0:
-        #     stdscr.addstr(h - 2, 50+len(usrtxt)-cursor+1+len("Command: "), f"{usrtxt[-(cursor)]}", curses.color_pair(colours_start+13) | curses.A_REVERSE)
-        # else:
-        #     stdscr.addstr(h - 2, 50-cursor+len(usrtxt)+1+len("Command: "), f" ", curses.color_pair(colours_start+13) | curses.A_REVERSE)
-        # stdscr.addstr(y, x, f"{field_name}: {repr(usrtxt)}", curses.color_pair(colours_start+13))
 
         # Clear background to end of row
         stdscr.addstr(y, x, " "*((w-x)-35), curses.color_pair(colours_start+20))
@@ -57,9 +55,9 @@ def input_field(stdscr, usrtxt="", field_name="Input", x=0, y=0, literal=False, 
 
         key = stdscr.getch()
         if key == 27:                                                           # ESC key
-            return "", 0
+            return "", False
         elif key == 10:                                                         # Enter/return key
-            return usrtxt, 1
+            return usrtxt, True
             # selected_indices = print_selected_indices()
             # if not selected_indices:
             #     selected_indices = [indexed_items[cursor_pos][0]]

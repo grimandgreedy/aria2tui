@@ -1,4 +1,8 @@
 import curses
+"""
+Define key dictionary for controlling list_picker.
+
+"""
 
 keys_dict = {
     "refresh":                          [curses.KEY_F5],
@@ -52,18 +56,18 @@ keys_dict = {
 
 
 notification_keys = {
-    "exit":                     [ord('q'), ord('h'), curses.KEY_ENTER, ord('\n'), ord(' '), 27],
-    "cursor_down":              [ord('j'), curses.KEY_DOWN],
-    "cursor_up":                [ord('k'), curses.KEY_UP],
-    "half_page_up":                [ord('u')],
-    "half_page_down":                [ord('d')],
-    "page_up":                [ord('p'), curses.KEY_PPAGE],
-    "page_down":                [ord('n'), curses.KEY_NPAGE],
-    "cursor_bottom":                [ord('G'), curses.KEY_END],
-    "cursor_top":                [ord('g'), curses.KEY_HOME],
-    "five_up":                [ord('K')],
-    "five_down":                [ord('J')],
-    "redraw_screen":                [12], # Ctrl-l
-    "opts_input":                [ord(':')],
-    "opts_select":                [ord('o')],
+    "exit":                             [ord('q'), ord('h'), curses.KEY_ENTER, ord('\n'), ord(' '), 27],
+    "cursor_down":                      [ord('j'), curses.KEY_DOWN],
+    "cursor_up":                        [ord('k'), curses.KEY_UP],
+    "half_page_up":                     [ord('u')],
+    "half_page_down":                   [ord('d')],
+    "page_up":                          [ord('p'), curses.KEY_PPAGE],
+    "page_down":                        [ord('n'), curses.KEY_NPAGE],
+    "cursor_bottom":                    [ord('G'), curses.KEY_END],
+    "cursor_top":                       [ord('g'), curses.KEY_HOME],
+    "five_up":                          [ord('K')],
+    "five_down":                        [ord('J')],
+    "redraw_screen":                    [12], # Ctrl-l
+    "opts_input":                       [ord(':')],
+    "opts_select":                      [ord('o')],
 }
