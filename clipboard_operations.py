@@ -2,35 +2,32 @@ import pyperclip
 from utils import get_selected_indices, get_selected_values, format_row, format_row_full
 from typing import Tuple
 
-def copy_indices(indexed_items: list[Tuple[int, list[str]]], selections: dict) -> None:
-    """ Copy list of selected indices to clipboard. """
+"""
+representation: python, tab-separated, comma-separated, current view
+rows: selected, all, filtered
+columns: all, not hidden
+"""
+
+def copy_to_clipboard(items: list[list[str]], indexed_items: list[Tuple[int, list[str]]], selections: dict, hidden_columns: set, representation: str="python", copy_hidden_cols: bool = False, separator="\t") -> None:
+    """ 
+    Copy selected items to clipboard.
+
+    representation (str): The representation of the rows that should be copied.
+                            accepted values: python, csv, tsv, current view, custom_sv
+
+    """
     indices = get_selected_indices(indexed_items, selections)
-    pyperclip.copy(', '.join(map(str, indices)))
-
-def copy_values(indexed_items: list[Tuple[int, list[str]]], selections: dict, hidden_columns: list, column_widths:list, separator:str="  ") -> None:
-    """ Copy list of selected values to clipboard. """
-    formatted_values = [format_row(item[1], hidden_columns, column_widths, separator) for item in indexed_items if item[0] in get_selected_indices(indexed_items, selections)]
-    pyperclip.copy('\n'.join(formatted_values))
-
-def copy_full_values(indexed_items: list[Tuple[int, list[str]]], selections: dict, hidden_columns:list=[]) -> None:
-    """ Copy full values of selected entries to clipboard. """
-    selected_indices = get_selected_indices(indexed_items, selections)
-    full_values = [format_row_full(indexed_items[i][1], hidden_columns) for i in selected_indices]
-    pyperclip.copy('\n'.join(full_values))
-
-def copy_all_to_clipboard(items: list[list[str]], hidden_columns: list) -> None:
-    """ Copy all items to clipboard, not including hidden columns. """
-    formatted_items = [[x for i, x in enumerate(item) if i not in hidden_columns] for item in items]
-    pyperclip.copy(repr(formatted_items))
-
-def copy_selected_rows_to_clipboard(items: list[list[str]], selections: dict) -> None:
-    """ Copy selected rows to clipboard as python list. """
-    formatted_items = [[x for i, x in enumerate(item)] for j, item in enumerate(items) if selections[j]] 
-
-    pyperclip.copy(repr(formatted_items))
-
-def copy_selected_visible_rows_to_clipboard(items: list[list[str]], selections: dict, hidden_columns:list=[]) -> None:
-    """ Copy selected visible rows to clipboard as python list. """
-    formatted_items = [[x for i, x in enumerate(item) if i not in hidden_columns] for j, item in enumerate(items) if selections[j]]  # Convert to Python list representation
-
-    pyperclip.copy(repr(formatted_items))
+    rows_to_copy = [item for i, item in enumerate(items) if i in indices]
+    formatted_items = [[cell for i, cell in enumerate(item) if i not in hidden_columns or copy_hidden_cols] for item in rows_to_copy]
+    if representation == "python":
+        pyperclip.copy(repr(formatted_items))
+    elif representation == "tsv":
+        pyperclip.copy("\n".join(["\t".join(row) for row in formatted_items]))
+    elif representation == "csv":
+        pyperclip.copy("\n".join([",".join(row) for row in formatted_items]))
+    elif representation == "custom_sv":
+        # Ensure that escapes are interpreted properly in separator
+        separator = bytes(separator, "utf-8").decode("unicode_escape")
+        pyperclip.copy("\n".join([separator.join(row) for row in formatted_items]))
+    # elif representation == "current_view":
+    #     pyperclip.copy("\n".join([format_row(row, hidden_columns, column_widths, separator, centre_in_cols) for row in formatted_items]))

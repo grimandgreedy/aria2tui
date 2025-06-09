@@ -87,6 +87,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "centre_in_terminal": True,
         "centre_in_cols": False,
         "paginate": paginate,
+        "centre_in_terminal_vertical": True,
     }
     downloads_data = {
         "top_gap": 0,

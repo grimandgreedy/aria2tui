@@ -94,7 +94,7 @@ def list_picker(
         editable_columns: list[int] = [],
         
         centre_in_terminal: bool = False,
-        centre_in_terminal_vertical: bool = True,
+        centre_in_terminal_vertical: bool = False,
         centre_in_cols: bool = False,
         
 ) -> Tuple[list[int], str, dict]:
@@ -149,10 +149,42 @@ def list_picker(
         sort_column = new_index
 
 
-    def set_colours(colours: dict, start: int = 0) -> None:
+    def set_colours(colours: dict, start: int = 0) -> int:
         """ Initialise curses colour pairs using dictionary with colour keys. """
 
         if not colours: return None
+        # num_color_pairs = 256
+        # for fg in range(1, 8):  # Foreground colors (white is usually 0)
+        #     for bg in range(8, 16):  # Background colors (black is usually 0)
+        #         pair_id = fg * 8 + bg
+        #         if pair_id < num_color_pairs:
+        #             curses.init_pair(pair_id, fg, bg)
+
+
+        # color_pairs = [
+        #     (1, curses.COLOR_RED, curses.COLOR_BLACK),       # Red text on black background
+        #     (2, curses.COLOR_GREEN, curses.COLOR_BLACK),     # Green text on black background
+        #     (3, curses.COLOR_BLUE, curses.COLOR_BLACK),      # Blue text on black background
+        #     (4, curses.COLOR_YELLOW, curses.COLOR_BLACK),    # Yellow text on black background
+        #     (5, curses.COLOR_MAGENTA, curses.COLOR_BLACK),   # Magenta text on black background
+        #     (6, curses.COLOR_CYAN, curses.COLOR_BLACK),     # Cyan text on black background
+        #     (7, curses.COLOR_WHITE, curses.COLOR_BLACK),    # White text on black background
+        #
+        #     (8, curses.COLOR_RED, curses.COLOR_WHITE),       # Red text on white background
+        #     (9, curses.COLOR_GREEN, curses.COLOR_WHITE),     # Green text on white background
+        #     (10, curses.COLOR_BLUE, curses.COLOR_WHITE),     # Blue text on white background
+        #     (11, curses.COLOR_YELLOW, curses.COLOR_WHITE),   # Yellow text on white background
+        #     (12, curses.COLOR_MAGENTA, curses.COLOR_WHITE),  # Magenta text on white background
+        #     (13, curses.COLOR_CYAN, curses.COLOR_WHITE),    # Cyan text on white background
+        #
+        #     (14, curses.COLOR_BLACK, curses.COLOR_RED),       # Black text on red background
+        #     (15, curses.COLOR_BLACK, curses.COLOR_GREEN),     # Black text on green background
+        #     (16, curses.COLOR_BLACK, curses.COLOR_BLUE),      # Black text on blue background
+        #     (17, curses.COLOR_BLACK, curses.COLOR_YELLOW),    # Black text on yellow background
+        #     (18, curses.COLOR_BLACK, curses.COLOR_MAGENTA),   # Black text on magenta background
+        #     (19, curses.COLOR_BLACK, curses.COLOR_CYAN)       # Black text on cyan background
+        # ]
+
         curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
         curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
         curses.init_pair(start+3, colours['normal_fg'], colours['background'])
@@ -227,7 +259,7 @@ def list_picker(
         ## Terminal too small to display list_picker
         h, w = stdscr.getmaxyx()
         if h<3 or w<len("Terminal"): return None
-        if show_footer and (h<20 or w<45) or (h<12 and w<10):
+        if show_footer and (h<20 or w<40) or (h<12 and w<10):
             stdscr.addstr(h//2-1, (w-len("Terminal"))//2, "Terminal")
             stdscr.addstr(h//2, (w-len("Too"))//2, "Too")
             stdscr.addstr(h//2+1, (w-len("Small"))//2, "Small")
@@ -563,6 +595,7 @@ def list_picker(
             "editable_columns":     editable_columns,
             "last_key":             None,
             "centre_in_terminal":   centre_in_terminal,
+            "centre_in_terminal_vertical":   centre_in_terminal_vertical,
             "centre_in_cols":       centre_in_cols,
             "highlight_full_row":   highlight_full_row,
             "column_widths":        column_widths,
@@ -588,7 +621,17 @@ def list_picker(
         draw_screen(indexed_items, highlights)
 
 
-    def choose_option(stdscr: curses.window, options: list =[str], field_name: str = "Input", x:int=0, y:int=0, literal:bool=False, colours_start:int=0) -> None:
+    def choose_option(
+            stdscr: curses.window,
+            options: list[list[str]] =[],
+            field_name: str = "Input",
+            x:int=0,
+            y:int=0,
+            literal:bool=False,
+            colours_start:int=0,
+            header: list[str] = [],
+            require_option:list = [],
+    ) -> Tuple[dict, str, dict]:
         """
         Display input field at x,y
 
@@ -607,12 +650,13 @@ def list_picker(
                             0: user hit escape
                             1: user hit return
         """
-        if options == []: options = [str(i) for i in range(256)]
+        if options == []: options = [[f"{i}"] for i in range(256)]
         cursor = 0
         h, w = stdscr.getmaxyx()
 
-        window_width = min(max([len(x) for x in options] + [len(field_name)] + [10]) + 6, w//2)
-        window_height = min(h//2, len(options)-4)
+        choose_opts_widths = get_column_widths(options)
+        window_width = min(max(sum(choose_opts_widths) + 6, 35) + 6, w)
+        window_height = min(h//2, max(6, len(options)+2))
 
         submenu_win = curses.newwin(window_height, window_width, (h-window_height)//2, (w-window_width)//2)
 
@@ -627,12 +671,16 @@ def list_picker(
             disabled_keys=[ord('z'), ord('c')],
             top_gap=0,
             show_footer=False,
+            header=header,
             # scroll_bar=False,
+            hidden_columns=set(),
+            require_option=require_option,
         )
         if s:
-            return {x: options[x] for x in s}
+            return {x: options[x] for x in s}, o, f
 
-        return {}
+        return {}, "", f
+
 
 
     def notification(stdscr: curses.window, message: str="", colours_end: int=0, duration:int=4) -> None:
@@ -662,6 +710,10 @@ def list_picker(
                 top_gap=0,
                 # scroll_bar=False,
                 key_remappings = notification_remap_keys,
+                centre_in_terminal_vertical=True,
+                centre_in_terminal=True,
+                centre_in_cols=True,
+                hidden_columns=set()
             )
             if o != "refresh": break
             submenu_win.clear()
@@ -684,7 +736,7 @@ def list_picker(
         """ The users settings will be stored in the user_settings variable. This function applies those settings. """
         
         nonlocal user_settings, highlights, sort_column, columns_sort_method
-        nonlocal auto_refresh, cursor_pos, centre_in_cols, centre_in_terminal, highlights_hide, centre_in_terminal_vertical
+        nonlocal auto_refresh, cursor_pos, centre_in_cols, centre_in_terminal, highlights_hide, centre_in_terminal_vertical, show_footer
         # settings= usrtxt.split(' ')
         # split settings and appy them
         """
@@ -714,10 +766,12 @@ def list_picker(
                 elif setting[0] == "s":
                     if 0 <= int(setting[1:]) < len(items[0]):
                         sort_column = int(setting[1:])
-                        current_pos = indexed_items[cursor_pos][0]
+                        if len(indexed_items):
+                            current_pos = indexed_items[cursor_pos][0]
                         sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
-                        new_pos = [row[0] for row in indexed_items].index(current_pos)
-                        cursor_pos = new_pos
+                        if len(indexed_items):
+                            new_pos = [row[0] for row in indexed_items].index(current_pos)
+                            cursor_pos = new_pos
                 elif setting == "ct":
                     centre_in_terminal = not centre_in_terminal
                 elif setting == "cc":
@@ -726,8 +780,8 @@ def list_picker(
                     centre_in_terminal_vertical = not centre_in_terminal_vertical
                 elif setting[0] == "":
                     cols = setting[1:].split(",")
-                    for col in cols:
-                        toggle_column_visibility(int(col))
+                elif setting == "footer":
+                    show_footer = not show_footer
 
             user_settings = ""
 
@@ -825,6 +879,39 @@ def list_picker(
             return True
         return False
 
+    def copy_dialog() -> None:
+        copy_header = [
+            "Representation",
+            "Columns",
+        ]
+        options = [
+            ["Python list of lists", "Exclude hidden"],
+            ["Python list of lists", "Include hidden"],
+            ["Tab-separated values", "Exclude hidden"],
+            ["Tab-separated values", "Include hidden"],
+            ["Comma-separated values", "Exclude hidden"],
+            ["Comma-separated values", "Include hidden"],
+            ["Custom separator", "Exclude hidden"],
+            ["Custom separator", "Include hidden"],
+        ]
+        require_option = [False, False, False, False, False, False, True, True]
+        s, o, f = choose_option(stdscr, options=options, field_name="Copy selected", header=copy_header, require_option=require_option)
+
+
+        funcs = [
+            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="python", copy_hidden_cols=False),
+            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="python", copy_hidden_cols=True),
+            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="tsv", copy_hidden_cols=False),
+            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="tsv", copy_hidden_cols=True),
+            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="csv", copy_hidden_cols=False),
+            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="csv", copy_hidden_cols=True),
+            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="custom_sv", copy_hidden_cols=False, separator=o),
+            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="custom_sv", copy_hidden_cols=True, separator=o),
+        ]
+
+        if s:
+            for idx in s.keys():
+                funcs[idx](items, indexed_items, selections, hidden_columns)
 
     initial_time = time.time()-timer
 
@@ -842,7 +929,6 @@ def list_picker(
         # raise Exception("Terminal does not support color")
         curses.start_color()
         colours_end = set_colours(colours, start=colours_start)
-        # os.system(f"notify-send cs{colours_start},{colours_end}")
 
     # Set terminal background color
     stdscr.bkgd(' ', curses.color_pair(colours_start+3))  # Apply background color
@@ -920,6 +1006,23 @@ def list_picker(
                 user_settings = usrtxt
                 apply_settings()
                 user_settings = ""
+
+        elif check_key("settings_options", key, keys_dict):
+            options = []
+            if len(items) > 0:
+                options += [["cv", "Centre rows vertically"]]
+                options += [["ct", "Centre column-set in terminal"]]
+                options += [["cc", "Centre values in cells"]]
+                options += [["footer", "Toggle footer"]]
+                options += [[f"s{i}", f"Select col. {i}"] for i in range(len(items[0]))]
+                options += [[f"!{i}", f"Toggle col. {i}"] for i in range(len(items[0]))]
+
+            settings_options_header = ["Key", "Setting"]
+
+            s, o, f = choose_option(stdscr, options=options, field_name="Settings", header=settings_options_header)
+            if s:
+                user_settings = " ".join([x[0] for x in s.values()])
+                apply_settings()
 
         elif check_key("move_column_left", key, keys_dict):
             move_column(direction=-1)
@@ -1057,19 +1160,9 @@ def list_picker(
             d = {s:i for i,s in enumerate(")!@#$%^&*(")}
             col_index = d[chr(key)]
             toggle_column_visibility(col_index)
-        elif key == ord('Y'):  # Copy (visible) selected values to clipboard
-            copy_values(indexed_items, selections, hidden_columns, column_widths, separator)
-            notification(stdscr, f"{sum(selections.values())} full rows copied to clipboard", colours_end=colours_end)
-        elif key == ord('y'):  # Copy full values of selected entries to clipboard
-            copy_full_values(indexed_items, selections, hidden_columns)
-            notification(stdscr, f"{sum(selections.values())} full rows copied to clipboard")
-        elif key == ord('c'):
-            copy_selected_visible_rows_to_clipboard(items, selections, hidden_columns)
-            notification(stdscr, f"{sum(selections.values())} visible rows copied to clipboard", colours_end=colours_end)
-        elif key == ord('C'):
-            # copy_items_to_clipboard()
-            copy_selected_rows_to_clipboard(items, selections)
-            notification(stdscr, f"{sum(selections.values())} full rows copied to clipboard", colours_end=colours_end)
+        elif check_key("copy", key, keys_dict):
+            copy_dialog()
+
         elif check_key("delete", key, keys_dict):  # Delete key
             delete_entries()
         elif check_key("increase_lines_per_page", key, keys_dict):
@@ -1242,9 +1335,9 @@ def list_picker(
             if return_val:
                 user_opts = usrtxt
         elif check_key("opts_select", key, keys_dict):
-            s = choose_option(stdscr)
+            s, o, f = choose_option(stdscr)
             if user_opts.strip(): user_opts += " "
-            user_opts += " ".join(s.values())
+            user_opts += " ".join([x[0] for x in s.values()])
         elif check_key("notification_toggle", key, keys_dict):
             notification(stdscr, colours_end=colours_end)
         elif check_key("mode_next", key, keys_dict): # tab key

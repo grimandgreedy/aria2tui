@@ -38,6 +38,7 @@ keys_dict = {
     "filter_input":                     [ord('f')],
     "search_input":                     [ord('/')],
     "settings_input":                   [ord('`')],
+    "settings_options":                 [ord('~')],
     "continue_search_forward":          [ord('i')],
     "continue_search_backward":         [ord('I')],
     "cancel":                           [27], # Escape key
@@ -52,6 +53,7 @@ keys_dict = {
     "col_hide":                         [ord('!'), ord('@'), ord('#'), ord('$'), ord('%'), ord('^'), ord('&'), ord('*'), ord('('), ord(')')],
     "edit":                             [ord('e')],
     "edit_picker":                      [ord('E')],
+    "copy":                             [ord('y')],
 }
 
 

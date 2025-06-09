@@ -24,6 +24,9 @@
 >     - [ ] seems to match the expression in any col but then only show highlights based on the row_str so misses matches in the second col
 >  - [ ] restrict refresh so that it doesn't exit on the menu
 >  - [ ] infobox causes flickering
+> - [ ] Overspill of selected header column by one character
+> - [ ] Prevent input field from overwriting footer values.
+>   - [x] Fixed after input has finished.
 
 
 > [!IMPORTANT] Features
