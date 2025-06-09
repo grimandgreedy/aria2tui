@@ -94,6 +94,7 @@ def list_picker(
         editable_columns: list[int] = [],
         
         centre_in_terminal: bool = False,
+        centre_in_terminal_vertical: bool = True,
         centre_in_cols: bool = False,
         
 ) -> Tuple[list[int], str, dict]:
@@ -130,8 +131,8 @@ def list_picker(
         returns:
             adjusted items, header, sort_column and column_widths
         """
-        if len(items) < 1: return items, header, sort_column, column_widths
-        if (sort_column+direction) < 0 or (sort_column+direction) >= len(items[0]): return items, header, sort_column, column_widths
+        if len(items) < 1: return None
+        if (sort_column+direction) < 0 or (sort_column+direction) >= len(items[0]): return None
 
         new_index = sort_column + direction
 
@@ -303,10 +304,13 @@ def list_picker(
             end_index = min(start_index + items_per_page, len(indexed_items))
         if len(indexed_items) == 0: start_index, end_index = 0, 0
 
+        if centre_in_terminal_vertical and len(indexed_items) < items_per_page:
+            top_space += (items_per_page - len(indexed_items)) //2 
+
         ## Display rows and highlights
         for idx in range(start_index, end_index):
             item = indexed_items[idx]
-            y = idx - start_index + top_space + (1 if header else 0)
+            y = idx - start_index + top_space + int(bool(header))
 
             row_str = format_row(item[1], hidden_columns, column_widths, separator, centre_in_cols)
             if idx == cursor_pos:
@@ -680,7 +684,7 @@ def list_picker(
         """ The users settings will be stored in the user_settings variable. This function applies those settings. """
         
         nonlocal user_settings, highlights, sort_column, columns_sort_method
-        nonlocal auto_refresh, cursor_pos, centre_in_cols, centre_in_terminal, highlights_hide
+        nonlocal auto_refresh, cursor_pos, centre_in_cols, centre_in_terminal, highlights_hide, centre_in_terminal_vertical
         # settings= usrtxt.split(' ')
         # split settings and appy them
         """
@@ -718,6 +722,8 @@ def list_picker(
                     centre_in_terminal = not centre_in_terminal
                 elif setting == "cc":
                     centre_in_cols = not centre_in_cols
+                elif setting == "cv":
+                    centre_in_terminal_vertical = not centre_in_terminal_vertical
                 elif setting[0] == "":
                     cols = setting[1:].split(",")
                     for col in cols:
@@ -1104,12 +1110,11 @@ def list_picker(
 
         elif key == ord('r'):
             # Refresh
-            top_space = top_gap
-            if title: top_space+=1
-            if display_modes: top_space+=1
-            items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(header))
+            top_space = top_gap +  int(bool(display_modes)) + int(bool(title)) + int(bool(header))
+            bottom_space = 3*int(bool(show_footer))
+            items_per_page = os.get_terminal_size().lines - top_space
             h, w = stdscr.getmaxyx()
-            items_per_page = h - top_space-int(bool(header)) - 3*int(bool(show_footer))
+            items_per_page = h - top_space - bottom_space
             stdscr.refresh()
 
         elif check_key("filter_input", key, keys_dict):
