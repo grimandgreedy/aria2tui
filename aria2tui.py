@@ -4,13 +4,16 @@ from urllib import request as rq
 import urllib
 import copy
 import json
+import os
+import sys
+
+sys.path.append(os.path.expanduser("~/scripts/utils/list_picker/"))
 
 from sqlalchemy.engine import cursor
 from list_picker import *
 from list_picker_colours import get_colours, help_colours
 from table_to_list_of_lists import *
 import time
-import os
 from time import sleep
 import curses
 from aria2c_wrapper import *
