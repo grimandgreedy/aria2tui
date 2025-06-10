@@ -42,10 +42,10 @@ def begin(stdscr : curses.window, config: dict) -> None:
         ["sendToFrontOfQueue", changePosition, {"pos":0} , {}],
         ["sendToBackOfQueue", changePosition, {"pos":10000}, {}],
         ["retryDownload", retryDownload, {}, {}],
-        # ["remove", remove, {}, {}],
+        ["Remove Paused", remove, {}, {}],
         # ["forceRemove", forceRemove, {}, {}],
         # ["removeStopped", removeDownloadResult, {}, {}],
-        ["Remove Download", removeDownloadResult, {}, {}],
+        ["Remove Errored", removeDownloadResult, {}, {}],
         ["getFiles", getFiles, {}, {"view":True}],
         ["getServers", getServers, {}, {"view":True}],
         ["getPeers", getPeers, {}, {"view":True}],
@@ -91,6 +91,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "centre_in_cols": False,
         "paginate": paginate,
         "centre_in_terminal_vertical": True,
+        "hidden_columns": [],
     }
     downloads_data = {
         "top_gap": 0,
@@ -108,6 +109,8 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "get_data_startup": True,
         "timer": 1,
         "paginate": paginate,
+        "hidden_columns": [],
+        "id_column": 10,
     }
     dl_option_data = {
         "top_gap": 0,
@@ -118,6 +121,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "require_option": [False if x[0] != "changePosition" else True for x in download_options],
         "header": [f"Select operation"],
         "paginate": paginate,
+        "hidden_columns": [],
     }
     while True:
         downloads_data = {key: val for key, val in downloads_data.items() if key not in ["items", "indexed_items"]}
