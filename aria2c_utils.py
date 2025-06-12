@@ -2,7 +2,7 @@ import curses
 from aria2c_wrapper import *
 import os
 import subprocess
-import tomllib
+import toml
 from urllib import request as rq
 from subprocess import run
 import json
@@ -202,7 +202,7 @@ def editConfig() -> None:
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
 
-def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> None:
+def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> str:
     """Add URIs to aria server"""
 
     s = "!!\n"
@@ -226,7 +226,8 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
         os.system(f"notify-send {dl}")
         addDownload(**{key:val for key,val in dl.items() if key in valid_keys})
 
-    os.system(f"notify-send '{len(dls)} downloads added'")
+    # os.system(f"notify-send '{len(dls)} downloads added'")
+    return  f'{len(dls)} downloads added'
 
 
 def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[str], list[dict]]:
@@ -281,7 +282,7 @@ def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[str], list[dict]]:
     return downloads, argstrings
 
 
-def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> None:
+def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> str:
     """
     Open a kitty prompt to add torrents to Aria2. The file will accept torrent file paths or magnet links and they should be placed on successive lines.
 
@@ -326,8 +327,7 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
     for uri in uris:
         addDownload(**uri)
 
-    os.system(f"notify-send '{len(dls)} torrent files added'")
-    os.system(f"notify-send '{len(uris)} magnet links added'")
+    return f'{len(dls)} torrent files added. {len(uris)} magnet links added.'
 
 
 def getAllInfo(gid: str) -> list[dict]:
@@ -399,7 +399,7 @@ def openDownloadLocation(gid: str, new_window: bool = True) -> None:
     except:
         pass
 
-def openFile(gids: list[str], group: bool = True) -> None:
+def openGidFiles(gids: list[str], group: bool = True) -> None:
     """
     Open files downloads based on their gid.
         If group is False then we open each download separately.
@@ -532,8 +532,8 @@ def applyToDownloads(stdscr: curses.window, gids: list, operation_name: str, ope
 ## Load config
 CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"
 
-with open(os.path.expanduser(CONFIGPATH), "rb") as f:
-    config = tomllib.load(f)
+with open(os.path.expanduser(CONFIGPATH), "r") as f:
+    config = toml.load(f)
 url = config["general"]["url"]
 port = config["general"]["port"]
 token = config["general"]["token"]

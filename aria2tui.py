@@ -9,7 +9,6 @@ import sys
 
 sys.path.append(os.path.expanduser("~/scripts/utils/list_picker/"))
 
-from sqlalchemy.engine import cursor
 from list_picker import *
 from list_picker_colours import get_colours, help_colours
 from table_to_list_of_lists import *
@@ -18,11 +17,13 @@ from time import sleep
 import curses
 from aria2c_wrapper import *
 import tempfile
-import tomllib
+import toml
 from utils import *
 from aria2c_utils import *
-from aria2_detailing import highlights, menu_highlights, modes
+from aria2_detailing import highlights, menu_highlights, modes, operations_highlights
 from collections.abc import Callable
+from keys import menu_keys
+from aria2tui_keys import download_option_keys
 
 def begin(stdscr : curses.window, config: dict) -> None:
     """ Initialise data and start application. """
@@ -56,8 +57,8 @@ def begin(stdscr : curses.window, config: dict) -> None:
         # ["changeOption", changeOption, {}, {"view":True}],
         ["openDownloadLocation (new window)", openDownloadLocation, {}, {}],
         ["openDownloadLocation", lambda gid: openDownloadLocation(gid, new_window=False), {}, {}],
-        ["Open File(s)", openFile, {}, {}],
-        ["Open File(s) (do not group)", lambda gids: openFile(gids, group=False), {}, {}],
+        ["Open File(s)", openGidFiles, {}, {}],
+        ["Open File(s) (do not group)", lambda gids: openGidFiles(gids, group=False), {}, {}],
     ]
     menu_options = [
         ["Watch Downloads", None,{},{}],
@@ -92,6 +93,8 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "paginate": paginate,
         "centre_in_terminal_vertical": True,
         "hidden_columns": [],
+        "keys_dict": menu_keys,
+        "show_footer": False,
     }
     downloads_data = {
         "top_gap": 0,
@@ -111,10 +114,11 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "paginate": paginate,
         "hidden_columns": [],
         "id_column": 10,
+        "centre_in_terminal_vertical": False,
     }
     dl_option_data = {
         "top_gap": 0,
-        "highlights": menu_highlights,
+        "highlights": operations_highlights,
         "paginate": paginate,
         "title": app_name,
         "colours": custom_colours,
@@ -122,6 +126,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "header": [f"Select operation"],
         "paginate": paginate,
         "hidden_columns": [],
+        "keys_dict": download_option_keys,
     }
     while True:
         downloads_data = {key: val for key, val in downloads_data.items() if key not in ["items", "indexed_items"]}
@@ -189,15 +194,21 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
                 process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
                 # stdscr.curs_set(False)
             else:
-                func(**kwargs)
+                return_val = func(**kwargs)
+                # Add notification of success or failure to listpicker
+                if return_val not in ["", None]:
+                    downloads_data["startup_notification"] = return_val
+
+
+                    
 
 
 def main() -> None:
     """ Main function """
     ## Load config
     CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"
-    with open(os.path.expanduser(CONFIGPATH), "rb") as f:
-        config = tomllib.load(f)
+    with open(os.path.expanduser(CONFIGPATH), "r") as f:
+        config = toml.load(f)
 
     custom_colours = get_colours(config["appearance"]["theme"])
 
@@ -222,6 +233,11 @@ def main() -> None:
         )
 
         if choice == [1] or choice == []: exit()
+        h, w = stdscr.getmaxyx()
+        if (h>8 and w >20):
+            stdscr.addstr(h//2, (w-len("Starting Aria2c Now"))//2, "Starting Aria2c Now")
+            stdscr.refresh()
+
         for cmd in config["general"]["startupcmds"]:
             subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
 

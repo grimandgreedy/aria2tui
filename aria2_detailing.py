@@ -78,7 +78,8 @@ menu_highlights = [
     },
     {
         "match": "edit",
-        "field": 0, "color": 10,
+        "field": 0,
+        "color": 10,
     },
     {
         "match": "restart",
@@ -115,5 +116,53 @@ modes = [
     {
         'filter': '--1 error',
         'name': 'Error',
+    },
+]
+operations_highlights = [
+    {
+        "match": "watch|view",
+        "field": 0,
+        "color": 8,
+    },
+    {
+        "match": "add",
+        "field": 0,
+        "color": 13,
+    },
+    {
+        "match": "^pause|remove[^\s]*",
+        "field": 0,
+        "color": 22,
+    },
+    {
+        "match": "unpause",
+        "field": 0,
+        "color": 8,
+    },
+    {
+        "match": "retry[^\s]*",
+        "field": 0,
+        "color": 11,
+    },
+    {
+        "match": "send[^\s]*|change[^\s]*",
+        "field": 0,
+        "color": 11,
+    },
+    {
+        "match": "get[^\s]*|tell[^\s]*",
+        "field": 0,
+        "color": 9,
+    },
+    {
+        # "match": r"[^\s]*open[^\s]*(?!.*\S)",
+        "match": r"[^\s]*open[^\s]*",
+        "field": 0,
+        "color": 10,
+    },
+    {
+        "match": "restart[^\s]*",
+        "field": 0,
+        "color": 10,
     },
 ]
