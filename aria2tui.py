@@ -12,6 +12,7 @@ sys.path.append(os.path.expanduser("~/scripts/utils/list_picker/"))
 from list_picker import *
 from list_picker_colours import get_colours, help_colours
 from table_to_list_of_lists import *
+from options_selectors import default_option_selector
 import time
 from time import sleep
 import curses
@@ -72,7 +73,7 @@ def begin(stdscr : curses.window, config: dict) -> None:
         ["Get Session Info", getSessionInfo,{},{"view": True}],
         ["Get Version", getVersion,{},{"view": True}],
         ["Edit Config", editConfig,{},{}],
-        ["Restart Aria", restartAria,{},{}],
+        ["Restart Aria", restartAria,{},{"display_message": "Restarting Aria2c..." }],
     ]
     appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, download_options, menu_options, paginate)
 
@@ -116,13 +117,14 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "id_column": 10,
         "centre_in_terminal_vertical": False,
     }
-    dl_option_data = {
+    dl_operations_data = {
         "top_gap": 0,
         "highlights": operations_highlights,
         "paginate": paginate,
         "title": app_name,
         "colours": custom_colours,
         "require_option": [False if x[0] != "changePosition" else True for x in download_options],
+        "option_functions": [None if x[0] != "changePosition" else lambda stdscr, refresh_screen_function: default_option_selector(stdscr, field_name="Download Position") for x in download_options],
         "header": [f"Select operation"],
         "paginate": paginate,
         "hidden_columns": [],
@@ -139,7 +141,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         if selected_downloads:
             operations = [x[0] for x in download_options]
             operation_functions = [x[1] for x in download_options]
-            dl_option_data = {key: val for key, val in dl_option_data.items() if key not in ["items", "indexed_items"]}
+            dl_operations_data = {key: val for key, val in dl_operations_data.items() if key not in ["items", "indexed_items"]}
             header = downloads_data["header"]
             items = downloads_data["items"]
             gid_index = header.index("gid")
@@ -147,25 +149,25 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
             gids = [item[gid_index] for i, item in enumerate(items) if i in selected_downloads]
             fnames = [item[fname_index] for i, item in enumerate(items) if i in selected_downloads]
 
-            dl_option_data["display_infobox"] = True
-            dl_option_data["infobox_items"] = fnames
+            dl_operations_data["display_infobox"] = True
+            dl_operations_data["infobox_items"] = fnames
 
             ## SELECT DOWNLOAD OPTION
-            selected_operation, opts, dl_option_data = list_picker(
+            selected_operation, opts, dl_operations_data = list_picker(
                 stdscr,
                 items=operations,
-                **dl_option_data,
+                **dl_operations_data,
             )
             if selected_operation:
                 operation_name, operation_function = operations[selected_operation[0]], operation_functions[selected_operation[0]]
-                user_opts = dl_option_data["user_opts"]
+                user_opts = dl_operations_data["user_opts"]
                 view = False
                 operation_list = download_options[selected_operation[0]]
                 ## e.g., operation_list = ["getFiles", getFiles, {}, {"view":True}]
                 if len(operation_list) > 2 and "view" in operation_list[-1] and operation_list[-1]["view"]: view=True
                 applyToDownloads(stdscr, gids, operation_name, operation_function, user_opts, view)
                 downloads_data["selections"] = {}
-                dl_option_data["user_opts"] = ""
+                dl_operations_data["user_opts"] = ""
             else: continue
         else: 
             ## SELECT MENU OPTION
@@ -194,6 +196,12 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
                 process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
                 # stdscr.curs_set(False)
             else:
+                if "display_message" in extra and extra["display_message"]:
+                    h, w = stdscr.getmaxyx()
+                    if (h>8 and w >20):
+                        stdscr.addstr(h//2, (w-len(extra["display_message"]))//2, extra["display_message"])
+                        stdscr.refresh()
+
                 return_val = func(**kwargs)
                 # Add notification of success or failure to listpicker
                 if return_val not in ["", None]:

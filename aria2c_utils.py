@@ -227,7 +227,7 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
         addDownload(**{key:val for key,val in dl.items() if key in valid_keys})
 
     # os.system(f"notify-send '{len(dls)} downloads added'")
-    return  f'{len(dls)} downloads added'
+    return  f'{len(dls)} download(s) added'
 
 
 def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[str], list[dict]]:
@@ -327,7 +327,7 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
     for uri in uris:
         addDownload(**uri)
 
-    return f'{len(dls)} torrent files added. {len(uris)} magnet links added.'
+    return f'{len(dls)} torrent file(s) added. {len(uris)} magnet link(s) added.'
 
 
 def getAllInfo(gid: str) -> list[dict]:
@@ -525,7 +525,7 @@ def applyToDownloads(stdscr: curses.window, gids: list, operation_name: str, ope
                     tmpfile.write(json.dumps(response, indent=4))
                 tmpfile_path = tmpfile.name
             cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
-            cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0'""" + f" {tmpfile_path}"
+            cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
             process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     stdscr.clear()
 
