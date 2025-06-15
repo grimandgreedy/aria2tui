@@ -1,33 +1,5 @@
 # aria2tui
 
-> [!error] Errors
-> - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **
-> ```
-> works vs doesn't work:
->   https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg
->   https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBVWNXUrlGnx3VtnPULUE6v0EteQg
->```
-> - [ ] When downloads are updating quickly and I try to operate upon them it sometimes says that the indices are not in the list...
-
-
-> [!Bug] Bugs
-> - [ ] Fix order upon refresh
->   - [ ] when the item order refreshes (e.g. new downloads added) the selected items change. need to associate the selected items with gids and then create new selected items which will be passed back
-> - [ ] (!!!) Fix cursor position upon refresh
->   - [ ] takes us back to the top when it refreshes in a different mode (I think due to filter)
->   - [ ] add pin_cursor option to pqrevent the cursor from going down when refreshing
->   - [ ] might have to do with filtering; 
->   - [ ] when original sort order there is no jumping
->   - [ ] lots of jumping when sorting by size
-> - [ ] Filter/search problems
->   - [ ] ^[^\s] matches all rows in help but only highlights the first col
->     - [ ] seems to match the expression in any col but then only show highlights based on the row_str so misses matches in the second col
->  - [ ] restrict refresh so that it doesn't exit on the menu
->  - [ ] infobox causes flickering
-> - [ ] Overspill of selected header column by one character
-> - [ ] Prevent input field from overwriting footer values.
->   - [x] Fixed after input has finished.
-
 
 > [!IMPORTANT] Features
 > - [ ] allow options when adding uris; perhaps use the same structure as the aria2c input file
@@ -91,6 +63,37 @@
 > - [ ] Add option to change options and readd download. 
 >   - [ ] Note that changing options for errored downloads doesn't work
 > - [ ] Add retry and puase option
+
+> [!error] Errors
+> - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **
+> ```
+> works vs doesn't work:
+>   https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg
+>   https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBVWNXUrlGnx3VtnPULUE6v0EteQg
+>```
+> - [ ] When downloads are updating quickly and I try to operate upon them it sometimes says that the indices are not in the list...
+
+
+> [!Bug] Bugs
+> - [ ] Fix order upon refresh
+>   - [ ] when the item order refreshes (e.g. new downloads added) the selected items change. need to associate the selected items with gids and then create new selected items which will be passed back
+> - [ ] (!!!) Fix cursor position upon refresh
+>   - [ ] takes us back to the top when it refreshes in a different mode (I think due to filter)
+>   - [ ] add pin_cursor option to pqrevent the cursor from going down when refreshing
+>   - [ ] might have to do with filtering; 
+>   - [ ] when original sort order there is no jumping
+>   - [ ] lots of jumping when sorting by size
+> - [ ] Filter/search problems
+>   - [ ] ^[^\s] matches all rows in help but only highlights the first col
+>     - [ ] seems to match the expression in any col but then only show highlights based on the row_str so misses matches in the second col
+>  - [ ] restrict refresh so that it doesn't exit on the menu
+>  - [ ] infobox causes flickering
+> - [ ] Overspill of selected header column by one character
+> - [ ] Prevent input field from overwriting footer values.
+>   - [x] Fixed after input has finished.
+> - [ ] Torrent size shows size of first file in torrent if there are multiple files...
+
+
 
 
 > [!Tip] Done

@@ -1,0 +1,10 @@
+[general]
+port = 6800
+token = ""
+url = "http://localhost"
+startupcmds = ["systemctl --user restart aria2d.service", "systemctl --user restart ariang.service"]
+paginate = false
+
+
+[appearance]
+theme = 0

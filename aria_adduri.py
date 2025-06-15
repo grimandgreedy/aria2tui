@@ -6,9 +6,25 @@ import requests
 import tempfile
 import subprocess
 import re
+
 from typing import Callable, Optional, Tuple
 
-def addDownloadFull(uri: str, out:str = str, token: str = "", url: str = "http://localhost", port: int = 6800, queue_position: int = 0, cookies_file: str = "", dir: str = "", proxy: str = str, prompt: bool = False) -> Tuple[bool, str]:
+def addDownloadFull(
+        uri: str,
+        # out:str = "",
+        token: str = "",
+        url: str = "http://localhost",
+        port: int = 6800,
+        queue_position: Optional[int] = 0,
+        cookies_file: str = "",
+        # dir: str = "",
+        # on_download_start: str = "",
+        # on_download_complete: str = "",
+        # proxy: str = "",
+        prompt: bool = False,
+        download_options_dict={},
+
+    ) -> Tuple[bool, str]:
     """
     Send download to aria2c server at $url:$port. 
     If prompt is true then we open a new kitty window with a neovim buffer to enter any uris.
@@ -16,31 +32,28 @@ def addDownloadFull(uri: str, out:str = str, token: str = "", url: str = "http:/
 
     url = f'{url}:{port}/jsonrpc'
    
-    if prompt:
-        argdict, out, uri = kitty_prompt(out, uri)
-        if type(uri) == type([]):
-            uri = uri[0]
+    # if prompt:
+    #     argdict, out, uri = kitty_prompt(out, uri)
+    #     if type(uri) == type([]):
+    #         uri = uri[0]
 
-    # Prepare parameters for JSON-RPC request
+    # Add params to json request
     params = [f"token:{token}", [uri]] if token not in ["", None] else [[uri]]
     
     # Include optional parameters if provided
-    options = {}
-    if out:
-        options['out'] = out
-    if dir:
-        options['dir'] = dir
+    # options = {}
+    # if on_download_start:
+    #     options['on-download-start'] = on_download_start
+    # if on_download_complete:
+    #     options['on-download-complete'] = on_download_complete
     if cookies_file:
         # Assuming cookies_file contains cookies in a format accepted by aria2
         with open(cookies_file, 'r') as file:
-            options['header'] = [f'Cookie: {line.strip()}' for line in file]
-    if proxy:
-        options['all-proxy'] = proxy
-
+            download_options_dict['header'] = [f'Cookie: {line.strip()}' for line in file]
 
     # Add optional parameters to params
-    if options:
-        params = params + [options]
+    if download_options_dict:
+        params = params + [download_options_dict]
 
     # JSON-RPC request data
     request_data = {
@@ -159,13 +172,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    download_options_dict = {
+        "out": args.output,
+        "dir": args.directory,
+    }
     addDownloadFull(
         uri=args.uri,
-        out=args.output,
+        # out=args.output,
         token=args.token,
         queue_position=args.queue,
         cookies_file=args.cookies,
-        dir=args.directory,
+        # dir=args.directory,
         proxy=args.proxy,
         prompt=args.kitty_prompt
     )

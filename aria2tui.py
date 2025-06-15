@@ -1,30 +1,33 @@
 #!/bin/python
-from subprocess import run
-from urllib import request as rq
-import urllib
-import copy
-import json
+
 import os
 import sys
-
-sys.path.append(os.path.expanduser("~/scripts/utils/list_picker/"))
-
-from list_picker import *
-from list_picker_colours import get_colours, help_colours
-from table_to_list_of_lists import *
-from options_selectors import default_option_selector
+import tempfile
 import time
-from time import sleep
+import toml
+import json
+
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.expanduser("../list_picker/"))
+from list_picker.utils import *
+from list_picker.list_picker import *
+from list_picker.list_picker_colours import get_colours, help_colours
+from list_picker.table_to_list_of_lists import *
+from list_picker.options_selectors import default_option_selector
+from list_picker.utils import *
+from list_picker.keys import menu_keys
+# from list_picker import *
+# from list_picker_colours import get_colours, help_colours
+# from table_to_list_of_lists import *
+# from options_selectors import default_option_selector
+# from keys import menu_keys
+# from utils import *
 import curses
 from aria2c_wrapper import *
-import tempfile
-import toml
-from utils import *
 from aria2c_utils import *
 from aria2_detailing import highlights, menu_highlights, modes, operations_highlights
-from collections.abc import Callable
-from keys import menu_keys
 from aria2tui_keys import download_option_keys
+
 
 def begin(stdscr : curses.window, config: dict) -> None:
     """ Initialise data and start application. """
@@ -40,16 +43,17 @@ def begin(stdscr : curses.window, config: dict) -> None:
     download_options = [
         ["pause", pause, {}, {}],
         ["unpause", unpause, {}, {}],
-        ["change options", changeOptionDialog, {}, {}],
+        ["change options (single)", changeOptionDialog, {}, {}],
+        ["change options (batch)", changeOptionBatchDialog, {}, {}],
         ["changePosition", changePosition, {}, {}],
         ["sendToFrontOfQueue", changePosition, {"pos":0} , {}],
         ["sendToBackOfQueue", changePosition, {"pos":10000}, {}],
         ["retryDownload", retryDownload, {}, {}],
         ["retryDownloadAndPause", retryDownloadAndPause, {}, {}],
-        ["Remove Paused", remove, {}, {}],
+        ["Remove (paused/active)", remove, {}, {}],
         # ["forceRemove", forceRemove, {}, {}],
         # ["removeStopped", removeDownloadResult, {}, {}],
-        ["Remove Errored", removeDownloadResult, {}, {}],
+        ["Remove (errored)", removeDownloadResult, {}, {}],
         ["getFiles", getFiles, {}, {"view":True}],
         ["getServers", getServers, {}, {"view":True}],
         ["getPeers", getPeers, {}, {"view":True}],
@@ -70,6 +74,7 @@ def begin(stdscr : curses.window, config: dict) -> None:
         ["Add URIs and pause", addUrisAndPause,{},{}],
         ["Add Torrents", addTorrents,{},{}],
         ["Pause All", pauseAll,{},{}],
+        ["Force Pause All", forcePauseAll,{},{}],
         ["Remove completed/errored downloads", removeCompleted,{},{}],
         ["Get Global Options", getGlobalOption,{},{"view": True}],
         ["Get Global Stat", getGlobalStat,{},{"view": True}],
@@ -114,7 +119,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "auto_refresh": True,
         "get_new_data": True,
         "get_data_startup": True,
-        "timer": 1,
+        "timer": 2,
         "paginate": paginate,
         "hidden_columns": [],
         "id_column": 10,
@@ -214,7 +219,12 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
 def main() -> None:
     """ Main function """
     ## Load config
-    CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"
+    CONFIGPATH = "./aria2tui.toml"
+    if "ARIA2TUI_CONFIG_PATH" in os.environ:
+        CONFIGPATH = os.environ["ARIA2TUI_CONFIG_PATH"]
+
+    if not os.path.exists(os.path.expanduser(CONFIGPATH)):
+        CONFIGPATH = "./config.toml"
     with open(os.path.expanduser(CONFIGPATH), "r") as f:
         config = toml.load(f)
 

@@ -231,11 +231,52 @@ def changeOptionDialog(gid:str) -> str:
 
     return f"{len(keys_with_diff_values)} option(s) changed."
 
+def changeOptionBatchDialog(gids:list) -> str:
+    """ Change the option(s) for the download. """ 
+    if len(gids) == 0: return ""
+    gid = gids[0]
+
+    reps = []
+
+    try:
+        req = getOption(str(gid))
+        response = sendReq(req)["result"]
+        current_options = json.loads(json.dumps(response))
+    except Exception as e:
+        return str(e)
+
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+        json.dump(current_options, f, indent=4)
+        temp_file = f.name
+
+    cmd = f"nvim -i NONE {temp_file}"
+    subprocess.run(cmd, shell=True)
+
+    with open(temp_file, "r") as f:
+        loaded_options = json.load(f)
+
+    # Get difference between dicts
+    keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
+
+    reqs = []
+    for gid in gids:
+        for key in keys_with_diff_values:
+            reqs.append(json.loads(changeOption(gid, key, loaded_options[key])))
+
+    batch = sendReq(json.dumps(reqs).encode('utf-8'))
+
+    return f"{len(keys_with_diff_values)} option(s) changed."
+
 def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> list:
     """Add URIs to aria server"""
 
     s = "!!\n"
-    s +=  '# https://docs.python.org/3/_static/py.svg\n#    pythonlogo.svg\n#    dir=/home/user/Downloads/\n\n'
+    s += "# !! arguments inside !! will be applied to all downloads that follow\n"
+    s += "# !pause=true,queue=0! add and pause, send all to front of queue\n"
+    s += "# !!argstrings not yet fully implemented\n"
+    s +=  '# https://docs.python.org/3/_static/py.svg\n#    pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n'
+    s += '#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n\n'
+    s += "# Valid options can be found in the aria2c manual at: https://aria2.github.io/manual/en/html/aria2c.html#input-file\n\n"
 
     ## Create tmpfile
     with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
@@ -250,11 +291,18 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
     dls, argstrs = input_file_lines_to_dict(lines)
 
     # Restrict keys passed to the following
-    valid_keys = ["out", "uri", "dir"]
+    # valid_keys = ["out", "uri", "dir", "on_download_start", "on_download_complete"]
+    valid_keys = input_file_accepted_options
     gids = []
     for dl in dls:
         os.system(f"notify-send {dl}")
-        return_val, gid = addDownload(**{key:val for key,val in dl.items() if key in valid_keys})
+        if "uri" not in dl:
+            continue
+
+        uri = dl["uri"]
+        download_options_dict = {key: val for key,val in dl.items() if key in valid_keys}
+        # return_val, gid = addDownload(**{key:val for key,val in dl.items() if key in valid_keys})
+        return_val, gid = addDownload(uri, download_options_dict=download_options_dict)
         if return_val:
             gids.append(gid)
 
@@ -333,7 +381,11 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
     """
 
     s = "!!\n"
-    s +=  "# path\n\n"
+    s += "# !! arguments inside !! will be applied to all downloads that follow\n"
+    s += "# !pause=true,queue=0! add and pause, send all to front of queue\n"
+    s += "# !!argstrings not yet fully implemented\n"
+    s +=  "# /path/to/torrent\n"
+    s += " # magnet:?xt=...\n\n"
 
     ## Create tmpfile
     with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
@@ -363,8 +415,10 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
 
         sendReq(jsonreq)
 
-    for uri in uris:
-        addDownload(**uri)
+    for dl in uris:
+        uri = dl["uri"]
+
+        addDownload(uri=uri)
 
     return f'{len(dls)} torrent file(s) added. {len(uris)} magnet link(s) added.'
 
@@ -397,10 +451,12 @@ def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, 
     status = sendReq(tellStatus(gid))
     options = sendReq(getOption(gid))
 
-    dir = status["result"]["dir"]
     uri = status["result"]["files"][0]["uris"][0]["uri"]
-    fname = options["result"]["out"] if "out" in options["result"] else None
-    return_val, gid = addDownload(uri=uri, dir=dir, out=fname)
+    dl = {
+        "dir": status["result"]["dir"],
+    }
+    dl["out"] = options["result"]["out"] if "out" in options["result"] else ""
+    return_val, gid = addDownload(uri=uri, download_options_dict=dl)
     if return_val: return gid
     else: return ""
 
@@ -590,7 +646,7 @@ paginate = config["general"]["paginate"]
 
 addUri = lambda uri, out="", dir=None, queue_pos=10000:  addUriFull(uri, out=out, dir=dir, queue_pos=queue_pos, token=token)
 addTorrent = lambda path, out="", dir=None, queue_pos=10000:  addTorrentFull(path, out=out, dir=dir, queue_pos=queue_pos, token=token)
-addDownload = lambda uri, out=None, dir=None, url=url, port=port, token=token, queue_pos=None, proxy=None, prompt=False, cookies_file=None:  addDownloadFull(uri, out=out, dir=dir, queue_position=queue_pos, url=url, port=port, token=token, prompt=prompt, proxy=proxy, cookies_file=cookies_file)
+addDownload = lambda uri, url=url, port=port, token=token, queue_pos=None, prompt=False, cookies_file="", download_options_dict={}:  addDownloadFull(uri, queue_position=queue_pos, url=url, port=port, token=token, prompt=prompt, cookies_file=cookies_file, download_options_dict=download_options_dict)
 getOption = lambda gid:  getOptionFull(gid, token=token)
 getServers = lambda gid:  getServersFull(gid, token=token)
 getPeers = lambda gid:  getPeersFull(gid, token=token)
@@ -603,6 +659,7 @@ pause = lambda gid:  pauseFull(gid, token=token)
 retryDownload = lambda gid:  retryDownloadFull(gid, url=url, port=port, token=token)
 retryDownloadAndPause = lambda gid:  retryDownloadAndPauseFull(gid, url=url, port=port, token=token)
 pauseAll = lambda : pauseAllFull(token=token)
+forcePauseAll = lambda : forcePauseAllFull(token=token)
 unpause = lambda gid:  unpauseFull(gid, token=token)
 remove = lambda gid:  removeFull(gid, token=token)
 forceRemove = lambda gid:  forceRemoveFull(gid, token=token)
