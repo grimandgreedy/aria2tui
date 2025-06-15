@@ -40,6 +40,7 @@ def begin(stdscr : curses.window, config: dict) -> None:
     download_options = [
         ["pause", pause, {}, {}],
         ["unpause", unpause, {}, {}],
+        ["change options", changeOptionDialog, {}, {}],
         ["changePosition", changePosition, {}, {}],
         ["sendToFrontOfQueue", changePosition, {"pos":0} , {}],
         ["sendToBackOfQueue", changePosition, {"pos":10000}, {}],
@@ -206,9 +207,6 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
                 # Add notification of success or failure to listpicker
                 if return_val not in ["", None]:
                     downloads_data["startup_notification"] = return_val
-
-
-                    
 
 
 def main() -> None:

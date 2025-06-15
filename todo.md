@@ -53,6 +53,9 @@
 > - [ ] add more flags to filtering/searching
 >    - [ ] invert
 >    - [ ] case-sensitivity
+> - [x] Implement change option functionality to allow download options to be changed
+>   - [ ] Allow batch options changing
+>     - Change dir for batch of downloads
 
 
 > [!Important] Improvements
@@ -70,6 +73,7 @@
 >    - [x] paging vs scrolling
 >    - [ ] highlights off
 >    - [ ] color off
+>     - Search highlights should show inverse of b/w
 > - [ ] live setting changes
 >    - [x] show/hide columns
 >    - [x] centre in cols & centre in terminals
@@ -77,13 +81,16 @@
 > - [?] Allow name to be specified with magnet link
 >    - [?] I don't think this is possible to change in aria2c
 > - [x] open files 
->    - [ ] open files of the same type in one instance
+>    - [x] open files of the same type in one instance
 > - [x] make remove work with errored download
 >    - [x] remove all errored/completed downloads works
 > - [ ] fix operation loop to ensure that specific if/else can be removed; e.g., changePosition
 > - [ ] redo handle_visual_selection()
 > - [ ] redo cursor_up, cursor_down
 > - [ ] Filter and search use the same tokenize and apply_filter function. Put them in utils.
+> - [ ] Add option to change options and readd download. 
+>   - [ ] Note that changing options for errored downloads doesn't work
+> - [ ] Add retry and puase option
 
 
 > [!Tip] Done

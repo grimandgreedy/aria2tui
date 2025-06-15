@@ -201,6 +201,35 @@ def editConfig() -> None:
     cmd = f"NVIM_APPNAME=nvim-nvchad nvim ~/.config/aria2/aria2.conf"
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
+def changeOptionDialog(gid:str) -> str:
+    """ Change the option(s) for the download. """ 
+    try:
+        req = getOption(str(gid))
+        response = sendReq(req)["result"]
+        current_options = json.loads(json.dumps(response))
+    except Exception as e:
+        return str(e)
+
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+        json.dump(current_options, f, indent=4)
+        temp_file = f.name
+
+    cmd = f"nvim -i NONE {temp_file}"
+    subprocess.run(cmd, shell=True)
+
+    with open(temp_file, "r") as f:
+        loaded_options = json.load(f)
+
+    # Get difference between dicts
+    keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
+
+    reqs = []
+    for key in keys_with_diff_values:
+        reqs.append(json.loads(changeOption(gid, key, loaded_options[key])))
+
+    batch = sendReq(json.dumps(reqs).encode('utf-8'))
+
+    return f"{len(keys_with_diff_values)} option(s) changed."
 
 def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> str:
     """Add URIs to aria server"""
