@@ -231,11 +231,11 @@ def changeOptionDialog(gid:str) -> str:
 
     return f"{len(keys_with_diff_values)} option(s) changed."
 
-def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> str:
+def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> list:
     """Add URIs to aria server"""
 
     s = "!!\n"
-    s +=  '# https://docs.python.org/3/_static/py.svg\n#    pythonlogo.svg\n#    dir=/home/user/tmp/trash/'
+    s +=  '# https://docs.python.org/3/_static/py.svg\n#    pythonlogo.svg\n#    dir=/home/user/Downloads/\n\n'
 
     ## Create tmpfile
     with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
@@ -251,15 +251,25 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
 
     # Restrict keys passed to the following
     valid_keys = ["out", "uri", "dir"]
+    gids = []
     for dl in dls:
         os.system(f"notify-send {dl}")
-        addDownload(**{key:val for key,val in dl.items() if key in valid_keys})
+        return_val, gid = addDownload(**{key:val for key,val in dl.items() if key in valid_keys})
+        if return_val:
+            gids.append(gid)
 
     # os.system(f"notify-send '{len(dls)} downloads added'")
-    return  f'{len(dls)} download(s) added'
+    return gids
+
+def addUrisAndPauseFull(url: str ="http://localhost", port: int =6800, token: str = "") -> None:
+    gids = addUrisFull(url=url, port=port,token=token)
+    if gids:
+        reqs = [json.loads(pause(gid)) for gid in gids]
+        batch = sendReq(json.dumps(reqs).encode('utf-8'))
 
 
-def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[str], list[dict]]:
+
+def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[dict], list[str]]:
     """
     Converts lines to list of download dicts.
 
@@ -381,8 +391,8 @@ def getAllInfo(gid: str) -> list[dict]:
     return responses
 
 
-def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str =None) -> None:
-    """ Retries a download. By getting the key information and using it to add a new download. Does not remove the old download. """
+def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str =None) -> str:
+    """ Retries a download. By getting the key information and using it to add a new download. Does not remove the old download. Returns the gid of the new download or an empty string if there is an error. """
 
     status = sendReq(tellStatus(gid))
     options = sendReq(getOption(gid))
@@ -390,8 +400,15 @@ def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, 
     dir = status["result"]["dir"]
     uri = status["result"]["files"][0]["uris"][0]["uri"]
     fname = options["result"]["out"] if "out" in options["result"] else None
-    os.system(f"notify-send '{dir}'")
-    addDownload(uri=uri, dir=dir, out=fname)
+    return_val, gid = addDownload(uri=uri, dir=dir, out=fname)
+    if return_val: return gid
+    else: return ""
+
+def retryDownloadAndPauseFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str ="") -> None:
+    """ Retries a download by getting the options of the existing download and using it to add a new download and then pauses the download. Does not remove the old download. Returns the gid of the new download or an empty string if there is an error. """
+    gid = retryDownloadFull(gid, url=url, port=port, token=token)
+    if gid: sendReq(pause(gid))
+
 
 
 def getAll() -> Tuple[list[list[str]], list[str]]:
@@ -584,6 +601,7 @@ getVersion = lambda : getVersionFull(token=token)
 getGlobalStat = lambda : getGlobalStatFull(token=token)
 pause = lambda gid:  pauseFull(gid, token=token)
 retryDownload = lambda gid:  retryDownloadFull(gid, url=url, port=port, token=token)
+retryDownloadAndPause = lambda gid:  retryDownloadAndPauseFull(gid, url=url, port=port, token=token)
 pauseAll = lambda : pauseAllFull(token=token)
 unpause = lambda gid:  unpauseFull(gid, token=token)
 remove = lambda gid:  removeFull(gid, token=token)
@@ -601,4 +619,5 @@ tellStatus = lambda gid:  tellStatusFull(gid, token=token)
 sendReq = lambda jsonreq, url=url, port=port: sendReqFull(jsonreq, url=url, port=port)
 addTorrents = lambda url=url, port=port, token=token: addTorrentsFull(url=url, port=port, token=token)
 addUris = lambda url=url, port=port, token=token: addUrisFull(url=url, port=port, token=token)
+addUrisAndPause = lambda url=url, port=port, token=token: addUrisAndPauseFull(url=url, port=port, token=token)
 testConnection = lambda url=url, port=port: testConnectionFull(url=url, port=port)

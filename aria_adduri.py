@@ -8,7 +8,7 @@ import subprocess
 import re
 from typing import Callable, Optional, Tuple
 
-def addDownloadFull(uri: str, out:str = str, token: str = "", url: str = "http://localhost", port: int = 6800, queue_position: int = 0, cookies_file: str = "", dir: str = "", proxy: str = str, prompt: bool = False) -> None:
+def addDownloadFull(uri: str, out:str = str, token: str = "", url: str = "http://localhost", port: int = 6800, queue_position: int = 0, cookies_file: str = "", dir: str = "", proxy: str = str, prompt: bool = False) -> Tuple[bool, str]:
     """
     Send download to aria2c server at $url:$port. 
     If prompt is true then we open a new kitty window with a neovim buffer to enter any uris.
@@ -57,8 +57,10 @@ def addDownloadFull(uri: str, out:str = str, token: str = "", url: str = "http:/
     response_json = response.json()
     if response_json.get("error"):
         print(f"Error: {response_json['error']['message']}")
+        return False, response_json['error']['message']
     else:
         print(f"Success! Download ID: {response_json['result']}")
+        return True, response_json['result']
 
 def parse_string_to_list(s: str) -> list[int]:
     """ Turn a string containing a list of integers ("5,3,1,3,222") or a slice (e.g., "4:199") into a python list. """

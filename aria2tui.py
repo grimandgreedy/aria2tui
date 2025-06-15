@@ -45,6 +45,7 @@ def begin(stdscr : curses.window, config: dict) -> None:
         ["sendToFrontOfQueue", changePosition, {"pos":0} , {}],
         ["sendToBackOfQueue", changePosition, {"pos":10000}, {}],
         ["retryDownload", retryDownload, {}, {}],
+        ["retryDownloadAndPause", retryDownloadAndPause, {}, {}],
         ["Remove Paused", remove, {}, {}],
         # ["forceRemove", forceRemove, {}, {}],
         # ["removeStopped", removeDownloadResult, {}, {}],
@@ -66,6 +67,7 @@ def begin(stdscr : curses.window, config: dict) -> None:
         ["Watch Downloads", None,{},{}],
         ["View Downloads", None,{},{}],
         ["Add URIs", addUris,{},{}],
+        ["Add URIs and pause", addUrisAndPause,{},{}],
         ["Add Torrents", addTorrents,{},{}],
         ["Pause All", pauseAll,{},{}],
         ["Remove completed/errored downloads", removeCompleted,{},{}],
@@ -206,7 +208,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
                 return_val = func(**kwargs)
                 # Add notification of success or failure to listpicker
                 if return_val not in ["", None]:
-                    downloads_data["startup_notification"] = return_val
+                    downloads_data["startup_notification"] = str(return_val)
 
 
 def main() -> None:
