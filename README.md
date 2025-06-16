@@ -35,6 +35,7 @@ ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python aria
 in addition to those requirements the application uses:
  - `yazi` for opening download locations
  - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
+ - `xdg-open` and `gio` for opening files.
 
 ## Features
 
@@ -70,7 +71,6 @@ While I use Aria2TUI every day, it is still in development and there are many th
 Some things that should be mentioned:
 
  - Realistically Aria2TUI will currently only work in a UNIX (linux, macos) environment.
- - When retrying a download it will readd the download information.
  - If you are performing bulk operations and the downloads are changing state rapidly--e.g., hundreds of images are changing from active/waiting to completed--it is recommended to stop the auto-refresh and operate on a static list.
     - This can be done by either:
       - exiting to the main menu ('q') and going to "View Downloads"; or
