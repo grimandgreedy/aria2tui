@@ -1,5 +1,7 @@
 import curses
-from aria2c_wrapper import *
+from aria2tui.lib.aria2c_wrapper import *
+from aria2tui.utils.aria_adduri import addDownloadFull
+from list_picker.utils.utils import *
 import os
 import subprocess
 import toml
@@ -8,9 +10,7 @@ import json
 import sys
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.expanduser("../list_picker/"))
-from list_picker.utils import *
 import tempfile
-from aria_adduri import addDownloadFull
 import tabulate
 from typing import Callable, Tuple
 

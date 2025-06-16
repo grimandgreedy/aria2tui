@@ -8,14 +8,31 @@ import toml
 import json
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.expanduser("../list_picker/"))
-from list_picker.utils import *
-from list_picker.list_picker import *
-from list_picker.list_picker_colours import get_colours, help_colours
-from list_picker.table_to_list_of_lists import *
-from list_picker.options_selectors import default_option_selector
-from list_picker.utils import *
-from list_picker.keys import menu_keys
+sys.path.append(os.path.expanduser("../../list_picker/"))
+
+
+from list_picker.ui.list_picker_colours import get_colours, get_help_colours, get_notification_colours
+from list_picker.utils.options_selectors import default_option_input, output_file_option_selector
+from list_picker.utils.table_to_list_of_lists import *
+from list_picker.utils.utils import *
+from list_picker.utils.sorting import *
+from list_picker.utils.filtering import *
+from list_picker.ui.input_field import *
+from list_picker.utils.clipboard_operations import *
+from list_picker.utils.searching import search
+from list_picker.ui.help_screen import help_lines
+from list_picker.ui.keys import list_picker_keys, notification_keys, options_keys, menu_keys
+from list_picker.utils.generate_data import generate_list_picker_data
+from list_picker.utils.dump import dump_state, load_state, dump_data
+from list_picker.list_picker_app import picker
+#
+#
+# from list_picker.utils.utils import *
+# from list_picker import *
+# from list_picker.ui.list_picker_colours import get_colours
+# from list_picker.utils.table_to_list_of_lists import *
+# from list_picker.utils.options_selectors import default_option_selector
+# from list_picker.ui.keys import menu_keys
 # from list_picker import *
 # from list_picker_colours import get_colours, help_colours
 # from table_to_list_of_lists import *
@@ -23,21 +40,25 @@ from list_picker.keys import menu_keys
 # from keys import menu_keys
 # from utils import *
 import curses
-from aria2c_wrapper import *
-from aria2c_utils import *
-from aria2_detailing import highlights, menu_highlights, modes, operations_highlights
-from aria2tui_keys import download_option_keys
+from aria2tui.lib.aria2c_wrapper import *
+from aria2tui.utils.aria2c_utils import *
+from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, operations_highlights
+from aria2tui.ui.aria2tui_keys import download_option_keys
 
 
 def begin(stdscr : curses.window, config: dict) -> None:
     """ Initialise data and start application. """
 
+    global help_colours, notification_colours
     url = config["general"]["url"]
     port = config["general"]["port"]
     token = config["general"]["token"]
     paginate = config["general"]["paginate"]
 
     custom_colours = get_colours(config["appearance"]["theme"])
+    help_colours = get_help_colours(config["appearance"]["theme"])
+    notification_colours = get_notification_colours(config["appearance"]["theme"])
+    colour_theme_number=config["appearance"]["theme"]
 
     # ["NAME", function, functionargs, extra]
     download_options = [
@@ -83,9 +104,21 @@ def begin(stdscr : curses.window, config: dict) -> None:
         ["Edit Config", editConfig,{},{}],
         ["Restart Aria", restartAria,{},{"display_message": "Restarting Aria2c..." }],
     ]
-    appLoop(stdscr, config, highlights, menu_highlights, custom_colours, modes, download_options, menu_options, paginate)
+    appLoop(stdscr, config, highlights, menu_highlights, custom_colours, colour_theme_number, modes, download_options, menu_options, paginate)
 
-def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_highlights: list[dict], custom_colours: dict, modes: list[dict], download_options: list[list], menu_options: list[list], paginate: bool =False) -> None:
+def appLoop(
+        stdscr: curses.window,
+        config: dict,
+        highlights: list[dict],
+        menu_highlights: list[dict],
+        custom_colours: dict,
+        colour_theme_number: int,
+        modes: list[dict],
+        download_options: list[list],
+        menu_options: list[list],
+        paginate: bool =False
+    ) -> None:
+
     """ Main app loop for aria2tui. """
     app_name = "Aria2TUI"
     menu_data = {
@@ -94,6 +127,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "paginate": paginate,
         "title": app_name,
         "colours": custom_colours,
+        "colour_theme_number": colour_theme_number,
         "max_selected": 1,
         "items": [menu_option[0] for menu_option in menu_options],
         "header": ["Main Menu"],
@@ -113,6 +147,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "display_modes": True,
         "title": app_name,
         "colours": custom_colours,
+        "colour_theme_number": colour_theme_number,
         "refresh_function": getAll,
         "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1, 0],
         "sort_reverse": [False, False, False, True, True, True, True, True, False, False, False],
@@ -131,6 +166,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
         "paginate": paginate,
         "title": app_name,
         "colours": custom_colours,
+        "colour_theme_number": colour_theme_number,
         "require_option": [False if x[0] != "changePosition" else True for x in download_options],
         "option_functions": [None if x[0] != "changePosition" else lambda stdscr, refresh_screen_function: default_option_selector(stdscr, field_name="Download Position") for x in download_options],
         "header": [f"Select operation"],
@@ -141,7 +177,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
     while True:
         downloads_data = {key: val for key, val in downloads_data.items() if key not in ["items", "indexed_items"]}
         ## SELECT DOWNLOADS
-        selected_downloads, opts, downloads_data = list_picker(
+        selected_downloads, opts, downloads_data = picker(
             stdscr,
             **downloads_data,
         )
@@ -161,7 +197,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
             dl_operations_data["infobox_items"] = fnames
 
             ## SELECT DOWNLOAD OPTION
-            selected_operation, opts, dl_operations_data = list_picker(
+            selected_operation, opts, dl_operations_data = picker(
                 stdscr,
                 items=operations,
                 **dl_operations_data,
@@ -179,7 +215,7 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
             else: continue
         else: 
             ## SELECT MENU OPTION
-            selected_menu, opts, menu_data = list_picker(
+            selected_menu, opts, menu_data = picker(
                 stdscr,
                 **menu_data,
             )
@@ -216,19 +252,22 @@ def appLoop(stdscr: curses.window, config: dict, highlights: list[dict], menu_hi
                     downloads_data["startup_notification"] = str(return_val)
 
 
-def main() -> None:
+def aria2tui() -> None:
     """ Main function """
     ## Load config
-    CONFIGPATH = "./aria2tui.toml"
+
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
+    CONFIGPATH = "../aria2tui.toml"
     if "ARIA2TUI_CONFIG_PATH" in os.environ:
         CONFIGPATH = os.environ["ARIA2TUI_CONFIG_PATH"]
 
     if not os.path.exists(os.path.expanduser(CONFIGPATH)):
-        CONFIGPATH = "./config.toml"
+        CONFIGPATH = "../config.toml"
     with open(os.path.expanduser(CONFIGPATH), "r") as f:
         config = toml.load(f)
 
     custom_colours = get_colours(config["appearance"]["theme"])
+    colour_theme_number = config["appearance"]["theme"]
 
     ## Run curses
     stdscr = curses.initscr()
@@ -241,10 +280,11 @@ def main() -> None:
     connection_up = testConnection()
     if not connection_up:
         header, choices = ["Aria2c Connection Down. Do you want to start it?"], ["Yes", "No"]
-        choice, opts, function_data = list_picker(
+        choice, opts, function_data = picker(
             stdscr,
             choices,
             colours=custom_colours,
+            colour_theme_number=colour_theme_number,
             title="Aria2TUI",
             header=header,
             max_selected=1
@@ -273,4 +313,4 @@ def main() -> None:
     os.system('cls' if os.name == 'nt' else 'clear')
 
 if __name__ == "__main__":
-    main()
+    aria2tui()
