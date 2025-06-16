@@ -4,7 +4,7 @@ Aria2TUI is a TUI frontend for the Aria2 download utility.
 
 ## Quickstart
 
-Aria2TUI gets that data and displays it using list_picker. As these are both in development you will need to clone them both and install the requirements.
+Aria2TUI fetches the download data from the aria2c daemon over RPC and displays it using list_picker. As both Aria2TUI and list_picker are in active development you will need to clone both repositories.
 
 ```
 git clone https://github.com/grimandgreedy/aria2tui
