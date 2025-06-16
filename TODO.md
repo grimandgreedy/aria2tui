@@ -65,6 +65,8 @@
 > - [ ] Add retry and puase option
 > - [ ] Finish implementation of batch changeOptions (!!!)
 >    - [ ] Fix changing out dir
+> - [x] Restructure repo directory.
+> - [ ] If the token is incorrect then we are asked if we want to start aria2c...
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **

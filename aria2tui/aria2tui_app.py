@@ -256,15 +256,7 @@ def aria2tui() -> None:
     """ Main function """
     ## Load config
 
-    os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    CONFIGPATH = "../aria2tui.toml"
-    if "ARIA2TUI_CONFIG_PATH" in os.environ:
-        CONFIGPATH = os.environ["ARIA2TUI_CONFIG_PATH"]
-
-    if not os.path.exists(os.path.expanduser(CONFIGPATH)):
-        CONFIGPATH = "../config.toml"
-    with open(os.path.expanduser(CONFIGPATH), "r") as f:
-        config = toml.load(f)
+    config = get_config()
 
     custom_colours = get_colours(config["appearance"]["theme"])
     colour_theme_number = config["appearance"]["theme"]

@@ -632,11 +632,20 @@ def applyToDownloads(stdscr: curses.window, gids: list, operation_name: str, ope
             process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     stdscr.clear()
 
-## Load config
-CONFIGPATH = "~/scripts/utils/aria2tui/aria2tui.toml"
+def get_config() -> dict:
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
+    CONFIGPATH = "../../aria2tui.toml"
+    if "ARIA2TUI_CONFIG_PATH" in os.environ:
+        CONFIGPATH = os.environ["ARIA2TUI_CONFIG_PATH"]
 
-with open(os.path.expanduser(CONFIGPATH), "r") as f:
-    config = toml.load(f)
+    if not os.path.exists(os.path.expanduser(CONFIGPATH)):
+        CONFIGPATH = "../../config.toml"
+    with open(os.path.expanduser(CONFIGPATH), "r") as f:
+        config = toml.load(f)
+
+    return config
+
+config = get_config()
 url = config["general"]["url"]
 port = config["general"]["port"]
 token = config["general"]["token"]
