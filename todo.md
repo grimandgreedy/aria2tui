@@ -63,6 +63,8 @@
 > - [ ] Add option to change options and readd download. 
 >   - [ ] Note that changing options for errored downloads doesn't work
 > - [ ] Add retry and puase option
+> - [ ] Finish implementation of batch changeOptions (!!!)
+>    - [ ] Fix changing out dir
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **

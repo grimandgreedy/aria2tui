@@ -4,10 +4,11 @@ import os
 import subprocess
 import toml
 from urllib import request as rq
-from subprocess import run
 import json
-from sqlalchemy.engine import cursor
-from utils import *
+import sys
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.expanduser("../list_picker/"))
+from list_picker.utils import *
 import tempfile
 from aria_adduri import addDownloadFull
 import tabulate

@@ -1,0 +1,11 @@
+;; Put this file in ~/.config/systemd/user/ as a service file
+
+[Unit]
+Description=Aria2c Daemon Service File
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/aria2c
+
+[Install]
+WantedBy=default.target
