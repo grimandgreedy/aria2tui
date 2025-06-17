@@ -24,7 +24,7 @@ from list_picker.ui.help_screen import help_lines
 from list_picker.ui.keys import list_picker_keys, notification_keys, options_keys, menu_keys
 from list_picker.utils.generate_data import generate_list_picker_data
 from list_picker.utils.dump import dump_state, load_state, dump_data
-from list_picker.list_picker_app import picker
+from list_picker.list_picker_app import Picker
 #
 #
 # from list_picker.utils.utils import *
@@ -177,10 +177,8 @@ def appLoop(
     while True:
         downloads_data = {key: val for key, val in downloads_data.items() if key not in ["items", "indexed_items"]}
         ## SELECT DOWNLOADS
-        selected_downloads, opts, downloads_data = picker(
-            stdscr,
-            **downloads_data,
-        )
+        DownloadsPicker = Picker(stdscr, **downloads_data)
+        selected_downloads, opts, downloads_data = DownloadsPicker.run()
 
         if selected_downloads:
             operations = [x[0] for x in download_options]
@@ -197,11 +195,8 @@ def appLoop(
             dl_operations_data["infobox_items"] = fnames
 
             ## SELECT DOWNLOAD OPTION
-            selected_operation, opts, dl_operations_data = picker(
-                stdscr,
-                items=operations,
-                **dl_operations_data,
-            )
+            DownloadOperationPicker = Picker(stdscr, items=operations, **dl_operations_data)
+            selected_operation, opts, dl_operations_data = DownloadOperationPicker.run()
             if selected_operation:
                 operation_name, operation_function = operations[selected_operation[0]], operation_functions[selected_operation[0]]
                 user_opts = dl_operations_data["user_opts"]
@@ -215,10 +210,8 @@ def appLoop(
             else: continue
         else: 
             ## SELECT MENU OPTION
-            selected_menu, opts, menu_data = picker(
-                stdscr,
-                **menu_data,
-            )
+            MenuPicker = Picker(stdscr, **menu_data)
+            selected_menu, opts, menu_data = MenuPicker.run()
             ## If we exit from the menu then exit altogether
             if not selected_menu: break
             ##
@@ -270,28 +263,40 @@ def aria2tui() -> None:
 
     ## Check if aria is running
     connection_up = testConnection()
-    if not connection_up:
-        header, choices = ["Aria2c Connection Down. Do you want to start it?"], ["Yes", "No"]
-        choice, opts, function_data = picker(
-            stdscr,
-            choices,
-            colours=custom_colours,
-            colour_theme_number=colour_theme_number,
-            title="Aria2TUI",
-            header=header,
-            max_selected=1
-        )
+    can_connect = testAriaConnection()
+    if not can_connect:
+        if not connection_up:
+            header, choices = ["Aria2c Connection Down. Do you want to start it?"], ["Yes", "No"]
+            connect_data = {
+                    "items": choices,
+                    "colours": custom_colours,
+                    "title": "Aria2TUI",
+                    "header": header,
+                    "max_selected": 1,
+                }
+            ConnectionPicker = Picker(stdscr, **connect_data)
 
-        if choice == [1] or choice == []: exit()
-        h, w = stdscr.getmaxyx()
-        if (h>8 and w >20):
-            stdscr.addstr(h//2, (w-len("Starting Aria2c Now"))//2, "Starting Aria2c Now")
-            stdscr.refresh()
+            choice, opts, function_data = ConnectionPicker.run()
 
-        for cmd in config["general"]["startupcmds"]:
-            subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
+            if choice == [1] or choice == []: exit()
+            h, w = stdscr.getmaxyx()
+            if (h>8 and w >20):
+                stdscr.addstr(h//2, (w-len("Starting Aria2c Now"))//2, "Starting Aria2c Now")
+                stdscr.refresh()
 
-        time.sleep(2)
+            for cmd in config["general"]["startupcmds"]:
+                subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
+
+            time.sleep(2)
+        else:
+            h, w = stdscr.getmaxyx()
+            if (h>8 and w >20):
+                stdscr.addstr(h//2, (w-len("Connection up but can't get data..."))//2, "Connection up but can't get data...")
+                stdscr.addstr(h//2+1, (w-len("Is your token correct in config.toml?"))//2, "Is your token correct in config.toml?")
+                stdscr.refresh()
+            time.sleep(5)
+            exit()
+
 
     begin(stdscr, config=config)
 

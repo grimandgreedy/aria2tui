@@ -68,6 +68,12 @@ def getVersionFull(token=None):
     jsonreq["method"] = "aria2.getVersion"
     return json.dumps(jsonreq).encode('utf-8')
 
+def listMethods():
+    # if token: print(token)
+    jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer' }
+    jsonreq["method"] = "system.listMethods"
+    return json.dumps(jsonreq).encode('utf-8')
+
 def getGlobalStatFull(token=None):
     jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer', 'params' : [f"token:{token}"] }
     jsonreq["params"] = [] if token in [None, ""] else [f"token:{token}"]

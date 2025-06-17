@@ -15,11 +15,31 @@ import tabulate
 from typing import Callable, Tuple
 
 def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
-    """ Tests the connection to the Aria2 server. """
+    """ Tests if we can connect to the url and port. """
+    url = f'{url}:{port}/jsonrpc'
+    try:
+        with rq.urlopen(url, listMethods()) as c:
+            response = c.read()
+        return True
+    except:
+        return False
+
+def testAriaConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
+    """ Tests the connection to the Aria2 server. In particular we test if our token works to get protected data. """
     url = f'{url}:{port}/jsonrpc'
     try:
         getVersion()
         with rq.urlopen(url, getVersion()) as c:
+            response = c.read()
+        return True
+    except:
+        return False
+
+def te(url: str = "http://localhost", port: int = 6800) -> bool:
+    """ Tests the connection to the Aria2 server. """
+    url = f'{url}:{port}/jsonrpc'
+    try:
+        with rq.urlopen(url, listMethods()) as c:
             response = c.read()
         return True
     except:
@@ -688,3 +708,4 @@ addTorrents = lambda url=url, port=port, token=token: addTorrentsFull(url=url, p
 addUris = lambda url=url, port=port, token=token: addUrisFull(url=url, port=port, token=token)
 addUrisAndPause = lambda url=url, port=port, token=token: addUrisAndPauseFull(url=url, port=port, token=token)
 testConnection = lambda url=url, port=port: testConnectionFull(url=url, port=port)
+testAriaConnection = lambda url=url, port=port: testAriaConnectionFull(url=url, port=port)
