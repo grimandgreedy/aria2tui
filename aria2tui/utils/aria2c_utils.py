@@ -291,10 +291,14 @@ def changeOptionBatchDialog(gids:list) -> str:
 def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> list:
     """Add URIs to aria server"""
 
-    s = "!!\n"
-    s += "# !! arguments inside !! will be applied to all downloads that follow\n"
-    s += "# !pause=true,queue=0! add and pause, send all to front of queue\n"
-    s += "# !!argstrings not yet fully implemented\n"
+    s = ""
+    # s = "!!\n"
+    # s += "# !! arguments inside !! will be applied to all downloads that follow\n"
+    # s += "# !pause=true,queue=0! add and pause, send all to front of queue\n"
+    # s += "# !!argstrings not yet fully implemented\n"
+    s += '# https://docs.python.org/3/_static/py.png\n'
+    s += '#    dir=/home/user/pngfiles/\n'
+    s +=  '# https://docs.python.org/3/_static/py.jpg\n'
     s +=  '# https://docs.python.org/3/_static/py.svg\n#    pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n'
     s += '#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n\n'
     s += "# Valid options can be found in the aria2c manual at: https://aria2.github.io/manual/en/html/aria2c.html#input-file\n\n"
@@ -401,12 +405,13 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
         ```
     """
 
-    s = "!!\n"
-    s += "# !! arguments inside !! will be applied to all downloads that follow\n"
-    s += "# !pause=true,queue=0! add and pause, send all to front of queue\n"
-    s += "# !!argstrings not yet fully implemented\n"
-    s +=  "# /path/to/torrent\n"
-    s += " # magnet:?xt=...\n\n"
+    s = ""
+    # s = "!!\n"
+    # s += "# !! arguments inside !! will be applied to all downloads that follow\n"
+    # s += "# !pause=true,queue=0! add and pause, send all to front of queue\n"
+    # s += "# !!argstrings not yet fully implemented\n"
+    s += "# /path/to/file.torrent\n"
+    s += "# magnet:?xt=...\n\n"
 
     ## Create tmpfile
     with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
@@ -652,7 +657,28 @@ def applyToDownloads(stdscr: curses.window, gids: list, operation_name: str, ope
             process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     stdscr.clear()
 
-def get_config() -> dict:
+def getGlobalSpeed() -> str:
+    resp = sendReq(getGlobalStat())
+    up = bytes_to_human_readable(resp['result']['uploadSpeed'])
+    down = bytes_to_human_readable(resp['result']['downloadSpeed'])
+    numActive = resp['result']['numActive']
+    numStopped = resp['result']['numStopped']
+    numWaiting = resp['result']['numWaiting']
+    return f"{down}/s 󰇚 {up}/s 󰕒 | {numActive}A {numWaiting}W {numStopped}S"
+    return f"{down}/s 󰇚  {up}/s 󰕒"
+        
+def bytes_to_human_readable(size: float) -> str:
+    suffixes = ['B', 'KB', 'MB', 'GB', 'TB']
+    if isinstance(size, str):
+        size=float(size)
+    i = 0
+    while size >= 1024 and i < len(suffixes)-1:
+        size /= 1024.0
+        i += 1
+    return f"{size:.1f} {suffixes[i]}"
+
+def get_config(path="") -> dict:
+    """ Get config from file. """
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
     CONFIGPATH = "../../aria2tui.toml"
     if "ARIA2TUI_CONFIG_PATH" in os.environ:
@@ -663,14 +689,36 @@ def get_config() -> dict:
     with open(os.path.expanduser(CONFIGPATH), "r") as f:
         config = toml.load(f)
 
-    return config
+    full_config = get_default_config()
+    if "general" in config:
+        for key in config["general"]:
+            full_config["general"][key] = config["general"][key]
+    if "appearance" in config:
+        for key in config["appearance"]:
+            full_config["appearance"][key] = config["appearance"][key]
 
+    return full_config
+
+def get_default_config() -> dict:
+    default_config = {
+        "general" : {
+            "url": "http://localhost",
+            "port": "6800",
+            "token": "",
+            "startupcmds": ["aria2d"],
+        },
+        "appearance":{
+            "paginate": False,
+        }
+    }
+    return default_config
+
+# default = get_default_config()
 config = get_config()
 url = config["general"]["url"]
 port = config["general"]["port"]
 token = config["general"]["token"]
 paginate = config["general"]["paginate"]
-
 ## Create lambda functions which fill the url, port, and token for our aria2c rpc operations
 
 

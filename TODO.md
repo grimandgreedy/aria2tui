@@ -7,6 +7,8 @@
 >    - [ ] Allow all possible options to be specified
 > - [ ] improve menu navigation
 >    - [x] when downloads are selected and we go back they should still be selected
+> - [ ] add global stats bar,
+>   - [ ] Total DL speed, # active, 
 > - [ ] add global stats bar
 > - [ ] monitor log file
 > - [ ] setup https connection
@@ -35,8 +37,8 @@
 >   - completed: green
 >   - active: blue
 >   - paused: ??? gray?
-> - [ ] (!!!) make operations on downloads into a batch request
-> - [ ] examine parsing of toml (why are the arguments set outside of the main function?)
+> - [ ] (!!!) make operations on multiple downloads into a batch request to reduce token-validation delay
+> - [x] examine parsing of toml (why are the arguments set outside of the main function?)
 > - [ ] add to config
 >    - [x] url
 >    - [x] port

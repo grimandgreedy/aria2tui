@@ -69,9 +69,13 @@ def getVersionFull(token=None):
     return json.dumps(jsonreq).encode('utf-8')
 
 def listMethods():
-    # if token: print(token)
     jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer' }
     jsonreq["method"] = "system.listMethods"
+    return json.dumps(jsonreq).encode('utf-8')
+
+def listNotifications():
+    jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer' }
+    jsonreq["method"] = "system.listNotifications"
     return json.dumps(jsonreq).encode('utf-8')
 
 def getGlobalStatFull(token=None):
