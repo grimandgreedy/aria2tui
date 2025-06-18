@@ -1,3 +1,4 @@
+#!/bin/python
 import curses
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria_adduri import addDownloadFull
@@ -139,7 +140,7 @@ def getStopped() -> Tuple[list[list[str]], list[str]]:
             dl_speed = int(dl['downloadSpeed'])
             time_left = "INF"
         
-            row = ["NA", status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left, pth, gid]
+            row = ["", status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left, pth, gid]
             items.append(row)
         except:
             pass
@@ -191,7 +192,7 @@ def getActive() -> Tuple[list[list[str]], list[str]]:
             if time_left: time_left_s = convert_seconds(time_left)
             else: time_left_s = "INF"
 
-            row = ["NA", status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
+            row = ["", status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
             items.append(row)
         except:
             pass
@@ -211,8 +212,10 @@ def printResults(items: list[list[str]], header: list[str]=[]) -> None:
 
 def restartAria() -> None:
     """Restart aria2 daemon."""
-    cmd = f"systemctl --user restart aria2d.service"
-    subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+    for cmd in config["general"]["restartcmds"]:
+        subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
+    # cmd = f"systemctl --user restart aria2d.service"
+    # subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     # Wait before trying to reconnect
     subprocess.run("sleep 2", shell=True, stderr=subprocess.PIPE)
 
@@ -616,11 +619,19 @@ def openFiles(files: list[str]) -> None:
         subprocess.Popen(f"gio launch /usr/share/applications/{app} {files_str}", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
 
-def applyToDownloads(stdscr: curses.window, gids: list, operation_name: str, operation_function: Callable, user_opts: str, view) -> None:
+def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str = "", operation_function: Callable = lambda:None, operation_function_args: dict = {}, user_opts: str = "", view: bool =False, fnames:list=[]) -> None:
 
     responses = []
+    if len(gids) ==0 : return None
     if operation_name in ["Open File(s) (do not group)", "Open File(s)"]:
         operation_function(gids)
+    elif operation_name == "Transfer Speed Graph *experimental*":
+        fname = fnames[0]
+        if len(fname)>20: fname = fname[:17] + '...'
+
+        operation_function_args["title"] = f"{repr(fname)} Transfer Speeds"
+        operation_function(gid=str(gids[0]), **operation_function_args)
+
     else:
         for gid in gids:
             try:
@@ -639,7 +650,7 @@ def applyToDownloads(stdscr: curses.window, gids: list, operation_name: str, ope
                 #     operation_kwargs = operation_list[2]
                 #     jsonreq = operation_function(str(gid), **operation_kwargs)
                 else:
-                    jsonreq = operation_function(str(gid))
+                    jsonreq = operation_function(gid=str(gid), **operation_function_args)
 
                 js_rs = sendReq(jsonreq)
                 responses.append(js_rs)
@@ -679,6 +690,8 @@ def bytes_to_human_readable(size: float) -> str:
 
 def get_config(path="") -> dict:
     """ Get config from file. """
+    full_config = get_default_config()
+
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
     CONFIGPATH = "../../aria2tui.toml"
     if "ARIA2TUI_CONFIG_PATH" in os.environ:
@@ -686,16 +699,17 @@ def get_config(path="") -> dict:
 
     if not os.path.exists(os.path.expanduser(CONFIGPATH)):
         CONFIGPATH = "../../config.toml"
-    with open(os.path.expanduser(CONFIGPATH), "r") as f:
-        config = toml.load(f)
 
-    full_config = get_default_config()
-    if "general" in config:
-        for key in config["general"]:
-            full_config["general"][key] = config["general"][key]
-    if "appearance" in config:
-        for key in config["appearance"]:
-            full_config["appearance"][key] = config["appearance"][key]
+    if os.path.exists(os.path.expanduser(CONFIGPATH)):
+        with open(os.path.expanduser(CONFIGPATH), "r") as f:
+            config = toml.load(f)
+
+        if "general" in config:
+            for key in config["general"]:
+                full_config["general"][key] = config["general"][key]
+        if "appearance" in config:
+            for key in config["appearance"]:
+                full_config["appearance"][key] = config["appearance"][key]
 
     return full_config
 
@@ -706,9 +720,11 @@ def get_default_config() -> dict:
             "port": "6800",
             "token": "",
             "startupcmds": ["aria2d"],
+            "restartcmds": ["pkill aria2d && sleep 1 && aria2d"],
+            "paginate": False,
         },
         "appearance":{
-            "paginate": False,
+            "theme": 0
         }
     }
     return default_config

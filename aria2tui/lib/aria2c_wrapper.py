@@ -1,3 +1,4 @@
+#!/bin/python
 import json
 from urllib import request as rq
 import base64

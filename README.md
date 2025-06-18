@@ -11,6 +11,8 @@ git clone https://github.com/grimandgreedy/aria2tui
 
 cd aria2tui && python -m pip install -r requirements
 
+cd ..
+
 git clone https://github.com/grimandgreedy/list_picker
 
 cd list_picker && python -m pip install -r requirements
@@ -75,6 +77,7 @@ Some things that should be mentioned:
     - This can be done by either:
       - exiting to the main menu ('q') and going to "View Downloads"; or
       - Pressing ~ and toggling the auto-refresh in the default "Watch Downloads" viewer.
+ - Note: This was created for personal use and so some of the code is quite ugly and/or buggy and simply needs to be re-written.
 
 ## Support and Feedback
 

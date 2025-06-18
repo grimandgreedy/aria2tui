@@ -1,3 +1,4 @@
+#!/bin/python
 """
 Detailings for aria2TUI. 
     - highlights

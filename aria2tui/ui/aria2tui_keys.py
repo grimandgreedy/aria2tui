@@ -1,3 +1,4 @@
+#!/bin/python
 import curses
 """
 Define key dictionary for controlling list_picker.
@@ -16,8 +17,8 @@ download_option_keys = {
     "cursor_up":                        [ord('k'), curses.KEY_UP],
     "half_page_up":                     [ord('u')],
     "half_page_down":                   [ord('d')],
-    "page_up":                          [ord('p'), curses.KEY_PPAGE, 2],
-    "page_down":                        [ord('n'), curses.KEY_NPAGE, 6],
+    "page_up":                          [curses.KEY_PPAGE, 2],
+    "page_down":                        [curses.KEY_NPAGE, 6],
     "cursor_bottom":                    [ord('G'), curses.KEY_END],
     "cursor_top":                       [ord('g'), curses.KEY_HOME],
     "five_up":                          [ord('K')],
@@ -31,8 +32,8 @@ download_option_keys = {
     "increase_column_width":            [ord(']')],
     "decrease_column_width":            [ord('[')],
     "search_input":                     [ord('/')],
-    "continue_search_forward":          [ord('i')],
-    "continue_search_backward":         [ord('I')],
+    "continue_search_forward":          [ord('n'), ord('i')],
+    "continue_search_backward":         [ord('N'), ord('i')],
     "cancel":                           [27], # Escape key
     "opts_input":                       [ord(':')],
     "opts_select":                      [ord('o')],
@@ -49,8 +50,8 @@ notification_keys = {
     "cursor_up":                        [ord('k'), curses.KEY_UP],
     "half_page_up":                     [ord('u')],
     "half_page_down":                   [ord('d')],
-    "page_up":                          [ord('p'), curses.KEY_PPAGE],
-    "page_down":                        [ord('n'), curses.KEY_NPAGE],
+    "page_up":                          [curses.KEY_PPAGE],
+    "page_down":                        [curses.KEY_NPAGE],
     "cursor_bottom":                    [ord('G'), curses.KEY_END],
     "cursor_top":                       [ord('g'), curses.KEY_HOME],
     "five_up":                          [ord('K')],
@@ -69,8 +70,8 @@ menu_keys = {
     "cursor_up":                        [ord('k'), curses.KEY_UP],
     "half_page_up":                     [ord('u')],
     "half_page_down":                   [ord('d')],
-    "page_up":                          [ord('p'), curses.KEY_PPAGE, 2],
-    "page_down":                        [ord('n'), curses.KEY_NPAGE, 6],
+    "page_up":                          [curses.KEY_PPAGE, 2],
+    "page_down":                        [curses.KEY_NPAGE, 6],
     "cursor_bottom":                    [ord('G'), curses.KEY_END],
     "cursor_top":                       [ord('g'), curses.KEY_HOME],
     "five_up":                          [ord('K')],
@@ -79,9 +80,9 @@ menu_keys = {
     "redraw_screen":                    [12], # Ctrl-l
     "filter_input":                     [ord('f')],
     "search_input":                     [ord('/')],
-    "continue_search_forward":          [ord('i')],
+    "continue_search_forward":          [ord('n'), ord('i')],
+    "continue_search_backward":         [ord('N'), ord('i')],
     "cancel":                           [27], # Escape key
-    "continue_search_backward":         [ord('I')],
     "opts_input":                       [ord(':')],
     "mode_next":                        [9], # Tab key
     "mode_prev":                        [353], # Shift+Tab key
@@ -95,8 +96,8 @@ options_keys = {
     "cursor_up":                        [ord('k'), curses.KEY_UP],
     "half_page_up":                     [ord('u')],
     "half_page_down":                   [ord('d')],
-    "page_up":                          [ord('p'), curses.KEY_PPAGE, 2],
-    "page_down":                        [ord('n'), curses.KEY_NPAGE, 6],
+    "page_up":                          [curses.KEY_PPAGE, 2],
+    "page_down":                        [curses.KEY_NPAGE, 6],
     "cursor_bottom":                    [ord('G'), curses.KEY_END],
     "cursor_top":                       [ord('g'), curses.KEY_HOME],
     "five_up":                          [ord('K')],

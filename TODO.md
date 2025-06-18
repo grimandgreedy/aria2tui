@@ -30,6 +30,10 @@
 > - [x] Implement change option functionality to allow download options to be changed
 >   - [ ] Allow batch options changing
 >     - Change dir for batch of downloads
+> - [ ] Integrate bulk downloaders
+> - [x] Add watch download speed graph
+>   - [ ] Integrate the graphs into the main list_picker so that they can be watched as a pane while list_picker runs.
+> - [ ] Make data requests asynchronous so that the data is still refreshed with a spotty connection.
 
 
 > [!Important] Improvements
@@ -69,6 +73,7 @@
 >    - [ ] Fix changing out dir
 > - [x] Restructure repo directory.
 > - [ ] If the token is incorrect then we are asked if we want to start aria2c...
+> - [ ] Add tooltips to certain menu options
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **
@@ -93,7 +98,8 @@
 >   - [ ] ^[^\s] matches all rows in help but only highlights the first col
 >     - [ ] seems to match the expression in any col but then only show highlights based on the row_str so misses matches in the second col
 >  - [ ] restrict refresh so that it doesn't exit on the menu
->  - [ ] infobox causes flickering
+>  - [x] infobox causes flickering
+>   - [x] Caused by stdscr.clear() which we called when creating the new Picker(). We need to use stdscr.erase().
 > - [ ] Overspill of selected header column by one character
 > - [ ] Prevent input field from overwriting footer values.
 >   - [x] Fixed after input has finished.
@@ -224,6 +230,7 @@
 >    - [x] use list_picker to implement help
 > - [x] +/- don't work when using scroll (rather than paginate)
 > - [x] flickering when "watching"
+>   - [x] stdscr.clear() vs stdscr.erase()
 > - [x] change the cursor tracker from current_row, current_page to current_pos
 > - [x] add flag to require options for a given entry
 > - [x] option to number columns or not

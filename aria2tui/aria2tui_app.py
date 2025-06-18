@@ -24,12 +24,13 @@ from list_picker.ui.help_screen import help_lines
 from list_picker.ui.keys import list_picker_keys, notification_keys, options_keys, menu_keys
 from list_picker.utils.generate_data import generate_list_picker_data
 from list_picker.utils.dump import dump_state, load_state, dump_data
-from list_picker.list_picker_app import Picker
+from list_picker.list_picker_app import Picker, start_curses, close_curses
 
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
 from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, operations_highlights
 from aria2tui.ui.aria2tui_keys import download_option_keys
+from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
 
 
 def begin(stdscr : curses.window) -> None:
@@ -63,6 +64,21 @@ def begin(stdscr : curses.window) -> None:
         ["openDownloadLocation", lambda gid: openDownloadLocation(gid, new_window=False), {}, {}],
         ["Open File(s)", openGidFiles, {}, {}],
         ["Open File(s) (do not group)", lambda gids: openGidFiles(gids, group=False), {}, {}],
+
+        ["Transfer Speed Graph *experimental*", graph_speeds_gid,{
+            "stdscr":stdscr,
+            "get_data_function": lambda gid: sendReq(tellStatus(gid)),
+
+            "graph_wh" : lambda: (
+                9*os.get_terminal_size()[0]//10,
+                9*os.get_terminal_size()[1]//10,
+            ),
+            "timeout": 1000,
+
+            "xposf" : lambda: os.get_terminal_size()[0]//20,
+            "yposf" : lambda: os.get_terminal_size()[1]//20,
+            "title": "Download Transfer Speeds",
+        },{}],
     ]
     menu_options = [
         ["Watch Downloads", None,{},{}],
@@ -70,6 +86,19 @@ def begin(stdscr : curses.window) -> None:
         ["Add URIs", addUris,{},{}],
         ["Add URIs and immediately pause", addUrisAndPause,{},{}],
         ["Add Torrents and magnet links", addTorrents,{},{}],
+        ["Transfer Speed Graph *experimental*", graph_speeds,{
+            "stdscr":stdscr,
+            "get_data_function": lambda: sendReq(getGlobalStat()),
+
+            "graph_wh" : lambda: (
+                9*os.get_terminal_size()[0]//10,
+                9*os.get_terminal_size()[1]//10,
+            ),
+
+            "xposf" : lambda: os.get_terminal_size()[0]//20,
+            "yposf" : lambda: os.get_terminal_size()[1]//20,
+            "title": "Global Transfer Speeds",
+        },{}],
         # ["Pause All", pauseAll,{},{}],
         # ["Force Pause All", forcePauseAll,{},{}],
         # ["Remove completed/errored downloads", removeCompleted,{},{}],
@@ -80,17 +109,15 @@ def begin(stdscr : curses.window) -> None:
         ["Edit Config", editConfig,{},{}],
         ["Restart Aria", restartAria,{},{"display_message": "Restarting Aria2c..." }],
     ]
-    appLoop(stdscr, config, highlights, menu_highlights, modes, download_options, menu_options, paginate)
+    appLoop(stdscr, highlights, menu_highlights, modes, download_options, menu_options)
 
 def appLoop(
         stdscr: curses.window,
-        config: dict,
         highlights: list[dict],
         menu_highlights: list[dict],
         modes: list[dict],
         download_options: list[list],
         menu_options: list[list],
-        paginate: bool =False
     ) -> None:
 
     """ Main app loop for aria2tui. """
@@ -163,6 +190,7 @@ def appLoop(
         if selected_downloads:
             operations = [x[0] for x in download_options]
             operation_functions = [x[1] for x in download_options]
+            operation_function_args = [x[2] for x in download_options]
             dl_operations_data = {key: val for key, val in dl_operations_data.items() if key not in ["items", "indexed_items"]}
             header = downloads_data["header"]
             items = downloads_data["items"]
@@ -179,12 +207,14 @@ def appLoop(
             selected_operation, opts, dl_operations_data = DownloadOperationPicker.run()
             if selected_operation:
                 operation_name, operation_function = operations[selected_operation[0]], operation_functions[selected_operation[0]]
+                operation_function_args = operation_function_args[selected_operation[0]]
+
                 user_opts = dl_operations_data["user_opts"]
                 view = False
                 operation_list = download_options[selected_operation[0]]
                 ## e.g., operation_list = ["getFiles", getFiles, {}, {"view":True}]
                 if len(operation_list) > 2 and "view" in operation_list[-1] and operation_list[-1]["view"]: view=True
-                applyToDownloads(stdscr, gids, operation_name, operation_function, user_opts, view)
+                applyToDownloads(stdscr, gids, operation_name, operation_function, operation_function_args, user_opts, view, fnames=fnames)
                 downloads_data["selections"] = {}
                 dl_operations_data["user_opts"] = ""
             else: continue
@@ -223,55 +253,66 @@ def appLoop(
                 # Add notification of success or failure to listpicker
                 if return_val not in ["", None, []]:
                     downloads_data["startup_notification"] = str(return_val)
+                    stdscr.clear()
 
 
 def handleAriaStartPromt(stdscr):
     ## Check if aria is running
-    connection_up = testConnection()
-    can_connect = testAriaConnection()
-    if not can_connect:
-        curses.init_pair(1, 253, 232)
-        stdscr.bkgd(' ', curses.color_pair(1))  # Apply background color
-        if not connection_up:
-            header, choices = ["Aria2c Connection Down. Do you want to start it?"], ["Yes", "No"]
-            connect_data = {
-                    "items": choices,
-                    "title": "Aria2TUI",
-                    "header": header,
-                    "max_selected": 1,
-                }
-            ConnectionPicker = Picker(stdscr, **connect_data)
+    curses.init_pair(1, 253, 232)
+    stdscr.bkgd(' ', curses.color_pair(1))  # Apply background color
+    stdscr.refresh()
+    while True:
+        connection_up = testConnection()
+        can_connect = testAriaConnection()
+        if not can_connect:
+            if not connection_up:
+                header, choices = ["Aria2c Connection Down. Do you want to start it?"], ["Yes", "No"]
+                connect_data = {
+                        "items": choices,
+                        "title": "Aria2TUI",
+                        "header": header,
+                        "max_selected": 1,
+                    }
+                ConnectionPicker = Picker(stdscr, **connect_data)
 
-            choice, opts, function_data = ConnectionPicker.run()
+                choice, opts, function_data = ConnectionPicker.run()
 
-            if choice == [1] or choice == []: exit()
-            h, w = stdscr.getmaxyx()
-            if (h>8 and w >20):
-                stdscr.addstr(h//2, (w-len("Starting Aria2c Now"))//2, "Starting Aria2c Now")
-                stdscr.refresh()
+                if choice == [1] or choice == []: exit()
 
-            for cmd in config["general"]["startupcmds"]:
-                subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
+                config = get_config()
 
-            time.sleep(2)
+                h, w = stdscr.getmaxyx()
+                if (h>8 and w >20):
+                    s = "Starting Aria2c Now..."
+                    stdscr.addstr(h//2-1, (w-len(s))//2, s)
+                    s = f'startupcmds = {config["general"]["startupcmds"]}'
+                    stdscr.addstr(h//2+1, (w-min(len(s), w))//2, s[:w])
+                    stdscr.refresh()
+
+                for cmd in config["general"]["startupcmds"]:
+                    subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+
+                time.sleep(2)
+            else:
+                h, w = stdscr.getmaxyx()
+                if (h>8 and w >20):
+                    s = "The connection is up but unresponsive..."
+                    stdscr.addstr(h//2, (w-len(s))//2, s)
+                    s="Is your token correct in config.toml?"
+                    stdscr.addstr(h//2+1, (w-len(s))//2, s)
+                    stdscr.refresh()
+                    stdscr.timeout(5000)
+                    stdscr.getch()
+                exit()
         else:
-            h, w = stdscr.getmaxyx()
-            if (h>8 and w >20):
-                stdscr.addstr(h//2, (w-len("Connection up but can't get data..."))//2, "Connection up but can't get data...")
-                stdscr.addstr(h//2+1, (w-len("Is your token correct in config.toml?"))//2, "Is your token correct in config.toml?")
-                stdscr.refresh()
-            time.sleep(5)
-            exit()
+            break
+
 
 def aria2tui() -> None:
     """ Main function """
 
     ## Run curses
-    stdscr = curses.initscr()
-    stdscr.keypad(True)
-    curses.start_color()
-    curses.noecho()  # Turn off automatic echoing of keys to the screen
-    curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
+    stdscr = start_curses()
 
     ## Check if aria is running and prompt the user to start it if not
     handleAriaStartPromt(stdscr)
@@ -281,10 +322,7 @@ def aria2tui() -> None:
     ## Clean up curses and clear terminal
     stdscr.clear()
     stdscr.refresh()
-    curses.nocbreak()
-    stdscr.keypad(False)
-    curses.echo()
-    curses.endwin()
+    close_curses(stdscr)
     os.system('cls' if os.name == 'nt' else 'clear')
 
 if __name__ == "__main__":
