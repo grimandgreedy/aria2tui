@@ -63,21 +63,31 @@ in addition to those requirements the application uses:
      - View active, queue, errored, stopped
  - Sort/filter/search using regular expressions
  - Add downloads with options
+   - Simply dump a list of links;
+     - or specify options:
+       - proxy
+       - User agent
+       - ... Many more!
+          - See [this section of the aria2c manual](https://aria2.github.io/manual/en/html/aria2c.html#input-file) for all available options all of which are supported
  - Add magnet links and torrent files
  - Operations on downloads:
    - Pause/unpause
    - Remove
    - Change position in queue
-   - View current options of download
+   - Open downloaded files
+   - Open download location (with yazi)
    - Change download options by value of keys in nvim
+
+     - Select download(s) you wish to change the value
      - Change save directory
      - Specify proxy, proxy user, and proxy password
      - Specify user-agent
      - Specify download piece length
-     - ...
+     - ... Many more!
+         - See [this section of the aria2c manual](https://aria2.github.io/manual/en/html/aria2c.html#input-file) for all available options all of which are supported.
+<div align="center"> <img src="assets/change_options.gif" alt="change_options" width="70%"> </div>
+   - View current options of download
    - Retry download
-   - Open download location (yazi)
-   - Open downloaded file
  - Interact with aria2 daemon
    - Edit config
    - Pause all
@@ -85,6 +95,16 @@ in addition to those requirements the application uses:
  - Global and particular download transfer speed *graphs*.
 
 <div align="center"> <img src="assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div>
+
+ - Visual options
+   - Modify theme
+     - '~' to view settings and then select theme
+
+<div align="center"> <img src="assets/themes.png" alt="themes" width="70%"> </div>
+
+   - Show/hide columns
+     - Press Shift+Column_number to toggle or press '~' to view settings and find the column you wish to toggle.
+   - Quick-toggle footer: press '_'
 
 
 ## Important
