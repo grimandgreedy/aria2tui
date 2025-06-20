@@ -53,19 +53,23 @@ in addition to those requirements the application uses:
  - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
  - `xdg-open` and `gio` for opening files.
 
+## Tips
+
+ - Press '?' to see the help page which will list the available keys.
+
 ## Features
 
  - Dynamic display of downloads
      - View active, queue, errored, stopped
  - Sort/filter/search using regular expressions
- - Add downloads 
+ - Add downloads with options
  - Add magnet links and torrent files
  - Operations on downloads:
    - Pause/unpause
    - Remove
    - Change position in queue
    - View current options of download
-   - Change download options
+   - Change download options by value of keys in nvim
      - Change save directory
      - Specify proxy, proxy user, and proxy password
      - Specify user-agent
@@ -77,8 +81,10 @@ in addition to those requirements the application uses:
  - Interact with aria2 daemon
    - Edit config
    - Pause all
-   - Restart aria (uses aria2d.service file)
+   - Restart aria
  - Global and particular download transfer speed *graphs*.
+
+<div align="center"> <img src="assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div>
 
 
 ## Important
