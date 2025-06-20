@@ -64,6 +64,7 @@ in addition to those requirements the application uses:
    - Edit config
    - Pause all
    - Restart aria (uses aria2d.service file)
+ - Global and particular download transfer speed *graphs*.
 
 
 ## Important

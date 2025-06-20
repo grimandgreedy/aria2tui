@@ -6,6 +6,7 @@ startupcmds = ["systemctl --user start aria2d.service"]
 restartcmds = ["systemctl --user restart aria2d.service", "notify-send 'Aria2c has been restarted.'"]
 # startupcmds = ["aria2d"],
 # restartcmds = ["pkill aria2d && sleep 1 && aria2d"],
+ariaconfigpath = "~/.config/aria2/aria2.conf"
 paginate = false
 
 

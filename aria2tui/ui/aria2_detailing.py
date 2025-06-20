@@ -70,22 +70,22 @@ menu_highlights = [
     {
         "match": "pause|remove",
         "field": 0,
-        "color": 22,
+        "color": 7,
     },
     {
         "match": "get",
         "field": 0,
-        "color": 11,
+        "color": 22,
     },
     {
-        "match": "edit",
+        "match": "edit|restart",
         "field": 0,
         "color": 10,
     },
     {
-        "match": "restart",
+        "match": "graph",
         "field": 0,
-        "color": 10,
+        "color": 9,
     },
 ]
 modes = [
@@ -131,9 +131,14 @@ operations_highlights = [
         "color": 13,
     },
     {
-        "match": "^pause|remove[^\s]*",
+        "match": "^pause",
         "field": 0,
         "color": 22,
+    },
+    {
+        "match": "^remove",
+        "field": 0,
+        "color": 7,
     },
     {
         "match": "unpause",
@@ -141,17 +146,17 @@ operations_highlights = [
         "color": 8,
     },
     {
-        "match": "retry[^\s]*",
+        "match": r"retry[^\s]*",
         "field": 0,
         "color": 11,
     },
     {
-        "match": "send[^\s]*|change[^\s]*",
+        "match": r"send[^\s]*|change[^\s]*",
         "field": 0,
         "color": 11,
     },
     {
-        "match": "get[^\s]*|tell[^\s]*",
+        "match": "DL INFO",
         "field": 0,
         "color": 9,
     },
@@ -162,8 +167,13 @@ operations_highlights = [
         "color": 10,
     },
     {
-        "match": "restart[^\s]*",
+        "match": r"restart[^\s]*",
         "field": 0,
         "color": 10,
+    },
+    {
+        "match": "graph",
+        "field": 0,
+        "color": 9,
     },
 ]

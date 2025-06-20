@@ -90,7 +90,7 @@ def getQueue() -> Tuple[list[list[str]], list[str]]:
             items.append(row)
         except:
             pass
-    header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
+    header = ["", "Status", "Name", "Size", "Done", "%", "%", "Speed", "Remaining", "DIR", "GID"]
     return items, header
 
 
@@ -144,7 +144,7 @@ def getStopped() -> Tuple[list[list[str]], list[str]]:
             items.append(row)
         except:
             pass
-    header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
+    header = ["", "Status", "Name", "Size", "Done", "%", "%", "Speed", "Remaining", "DIR", "GID"]
     return items[::-1], header
 
 
@@ -197,7 +197,7 @@ def getActive() -> Tuple[list[list[str]], list[str]]:
         except:
             pass
 
-    header = ["", "status", "fname", "size", "completed", "%", "%", "dl_speed", "time_left", "dir", "gid"]
+    header = ["", "Status", "Name", "Size", "Done", "%", "%", "Speed", "Remaining", "DIR", "GID"]
     return items, header
 
 
@@ -222,7 +222,10 @@ def restartAria() -> None:
 
 def editConfig() -> None:
     """ Edit the config file in nvim. """
-    cmd = f"NVIM_APPNAME=nvim-nvchad nvim ~/.config/aria2/aria2.conf"
+    config =  get_config()
+
+    file = config["general"]["ariaconfigpath"]
+    cmd = f"nvim {file}"
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
 def changeOptionDialog(gid:str) -> str:
@@ -323,7 +326,6 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
     valid_keys = input_file_accepted_options
     gids = []
     for dl in dls:
-        os.system(f"notify-send {dl}")
         if "uri" not in dl:
             continue
 
@@ -625,6 +627,8 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
     if len(gids) ==0 : return None
     if operation_name in ["Open File(s) (do not group)", "Open File(s)"]:
         operation_function(gids)
+    elif operation_name in ["Change Options (for all selected)"]:
+        operation_function(gids)
     elif operation_name == "Transfer Speed Graph *experimental*":
         fname = fnames[0]
         if len(fname)>20: fname = fname[:17] + '...'
@@ -636,15 +640,15 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
         for gid in gids:
             try:
                 jsonreq = {}
-                if operation_name == "changePosition":
+                if operation_name == "Change Position":
                     position = int(user_opts) if user_opts.strip().isdigit() else 0
                     jsonreq = operation_function(str(gid), position)
-                elif operation_name == "getAllInfo":
+                elif operation_name == "DL Info: Get All Info":
                     js_rs = getAllInfo(str(gid))
                     responses.append(js_rs)
-                elif operation_name == "sendToBackOfQueue":
+                elif operation_name == "Send to Back of Queue":
                     jsonreq = operation_function(str(gid), pos=10000)
-                elif operation_name == "sendToFrontOfQueue":
+                elif operation_name == "Send to Front of Queue":
                     jsonreq = operation_function(str(gid), pos=0)
                 # elif len(operation_list) > 2:
                 #     operation_kwargs = operation_list[2]
@@ -663,8 +667,9 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
                     tmpfile.write(f'{"*"*50}\n{str(i)+": "+gids[i]:^50}\n{"*"*50}\n')
                     tmpfile.write(json.dumps(response, indent=4))
                 tmpfile_path = tmpfile.name
-            cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
-            cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
+            # cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
+            # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
+            cmd = f"nvim {tmpfile_path}"
             process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     stdscr.clear()
 
@@ -721,6 +726,7 @@ def get_default_config() -> dict:
             "token": "",
             "startupcmds": ["aria2d"],
             "restartcmds": ["pkill aria2d && sleep 1 && aria2d"],
+            "ariaconfigpath": "~/.config/aria2/aria2.conf",
             "paginate": False,
         },
         "appearance":{

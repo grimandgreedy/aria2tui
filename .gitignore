@@ -1,10 +1,12 @@
 aria2tui.toml
+nasconfig.toml
 data_stuff.py
 *.pyc
 __pycache__/
 aria2tui/lib/__pycache__/
 aria2tui/ui/__pycache__/
 aria2tui/utils/__pycache__/
+aria2tui/graphing/__pycache__/
 oldcode.py
 .vscode/
 tmp/

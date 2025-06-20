@@ -140,8 +140,8 @@ def graph_speeds_gid(
         fig.text([x[0]], [y2[0]], ['Up'])
 
         width, height = graph_wh()
-        fig.width = width - 5
-        fig.height = height - 3
+        fig.width = width - 7
+        fig.height = height - 4
         globh, globw = stdscr.getmaxyx()
         xpos, ypos = xposf(), yposf()
         maxw, maxh = globw-xpos-1, globh-ypos

@@ -1,4 +1,10 @@
 # aria2tui
+> - [ ] Add default file manager option in config; or make yazi optional
+> - [x] Redo main app launcher file
+>   - [x] Put the menu options data into a separate file
+>     - [x] Make a class for the option with the name, function, args, etc.
+>   - [x] Add an Aria2TUi class
+
 
 
 > [!IMPORTANT] Features
@@ -28,7 +34,7 @@
 >    - [ ] invert
 >    - [ ] case-sensitivity
 > - [x] Implement change option functionality to allow download options to be changed
->   - [ ] Allow batch options changing
+>   - [x] Allow batch options changing
 >     - Change dir for batch of downloads
 > - [ ] Integrate bulk downloaders
 > - [x] Add watch download speed graph
@@ -74,6 +80,7 @@
 > - [x] Restructure repo directory.
 > - [ ] If the token is incorrect then we are asked if we want to start aria2c...
 > - [ ] Add tooltips to certain menu options
+- [x] add an editariaconfig path to the config 
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **
