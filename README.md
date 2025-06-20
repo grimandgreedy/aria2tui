@@ -85,7 +85,9 @@ in addition to those requirements the application uses:
      - Specify download piece length
      - ... Many more!
          - See [this section of the aria2c manual](https://aria2.github.io/manual/en/html/aria2c.html#input-file) for all available options all of which are supported.
+
 <div align="center"> <img src="assets/change_options.gif" alt="change_options" width="70%"> </div>
+
    - View current options of download
    - Retry download
  - Interact with aria2 daemon
@@ -94,7 +96,7 @@ in addition to those requirements the application uses:
    - Restart aria
  - Global and particular download transfer speed *graphs*.
 
-<div align="center"> <img src="assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div>
+  <div align="center"> <img src="assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div>
 
  - Visual options
    - Modify theme
