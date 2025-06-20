@@ -34,7 +34,14 @@ python aria2tui.py
 or if you have multiple daemons you can specify another config file:
 
 ```
+ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python aria2tui.py
+
 ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python aria2tui.py
+
+alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python aria2tui.py"
+
+alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python aria2tui.py"
+
 ```
 
 in addition to those requirements the application uses:
@@ -82,6 +89,10 @@ Some things that should be mentioned:
       - exiting to the main menu ('q') and going to "View Downloads"; or
       - Pressing ~ and toggling the auto-refresh in the default "Watch Downloads" viewer.
  - Note: This was created for personal use and so some of the code is quite ugly and/or buggy and simply needs to be re-written.
+
+## Similar Projects
+
+- [Ariang](https://github.com/mayswind/AriaNg) A web client to aria2c.
 
 ## Support and Feedback
 
