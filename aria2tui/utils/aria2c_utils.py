@@ -264,6 +264,44 @@ def changeOptionDialog(gid:str) -> str:
 
     return f"{len(keys_with_diff_values)} option(s) changed."
 
+def flatten_data(y, delim="."):
+    out = {}
+
+    def flatten(x, name='', delim="."):
+        if type(x) is dict:
+            for a in x:
+                flatten(x[a], name + a + delim)
+        elif type(x) is list:
+            i = 0
+            for a in x:
+                flatten(a, name + str(i) + delim)
+                i += 1
+        else:
+            out[name[:-1]] = x
+
+    flatten(y, delim=delim)
+    return out
+
+def unflatten_data(y, delim="."):
+    out = {}
+
+    def unflatten(x, parent_key='', delim="."):
+        if type(x) is dict:
+            for k, v in x.items():
+                new_key = f"{parent_key}{delim}{k}" if parent_key else k
+                unflatten(v, new_key, delim)
+        else:
+            keys = parent_key.split(delim)
+            current_dict = out
+            for key in keys[:-1]:
+                if key not in current_dict:
+                    current_dict[key] = {}
+                current_dict = current_dict[key]
+            current_dict[keys[-1]] = x
+
+    unflatten(y)
+    return out
+
 def changeOptionBatchDialog(gids:list) -> str:
     """ Change the option(s) for the download. """ 
     if len(gids) == 0: return ""
