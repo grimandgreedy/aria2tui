@@ -1,5 +1,8 @@
 # CHANGELOG.md
 
+## [0.1.3] 2025-06-20
+ - Made Aria2TUI class which is called to run the appliction.
+
 ## [0.1.2] 2025-06-19
  - *New Feature*: Monitor global and particular download/upload speeds on a graph.
  - Fixed flickering when infobox is shown

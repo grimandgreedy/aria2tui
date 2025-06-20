@@ -81,8 +81,8 @@
 >   - [x] Add an Aria2TUi class
 > - [ ] Add default file manager option in config; or make yazi optional
 > - [ ] Ensure that add torrent returns the gids.
-
 > - [ ] Fix the startup notification when downloads are added.
+> - [ ] Add an editor command to the config so that the preferred editor can be changed.
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **
