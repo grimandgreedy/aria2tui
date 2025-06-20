@@ -46,7 +46,7 @@ def te(url: str = "http://localhost", port: int = 6800) -> bool:
     except:
         return False
 
-def getQueue() -> Tuple[list[list[str]], list[str]]:
+def getQueue(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
     """ Retrieves download queue and corresponding header from aria2 over rpc. """
     js_rs = sendReq(tellWaiting())
 
@@ -84,17 +84,19 @@ def getQueue() -> Tuple[list[list[str]], list[str]]:
             pc_complete = completed/size if size > 0 else 0
             pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
             dl_speed = int(dl['downloadSpeed'])
-            time_left = "INF"
+            time_left_s = "INF"
         
-            row = [i, status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left, pth, gid]
+            row = [i, status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
+            if show_pc_bar: row.insert(5, pc_bar)
             items.append(row)
         except:
             pass
-    header = ["", "Status", "Name", "Size", "Done", "%", "%", "Speed", "Remaining", "DIR", "GID"]
+    header = ["", "Status", "Name", "Size", "Done", "%", "Speed", "Remaining", "DIR", "GID"]
+    if show_pc_bar: header.insert(5, "%")
     return items, header
 
 
-def getStopped() -> Tuple[list[list[str]], list[str]]:
+def getStopped(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
     """ Retrieves stopped downloads and corresponding header from aria2 over rpc. """
     jsonreq = tellStopped()
 
@@ -138,17 +140,19 @@ def getStopped() -> Tuple[list[list[str]], list[str]]:
             pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
         
             dl_speed = int(dl['downloadSpeed'])
-            time_left = "INF"
+            time_left_s = "INF"
         
-            row = ["", status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left, pth, gid]
+            row = ["", status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
+            if show_pc_bar: row.insert(5, pc_bar)
             items.append(row)
         except:
             pass
-    header = ["", "Status", "Name", "Size", "Done", "%", "%", "Speed", "Remaining", "DIR", "GID"]
+    header = ["", "Status", "Name", "Size", "Done", "%", "Speed", "Remaining", "DIR", "GID"]
+    if show_pc_bar: header.insert(5, "%")
     return items[::-1], header
 
 
-def getActive() -> Tuple[list[list[str]], list[str]]:
+def getActive(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
     """ Retrieves active downloads and corresponding header from aria2 over rpc. """
 
     js_rs = sendReq(tellActive())
@@ -192,12 +196,14 @@ def getActive() -> Tuple[list[list[str]], list[str]]:
             if time_left: time_left_s = convert_seconds(time_left)
             else: time_left_s = "INF"
 
-            row = ["", status, fname, format_size(size), format_size(completed), pc_bar, f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
+            row = ["", status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
+            if show_pc_bar: row.insert(5, pc_bar)
             items.append(row)
         except:
             pass
 
-    header = ["", "Status", "Name", "Size", "Done", "%", "%", "Speed", "Remaining", "DIR", "GID"]
+    header = ["", "Status", "Name", "Size", "Done", "%", "Speed", "Remaining", "DIR", "GID"]
+    if show_pc_bar: header.insert(5, "%")
     return items, header
 
 
@@ -431,6 +437,7 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
     dls = []
     uris = []
     argstrs = []
+    gids = []
     for line in lines:
         if line[0] == "!" and line.count("!") == 2:
             argstrs.append(line)
@@ -449,7 +456,8 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
     for dl in uris:
         uri = dl["uri"]
 
-        addDownload(uri=uri)
+        return_val, gid = addDownload(uri=uri)
+        if return_val: gids.append(gid)
 
     return f'{len(dls)} torrent file(s) added. {len(uris)} magnet link(s) added.'
 

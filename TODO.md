@@ -1,11 +1,4 @@
 # aria2tui
-> - [ ] Add default file manager option in config; or make yazi optional
-> - [x] Redo main app launcher file
->   - [x] Put the menu options data into a separate file
->     - [x] Make a class for the option with the name, function, args, etc.
->   - [x] Add an Aria2TUi class
-
-
 
 > [!IMPORTANT] Features
 > - [ ] allow options when adding uris; perhaps use the same structure as the aria2c input file
@@ -40,6 +33,7 @@
 > - [x] Add watch download speed graph
 >   - [ ] Integrate the graphs into the main list_picker so that they can be watched as a pane while list_picker runs.
 > - [ ] Make data requests asynchronous so that the data is still refreshed with a spotty connection.
+> - [ ] Make the data get requests asychronous.
 
 
 > [!Important] Improvements
@@ -80,7 +74,15 @@
 > - [x] Restructure repo directory.
 > - [ ] If the token is incorrect then we are asked if we want to start aria2c...
 > - [ ] Add tooltips to certain menu options
-- [x] add an editariaconfig path to the config 
+> - [x] add an editariaconfig path to the config 
+> - [x] Redo main app launcher file
+>   - [x] Put the menu options data into a separate file
+>     - [x] Make a class for the option with the name, function, args, etc.
+>   - [x] Add an Aria2TUi class
+> - [ ] Add default file manager option in config; or make yazi optional
+> - [ ] Ensure that add torrent returns the gids.
+
+> - [ ] Fix the startup notification when downloads are added.
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **

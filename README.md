@@ -2,6 +2,10 @@
 
 Aria2TUI is a TUI frontend for the Aria2 download utility.
 
+<div align="center">
+  <video src="assets/demo.mp4" alt="aria2tui demo" width="70%">
+</div>
+
 ## Quickstart
 
 Aria2TUI fetches the download data from the aria2c daemon over RPC and displays it using list_picker. As both Aria2TUI and list_picker are in active development you will need to clone both repositories.

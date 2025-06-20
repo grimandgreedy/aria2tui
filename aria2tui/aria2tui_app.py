@@ -162,10 +162,9 @@ class Aria2TUI:
                         # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
                         cmd = f"nvim {tmpfile_path}"
                         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-                        # stdscr.curs_set(False)
                     else:
                         if "display_message" in menu_option.meta_args and menu_option.meta_args["display_message"]:
-                            display_message(self.stdscr, menu_option["display_message"])
+                            display_message(self.stdscr, menu_option.meta_args["display_message"])
                         return_val = menu_option.function(**menu_option.function_args)
 
                         # Add notification of success or failure to listpicker
