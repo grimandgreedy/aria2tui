@@ -38,9 +38,9 @@ ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python aria2tui.py
 
 ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python aria2tui.py
 
-alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python aria2tui.py"
+alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python /path/to/Aria2TUI/aria2tui.py"
 
-alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python aria2tui.py"
+alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python /path/to/Aria2TUI/aria2tui.py"
 
 ```
 
