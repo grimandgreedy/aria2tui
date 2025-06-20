@@ -37,11 +37,13 @@ or if you have multiple daemons you can specify another config file:
 ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python aria2tui.py
 
 ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python aria2tui.py
+```
 
+If you wish to use it regularly, then for them momement the ideal way to make it accessible to your PATH is to simply add aliases to your ~/.bashrc.
+```
 alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python /path/to/Aria2TUI/aria2tui.py"
 
 alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python /path/to/Aria2TUI/aria2tui.py"
-
 ```
 
 in addition to those requirements the application uses:
