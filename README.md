@@ -12,7 +12,7 @@ Aria2TUI fetches the download data from the aria2c daemon over RPC and displays 
 ```
 git clone https://github.com/grimandgreedy/Aria2TUI
 
-cd aria2tui && python -m pip install -r requirements
+cd Aria2TUI && python -m pip install -r requirements
 
 cd ..
 
