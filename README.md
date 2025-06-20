@@ -41,6 +41,8 @@ ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python aria
 
 If you wish to use it regularly, then for them momement the ideal way to make it accessible to your PATH is to simply add aliases to your ~/.bashrc.
 ```
+alias a2="python /path/to/Aria2TUI/aria2tui.py"
+
 alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python /path/to/Aria2TUI/aria2tui.py"
 
 alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python /path/to/Aria2TUI/aria2tui.py"
@@ -85,16 +87,17 @@ While I use Aria2TUI every day, it is still in development and there are many th
 
 Some things that should be mentioned:
 
- - Realistically Aria2TUI will currently only work in a UNIX (linux, macos) environment.
+ - Realistically Aria2TUI will only work in a UNIX (linux, macos) environment. If you register your interest I might be able to look into what I would need to change.
  - If you are performing bulk operations and the downloads are changing state rapidly--e.g., hundreds of images are changing from active/waiting to completed--it is recommended to stop the auto-refresh and operate on a static list.
     - This can be done by either:
       - exiting to the main menu ('q') and going to "View Downloads"; or
       - Pressing ~ and toggling the auto-refresh in the default "Watch Downloads" viewer.
+    - You know that auto-refresh is active because there is a refresh symbol in the top right.
  - Note: This was created for personal use and so some of the code is quite ugly and/or buggy and simply needs to be re-written.
 
 ## Similar Projects
 
-- [Ariang](https://github.com/mayswind/AriaNg) A web client to aria2c.
+- [Ariang](https://github.com/mayswind/AriaNg) A web client for aria2c.
 
 ## Support and Feedback
 
