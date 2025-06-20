@@ -23,7 +23,7 @@ cd list_picker && python -m pip install -r requirements
 
 Edit the config.toml in the aria2tui repo and make sure your url, port, and secret token are correct.
 
- - Note that starting/restarting the aria2 daemon is done using systemd. There is a sample service file that you can put in ~/.config/systemd/user/ if you want to utilise this functionality.
+ - Note that starting/restarting the aria2 daemon is done using systemd by default. There is a sample service file that you can put in ~/.config/systemd/user/. You can also change the cmds that are run in the config.
 
 Navigate to the aria2tui repo and run aria2tui.py
 
