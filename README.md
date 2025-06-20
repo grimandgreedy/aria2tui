@@ -39,7 +39,7 @@ ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python aria2tui.py
 ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python aria2tui.py
 ```
 
-If you wish to use it regularly, then for them momement the ideal way to make it accessible to your PATH is to simply add aliases to your ~/.bashrc.
+If you wish to use it regularly, then for the moment the best way to make it accessible to your PATH is to simply add aliases to your ~/.bashrc.
 ```
 alias a2="python /path/to/Aria2TUI/aria2tui.py"
 
