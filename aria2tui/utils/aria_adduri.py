@@ -69,10 +69,10 @@ def addDownloadFull(
     # Handle response
     response_json = response.json()
     if response_json.get("error"):
-        print(f"Error: {response_json['error']['message']}")
+        # print(f"Error: {response_json['error']['message']}")
         return False, response_json['error']['message']
     else:
-        print(f"Success! Download ID: {response_json['result']}")
+        # print(f"Success! Download ID: {response_json['result']}")
         return True, response_json['result']
 
 def parse_string_to_list(s: str) -> list[int]:
@@ -116,7 +116,7 @@ def argstring_to_argdict(argstring: str) -> dict:
         c = arg[0]
         l = parse_string_to_list(arg[1:])
 
-        print(c + ": " + str(l))
+        # print(c + ": " + str(l))
         argdict[c] = l
     return argdict
 
@@ -133,7 +133,7 @@ def kitty_prompt(name: str, url: str) -> Tuple[dict, str, list[str]]:
 
     with open(tmpfile_path, "r") as f:
         lines = f.readlines()
-    print(lines)
+    # print(lines)
 
     argdict = {}
     argstring = lines[0].strip()
