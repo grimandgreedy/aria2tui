@@ -4,10 +4,10 @@ token = ""
 url = "http://localhost"
 
 # Used for starting and restarting.
-# startupcmds = ["aria2d"],
-# restartcmds = ["pkill aria2d && sleep 1 && aria2d"],
-startupcmds = ["systemctl --user start aria2d.service"]
-restartcmds = ["systemctl --user restart aria2d.service", "notify-send 'Aria2c has been restarted.'"]
+startupcmds = ["aria2c"],
+restartcmds = ["pkill aria2c && sleep 1 && aria2c"],
+# startupcmds = ["systemctl --user start aria2d.service"]
+# restartcmds = ["systemctl --user restart aria2d.service", "notify-send 'Aria2c has been restarted.'"]
 
 # Used when "Edit Config" is pressed in the main menu
 ariaconfigpath = "~/.config/aria2/aria2.conf"
