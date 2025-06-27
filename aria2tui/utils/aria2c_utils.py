@@ -636,7 +636,7 @@ def getAll() -> Tuple[list[list[str]], list[str]]:
     return active + waiting + stopped, wheader
 
 def openDownloadLocation(gid: str, new_window: bool = True) -> None:
-    """ Opens the download location for a given download in yazi. """
+    """ Opens the download location for a given download. """
     try:
         os.system('cls' if os.name == 'nt' else 'clear')
         req = getFiles(str(gid))
@@ -649,13 +649,16 @@ def openDownloadLocation(gid: str, new_window: bool = True) -> None:
             req = getOption(str(gid))
             response = sendReq(req)
             val = json.loads(json.dumps(response))
-            loc = val["dir"]
+            loc = val["result"]["dir"]
 
+        config = get_config()
+        terminal_file_manager = config["general"]["terminal_file_manager"]
+        gui_file_manager = config["general"]["gui_file_manager"]
         if new_window:
-            cmd = f"kitty yazi {repr(loc)}"
+            cmd = f"{gui_file_manager} {repr(loc)}"
             subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
         else:
-            cmd = f"yazi {repr(loc)}"
+            cmd = f"{terminal_file_manager} {repr(loc)}"
             subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
     except:
@@ -689,7 +692,9 @@ def openGidFiles(gids: list[str], group: bool = True) -> None:
             files_list.append(repr(loc))
 
             if not group:
-                cmd = f"xdg-open {repr(loc)}"
+                config = get_config()
+                launch_command = config["general"]["launch_command"]
+                cmd = f"{launch_command} {repr(loc)}"
                 subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         except:
             pass
@@ -750,7 +755,7 @@ def openFiles(files: list[str]) -> None:
         subprocess.Popen(f"gio launch /usr/share/applications/{app} {files_str}", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
 
-def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str = "", operation_function: Callable = lambda:None, operation_function_args: dict = {}, user_opts: str = "", view: bool =False, fnames:list=[]) -> None:
+def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str = "", operation_function: Callable = lambda:None, operation_function_args: dict = {}, user_opts: str = "", view: bool =False, fnames:list=[], picker_view: bool = False) -> None:
 
     responses = []
     if len(gids) ==0 : return None
@@ -804,6 +809,19 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
             # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
             cmd = f"nvim {tmpfile_path}"
             process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+        elif picker_view:
+            l = []
+            for i, response in enumerate(responses):
+                l += [[gid, "------"]]
+                l += [[key, val] for key, val in flatten_data(response).items()]
+            x = Picker(
+                    stdscr,
+                    items=l,
+                    search_query="function",
+                    title=operation_name,
+            )
+            x.run()
+
     stdscr.clear()
 
 def getGlobalSpeed() -> str:
@@ -863,6 +881,9 @@ def get_default_config() -> dict:
             "paginate": False,
             "refresh_timer": 2,
             "global_stats_timer": 1,
+            "terminal_file_manager": "yazi",
+            "gui_file_manager": "kitty yazi",
+            "launch_command": "xdg-open",
         },
         "appearance":{
             "theme": 0

@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.5] 2025-06-27
+ - terminal_file_manager option added to config so that the terminal file manager can be modified.
+ - gui_file_manager option added to config so that the file manager that is opened in a new window can be modified.
+ - launch_command option added to config so that the default file-launcher command can be specified.
+ - View data (global or download) options are now passed to a Picker object.
+ - Fixed issue with opening location of files that have 0% progress.
+ 
 ## [0.1.4] 2025-06-27
  - Ensured that the refresh rate can be set from the config.
  - Change options now uses Picker rather than editing the json from nvim.

@@ -14,6 +14,14 @@ ariaconfigpath = "~/.config/aria2/aria2.conf"
 
 paginate = false
 
+# File managers 
+terminal_file_manager = "yazi"
+gui_file_manager = "kitty yazi"
+
+# Launchers
+launch_command = "xdg-open"
+## Note that the grouped file open option still requires gio and xdg-mime.
+
 # Time in seconds. If timings are reduced there may be system strain. 1 and 2 seconds are the recommended values.
 global_stats_timer = 1
 refresh_timer = 2

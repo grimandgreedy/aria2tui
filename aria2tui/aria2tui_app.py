@@ -121,10 +121,12 @@ class Aria2TUI:
                     user_opts = self.dl_operations_data["user_opts"]
                     view = False
                     if operation.meta_args and "view" in operation.meta_args and operation.meta_args["view"]: view=True
+                    picker_view = False
+                    if operation.meta_args and "picker_view" in operation.meta_args and operation.meta_args["picker_view"]: picker_view=True
 
 
                     ## APPLY THE SELECTED OPERATION TO THE SELECTED DOWNLOADS
-                    applyToDownloads(self.stdscr, gids, operation.name, operation.function, operation.function_args, user_opts, view, fnames=fnames)
+                    applyToDownloads(self.stdscr, gids, operation.name, operation.function, operation.function_args, user_opts, view, fnames=fnames, picker_view=picker_view)
                     self.downloads_data["selections"] = {}
                     self.dl_operations_data["user_opts"] = ""
                 else: continue
@@ -162,6 +164,19 @@ class Aria2TUI:
                         # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
                         cmd = f"nvim {tmpfile_path}"
                         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+                    elif "picker_view" in menu_option.meta_args and menu_option.meta_args["picker_view"]:
+                        self.downloads_data["clear_on_start"] = True
+                        self.menu_data["clear_on_start"] = True
+                        response = sendReq(menu_option.function(**menu_option.function_args))
+                        response = flatten_data(response)
+                        resp_list = [[key, val] for key, val in response.items()]
+                        x = Picker(
+                                self.stdscr,
+                                items = resp_list,
+                                header = ["Key", "Val"],
+                                title=menu_option.name,
+                        )
+                        x.run()
                     else:
                         if "display_message" in menu_option.meta_args and menu_option.meta_args["display_message"]:
                             display_message(self.stdscr, menu_option.meta_args["display_message"])
