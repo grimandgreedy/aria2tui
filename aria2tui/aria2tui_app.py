@@ -186,6 +186,9 @@ def handleAriaStartPromt(stdscr):
     curses.init_pair(1, 253, 232)
     stdscr.bkgd(' ', curses.color_pair(1))  # Apply background color
     stdscr.refresh()
+    config = get_config()
+
+    colour_theme_number=config["appearance"]["theme"]
     while True:
         connection_up = testConnection()
         can_connect = testAriaConnection()
@@ -197,12 +200,15 @@ def handleAriaStartPromt(stdscr):
                     "title": "Aria2TUI",
                     "header": header,
                     "max_selected": 1,
+                    "colour_theme_number": colour_theme_number,
                 }
                 ConnectionPicker = Picker(stdscr, **connect_data)
 
                 choice, opts, function_data = ConnectionPicker.run()
 
-                if choice == [1] or choice == []: exit()
+                if choice == [1] or choice == []:
+                    close_curses(stdscr)
+                    exit()
 
                 config = get_config()
 
@@ -228,6 +234,7 @@ def handleAriaStartPromt(stdscr):
                     stdscr.refresh()
                     stdscr.timeout(5000)
                     stdscr.getch()
+                close_curses(stdscr)
                 exit()
         else:
             break

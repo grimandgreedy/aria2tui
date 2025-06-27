@@ -16,6 +16,8 @@ paginate = config["general"]["paginate"]
 colour_theme_number=config["appearance"]["theme"]
 
 app_name = "Aria2TUI"
+global_stats_timer = config["general"]["global_stats_timer"]
+refresh_timer = config["general"]["refresh_timer"]
 
 class Option:
     def __init__(self, name: str, function: Callable, function_args:dict = {}, meta_args: dict = {}):
@@ -31,8 +33,10 @@ class Option:
 download_options = [
     Option("Pause",   pause),
     Option("Unpause", unpause),
-    Option("Change Options (for each selected)", changeOptionDialog),
-    Option("Change Options (for all selected)", changeOptionBatchDialog),
+    Option("Change Options Picker (for each selected)", changeOptionPicker),
+    Option("Change Options Picker (for all selected)", changeOptionsBatchPicker),
+    Option("Change Options nvim (for each selected)", changeOptionDialog),
+    Option("Change Options nvim (for all selected)", changeOptionBatchDialog),
     Option("Change Position", changePosition),
     Option("Send to Front of Queue", changePosition, {"pos":0}),
     Option("Send to Back of Queue", changePosition, {"pos":10000}),
@@ -110,14 +114,14 @@ downloads_data = {
     "auto_refresh": True,
     "get_new_data": True,
     "get_data_startup": True,
-    "timer": 2,
+    "timer": refresh_timer,
     "paginate": paginate,
     "hidden_columns": [],
     "id_column": 10,
     "centre_in_terminal_vertical": False,
     "footer_string_auto_refresh": True,
     "footer_string_refresh_function": getGlobalSpeed,
-    "footer_timer": 1,
+    "footer_timer": global_stats_timer,
 }
 dl_operations_data = {
     "top_gap": 0,

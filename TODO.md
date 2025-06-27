@@ -83,6 +83,9 @@
 > - [ ] Ensure that add torrent returns the gids.
 > - [ ] Fix the startup notification when downloads are added.
 > - [ ] Add an editor command to the config so that the preferred editor can be changed.
+> - [ ] Implement "undo" for edits
+> - [ ] Add row-wise highlighting
+>   - [ ] E.g., Edited rows highlighted red
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **
@@ -92,6 +95,7 @@
 >   https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBVWNXUrlGnx3VtnPULUE6v0EteQg
 >```
 > - [ ] When downloads are updating quickly and I try to operate upon them it sometimes says that the indices are not in the list...
+> - [ ] Add an "Are you sure you want to exit?" option.
 
 
 > [!Bug] Bugs
@@ -113,6 +117,8 @@
 > - [ ] Prevent input field from overwriting footer values.
 >   - [x] Fixed after input has finished.
 > - [ ] Torrent size shows size of first file in torrent if there are multiple files...
+> - [x] Exiting from change options still changes options
+>   - [x] Check if selected_indices is empty first.
 
 
 
