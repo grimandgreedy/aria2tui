@@ -1,6 +1,6 @@
 [general]
 port = 6800
-token = "5041"
+token = "1234"
 url = "http://localhost"
 
 # Used for starting and restarting.
@@ -9,10 +9,14 @@ restartcmds = ["pkill aria2c && sleep 1 && aria2c"]
 # startupcmds = ["systemctl --user start aria2d.service"]
 # restartcmds = ["systemctl --user restart aria2d.service", "notify-send 'Aria2c has been restarted.'"]
 
-# Used when "Edit Config" is pressed in the main menu
+# Used when "Edit Config" option is chosen in the main menu
 ariaconfigpath = "~/.config/aria2/aria2.conf"
+
 paginate = false
 
+# Time in seconds. If timings are reduced there may be system strain. 1 and 2 seconds are the recommended values.
+global_stats_timer = 1
+refresh_timer = 2
 
 [appearance]
-theme = 0
+theme = 3

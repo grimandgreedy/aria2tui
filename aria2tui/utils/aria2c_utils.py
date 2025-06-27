@@ -14,6 +14,8 @@ sys.path.append(os.path.expanduser("../list_picker/"))
 import tempfile
 import tabulate
 from typing import Callable, Tuple
+from list_picker.ui.keys import edit_menu_keys
+from list_picker.list_picker_app import Picker, start_curses, close_curses
 
 def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests if we can connect to the url and port. """
@@ -302,6 +304,7 @@ def unflatten_data(y, delim="."):
     unflatten(y)
     return out
 
+
 def changeOptionBatchDialog(gids:list) -> str:
     """ Change the option(s) for the download. """ 
     if len(gids) == 0: return ""
@@ -325,6 +328,86 @@ def changeOptionBatchDialog(gids:list) -> str:
 
     with open(temp_file, "r") as f:
         loaded_options = json.load(f)
+
+    # Get difference between dicts
+    keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
+
+    reqs = []
+    for gid in gids:
+        for key in keys_with_diff_values:
+            reqs.append(json.loads(changeOption(gid, key, loaded_options[key])))
+
+    batch = sendReq(json.dumps(reqs).encode('utf-8'))
+
+    return f"{len(keys_with_diff_values)} option(s) changed."
+
+def changeOptionPicker(stdscr: curses.window, gid:str) -> str:
+    """ Change the option(s) for the download. """ 
+    if not gid: return "0 options changed"
+    try:
+        req = getOption(str(gid))
+        response = sendReq(req)["result"]
+        current_options = json.loads(json.dumps(response))
+    except Exception as e:
+        return str(e)
+
+    flattened_json = flatten_data(response)
+    flattened_json = [[key,val] for key, val in flattened_json.items()]
+    x = Picker(
+            stdscr, 
+            items=flattened_json, 
+            header=["Key", "Value"],
+            title=f"Change Options for gid={gid}",
+            sort_column=1,
+            editable_columns=[False, True],
+            keys_dict=edit_menu_keys,
+            startup_notification="Press 'e' to edit cell.",
+    )
+    selected_indices, opts, function_data = x.run()
+    if not selected_indices: return "0 options changed"
+    flattened_json = function_data["items"]
+    unflattened_json = unflatten_data({row[0]: row[1] for row in flattened_json})
+    loaded_options = unflattened_json
+
+    # Get difference between dicts
+    keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
+
+    reqs = []
+    for key in keys_with_diff_values:
+        reqs.append(json.loads(changeOption(gid, key, loaded_options[key])))
+
+    batch = sendReq(json.dumps(reqs).encode('utf-8'))
+
+    return f"{len(keys_with_diff_values)} option(s) changed."
+
+def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
+    """ Change the option(s) for the download. """ 
+    if len(gids) == 0: return ""
+    gid = gids[0]
+    try:
+        req = getOption(str(gid))
+        response = sendReq(req)["result"]
+        current_options = json.loads(json.dumps(response))
+    except Exception as e:
+        return str(e)
+
+    flattened_json = flatten_data(response)
+    flattened_json = [[key,val] for key, val in flattened_json.items()]
+    x = Picker(
+            stdscr, 
+            items=flattened_json, 
+            header=["Key", "Value"],
+            title=f"Change Options for {len(gids)} download(s)",
+            sort_column=1,
+            editable_columns=[False, True],
+            keys_dict=edit_menu_keys,
+            startup_notification="Press 'e' to edit cell.",
+    )
+    selected_indices, opts, function_data = x.run()
+    if not selected_indices: return "0 options changed"
+    flattened_json = function_data["items"]
+    unflattened_json = unflatten_data({row[0]: row[1] for row in flattened_json})
+    loaded_options = unflattened_json
 
     # Get difference between dicts
     keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
@@ -673,8 +756,12 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
     if len(gids) ==0 : return None
     if operation_name in ["Open File(s) (do not group)", "Open File(s)"]:
         operation_function(gids)
-    elif operation_name in ["Change Options (for all selected)"]:
+    elif operation_name in ["Change Options nvim (for all selected)"]:
         operation_function(gids)
+    elif operation_name in ["Change Options Picker (for each selected)"]:
+        operation_function(stdscr, gids[0])
+    elif operation_name in ["Change Options Picker (for all selected)"]:
+        operation_function(stdscr, gids)
     elif operation_name == "Transfer Speed Graph *experimental*":
         fname = fnames[0]
         if len(fname)>20: fname = fname[:17] + '...'
@@ -774,6 +861,8 @@ def get_default_config() -> dict:
             "restartcmds": ["pkill aria2d && sleep 1 && aria2d"],
             "ariaconfigpath": "~/.config/aria2/aria2.conf",
             "paginate": False,
+            "refresh_timer": 2,
+            "global_stats_timer": 1,
         },
         "appearance":{
             "theme": 0
