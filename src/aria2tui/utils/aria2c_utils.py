@@ -1,21 +1,27 @@
 #!/bin/python
 import curses
-from aria2tui.lib.aria2c_wrapper import *
-from aria2tui.utils.aria_adduri import addDownloadFull
-from list_picker.utils.utils import *
 import os
 import subprocess
 import toml
 from urllib import request as rq
 import json
 import sys
+# sys.path.append(os.path.expanduser("../list_picker/"))
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.expanduser("../list_picker/"))
+# os.chdir("../../..")
 import tempfile
 import tabulate
 from typing import Callable, Tuple
-from list_picker.ui.keys import edit_menu_keys
-from list_picker.list_picker_app import Picker, start_curses, close_curses
+
+
+from aria2tui.lib.aria2c_wrapper import *
+from aria2tui.utils.aria_adduri import addDownloadFull
+
+# from list_picker.ui.keys import edit_menu_keys
+# from list_picker.list_picker_app import Picker, start_curses, close_curses
+# from list_picker.utils.utils import *
+from list_picker import *
+from list_picker.list_picker_app import *
 
 def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests if we can connect to the url and port. """
@@ -847,14 +853,12 @@ def bytes_to_human_readable(size: float) -> str:
 def get_config(path="") -> dict:
     """ Get config from file. """
     full_config = get_default_config()
+    default_path = "~/.config/aria2tui/config.toml"
 
-    os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    CONFIGPATH = "../../aria2tui.toml"
+    CONFIGPATH = default_path
     if "ARIA2TUI_CONFIG_PATH" in os.environ:
-        CONFIGPATH = os.environ["ARIA2TUI_CONFIG_PATH"]
-
-    if not os.path.exists(os.path.expanduser(CONFIGPATH)):
-        CONFIGPATH = "../../config.toml"
+        if os.path.exists(os.path.expanduser(os.environ["ARIA2TUI_CONFIG_PATH"])):
+            CONFIGPATH = os.environ["ARIA2TUI_CONFIG_PATH"]
 
     if os.path.exists(os.path.expanduser(CONFIGPATH)):
         with open(os.path.expanduser(CONFIGPATH), "r") as f:

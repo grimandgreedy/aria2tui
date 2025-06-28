@@ -1,12 +1,36 @@
+# Assorted
 aria2tui.toml
 nasconfig.toml
 data_stuff.py
 *.pyc
 __pycache__/
-aria2tui/lib/__pycache__/
-aria2tui/ui/__pycache__/
-aria2tui/utils/__pycache__/
-aria2tui/graphing/__pycache__/
 oldcode.py
 .vscode/
 tmp/
+
+# Compile stuff
+src/aria2tui/lib/__pycache__/
+src/aria2tui/ui/__pycache__/
+src/aria2tui/utils/__pycache__/
+src/aria2tui/graphing/__pycache__/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+

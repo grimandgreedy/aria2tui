@@ -1,14 +1,19 @@
 
 import os, sys
-sys.path.append(os.path.expanduser("../../list_picker/"))
-sys.path.append(os.path.expanduser("../../aria2tui/"))
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+os.chdir("../../..")
+# sys.path.append(os.path.expanduser("../../list_picker/"))
+# sys.path.append(os.path.expanduser("../../aria2tui/"))
 from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, operations_highlights
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
-from list_picker.utils.utils import *
-from list_picker.ui.keys import list_picker_keys, notification_keys, options_keys, menu_keys
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
-from aria2tui.ui.aria2tui_keys import download_option_keys
+from aria2tui.ui.aria2tui_keys import download_option_keys, menu_keys
+
+# from list_picker.utils.utils import *
+# from list_picker.ui.keys import list_picker_keys, notification_keys, options_keys, menu_keys
+# from list_picker import *
+from list_picker.list_picker_app import *
 
 config = get_config()
 paginate = config["general"]["paginate"]

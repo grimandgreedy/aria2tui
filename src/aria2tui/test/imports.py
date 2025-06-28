@@ -20,6 +20,7 @@ from list_picker.ui.keys import list_picker_keys, notification_keys, options_key
 from list_picker.utils.generate_data import generate_list_picker_data
 from list_picker.utils.dump import dump_state, load_state, dump_data
 from list_picker.list_picker_app import Picker
+from list_picker.list_picker_app import *
 
 
 

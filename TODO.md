@@ -88,6 +88,7 @@
 >   - [ ] E.g., Edited rows highlighted red
 > - [ ] pass Option object to applytodownloads rather than individual variables.
 > - [ ] Add picker_view variable to Option object.
+> - [ ] Add --dump-config flag
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **

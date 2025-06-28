@@ -1,7 +1,4 @@
 import time
-from aria2tui.lib.aria2c_wrapper import *
-from aria2tui.utils.aria_adduri import addDownloadFull
-from list_picker.utils.utils import *
 import os
 import subprocess
 import toml
@@ -9,10 +6,17 @@ from urllib import request as rq
 import json
 import sys
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.expanduser("../list_picker/"))
+os.chdir("../../..")
+# sys.path.append(os.path.expanduser("../list_picker/"))
 import tempfile
 import tabulate
 from typing import Callable, Tuple
+
+from aria2tui.lib.aria2c_wrapper import *
+from aria2tui.utils.aria_adduri import addDownloadFull
+# from list_picker.utils.utils import *
+from list_picker import *
+from list_picker.list_picker_app import *
 
 def graph_speeds_no_curses(get_data_function, end_time, title, wait_time):
     ticker = 0
