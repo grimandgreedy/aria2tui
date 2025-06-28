@@ -1,5 +1,9 @@
 # CHANGELOG.md
 
+## [0.1.6] 2025-06-28
+- Restructured project and added it to pypi so that it can be intalled with pip. 
+- Changed default toml location to ~/.config/aria2tui/config.toml
+
 ## [0.1.5] 2025-06-27
  - terminal_file_manager option added to config so that the terminal file manager can be modified.
  - gui_file_manager option added to config so that the file manager that is opened in a new window can be modified.
