@@ -15,8 +15,8 @@ import tabulate
 from typing import Callable, Tuple
 
 
-from lib.aria2c_wrapper import *
-from utils.aria_adduri import addDownloadFull
+from aria2tui.lib.aria2c_wrapper import *
+from aria2tui.utils.aria_adduri import addDownloadFull
 
 # from list_picker.ui.keys import edit_menu_keys
 # from list_picker.list_picker_app import Picker, start_curses, close_curses
