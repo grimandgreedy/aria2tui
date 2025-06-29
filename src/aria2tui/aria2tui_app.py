@@ -10,7 +10,7 @@ import json
 import curses
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.chdir("../..")
+# os.chdir("../..")
 sys.path.append(os.path.expanduser("../../"))
 
 # from list_picker.ui.list_picker_colours import get_colours, get_help_colours, get_notification_colours
@@ -27,7 +27,7 @@ sys.path.append(os.path.expanduser("../../"))
 # from list_picker.utils.generate_data import generate_list_picker_data
 # from list_picker.utils.dump import dump_state, load_state, dump_data
 # from list_picker.list_picker_app import Picker, start_curses, close_curses
-from list_picker.list_picker_app import *
+from listpick.listpick_app import *
 
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *

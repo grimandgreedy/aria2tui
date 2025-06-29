@@ -7,6 +7,7 @@ from urllib import request as rq
 import json
 import sys
 # sys.path.append(os.path.expanduser("../list_picker/"))
+sys.path.append("..")
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 # os.chdir("../../..")
 import tempfile
@@ -14,14 +15,14 @@ import tabulate
 from typing import Callable, Tuple
 
 
-from aria2tui.lib.aria2c_wrapper import *
-from aria2tui.utils.aria_adduri import addDownloadFull
+from lib.aria2c_wrapper import *
+from utils.aria_adduri import addDownloadFull
 
 # from list_picker.ui.keys import edit_menu_keys
 # from list_picker.list_picker_app import Picker, start_curses, close_curses
 # from list_picker.utils.utils import *
-from list_picker import *
-from list_picker.list_picker_app import *
+from listpick import *
+from listpick.listpick_app import *
 
 def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests if we can connect to the url and port. """
@@ -879,8 +880,8 @@ def get_default_config() -> dict:
             "url": "http://localhost",
             "port": "6800",
             "token": "",
-            "startupcmds": ["aria2d"],
-            "restartcmds": ["pkill aria2d && sleep 1 && aria2d"],
+            "startupcmds": ["aria2c"],
+            "restartcmds": ["pkill aria2c && sleep 1 && aria2c"],
             "ariaconfigpath": "~/.config/aria2/aria2.conf",
             "paginate": False,
             "refresh_timer": 2,
