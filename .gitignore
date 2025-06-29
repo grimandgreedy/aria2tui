@@ -7,6 +7,7 @@ __pycache__/
 oldcode.py
 .vscode/
 tmp/
+scripts/
 
 # Compile stuff
 src/aria2tui/lib/__pycache__/
