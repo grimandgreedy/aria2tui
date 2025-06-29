@@ -13,9 +13,7 @@ Install aria2tui using pip and add download the config file.
 
 ```
 python -m pip install aria2tui &&
-
 mkdir ~/.config/aria2tui/ &&
-
 wget https://raw.githubusercontent.com/grimandgreedy/Aria2TUI/refs/heads/master/src/aria2tui/data/config.toml -O ~/.config/aria2tui/config.toml
 ```
 
