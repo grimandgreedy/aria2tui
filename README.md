@@ -1,8 +1,6 @@
 # Aria2TUI
 
-Aria2TUI is a TUI frontend for the Aria2 download utility.
-
-Aria2TUI fetches the download data from the aria2c daemon over RPC and displays it using my TUI picker [listpick](https://github.com/grimandgreedy/listpick).
+Aria2TUI is a TUI frontend for the Aria2 download utility which fetches data from an aria2c daemon over RPC and displays it using my TUI picker [listpick](https://github.com/grimandgreedy/listpick).
 
 
 https://github.com/user-attachments/assets/07ab1f63-3a5e-42dd-bddb-56c948ecd620
@@ -44,7 +42,7 @@ in addition to those requirements the application uses:
 ## Tips
 
  - Press '?' to see the help page which will list the available keys.
- - If you have problems starting aria2tui, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
+ - If you have problems starting aria2c, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
 
 ## Features
 
