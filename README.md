@@ -44,6 +44,7 @@ in addition to those requirements the application uses:
 ## Tips
 
  - Press '?' to see the help page which will list the available keys.
+ - If you have problems starting aria2tui, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
 
 ## Features
 
