@@ -2,54 +2,44 @@
 
 Aria2TUI is a TUI frontend for the Aria2 download utility.
 
+Aria2TUI fetches the download data from the aria2c daemon over RPC and displays it using my TUI picker [listpick](https://github.com/grimandgreedy/listpick).
+
 
 https://github.com/user-attachments/assets/07ab1f63-3a5e-42dd-bddb-56c948ecd620
 
 ## Quickstart
 
-Aria2TUI fetches the download data from the aria2c daemon over RPC and displays it using list_picker. As both Aria2TUI and list_picker are in active development you will need to clone both repositories.
+Install aria2tui using pip and add download the config file.
 
 ```
-git clone https://github.com/grimandgreedy/Aria2TUI
+python -m pip install aria2tui &&
 
-cd Aria2TUI && python -m pip install -r requirements
+mkdir ~/.config/aria2tui/ &&
 
-cd ..
-
-git clone https://github.com/grimandgreedy/list_picker
-
-cd list_picker && python -m pip install -r requirements
+wget https://raw.githubusercontent.com/grimandgreedy/Aria2TUI/refs/heads/master/src/aria2tui/data/config.toml -O ~/.config/aria2tui/config.toml
 ```
 
-Edit the config.toml in the aria2tui repo and make sure your url, port, and secret token are correct.
-
- - Note that starting/restarting the aria2 daemon is done using systemd by default. There is a sample service file that you can put in ~/.config/systemd/user/. You can also change the cmds that are run in the config.
-
-Navigate to the aria2tui repo and run aria2tui.py
+After editing your config and ensuring that your url, port, and secret token are correct you are all set to go:
 
 ```
-python aria2tui.py
+aria2tui
 ```
 
-or if you have multiple daemons you can specify another config file:
+If you have multiple daemons you can specify another config file:
 
 ```
-ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python aria2tui.py
-
-ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python aria2tui.py
+ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml aria2tui
+ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml aria2tui
 ```
 
-If you wish to use it regularly, then for the moment the best way to make it accessible to your PATH is to simply add aliases to your ~/.bashrc.
+If you wish to use it regularly, then it may be useful to add aliases to your ~/.bashrc.
 ```
 alias a2="python /path/to/Aria2TUI/aria2tui.py"
-
-alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml python /path/to/Aria2TUI/aria2tui.py"
-
-alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml python /path/to/Aria2TUI/aria2tui.py"
+alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml aria2tui"
+alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml aria2tui"
 ```
 
 in addition to those requirements the application uses:
- - `yazi` for opening download locations
  - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
  - `xdg-open` and `gio` for opening files.
 
