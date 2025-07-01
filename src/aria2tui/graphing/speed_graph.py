@@ -1,12 +1,9 @@
 import sys, os
-# sys.path.append(os.path.expanduser("../../../list_picker/"))
-# sys.path.append(os.path.expanduser("../../../aria2tui/"))
 sys.path.append(os.path.expanduser(".."))
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 os.chdir("../../..")
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
-# from listpick.list_picker_app import Picker, start_curses, close_curses
 from listpick import *
 from listpick.listpick_app import *
 import time

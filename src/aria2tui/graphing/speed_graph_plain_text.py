@@ -7,7 +7,6 @@ import json
 import sys
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 os.chdir("../../..")
-# sys.path.append(os.path.expanduser("../list_picker/"))
 import tempfile
 import tabulate
 from typing import Callable, Tuple

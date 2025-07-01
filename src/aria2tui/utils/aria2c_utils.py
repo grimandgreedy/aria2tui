@@ -6,7 +6,6 @@ import toml
 from urllib import request as rq
 import json
 import sys
-# sys.path.append(os.path.expanduser("../list_picker/"))
 sys.path.append("..")
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 # os.chdir("../../..")
@@ -18,9 +17,6 @@ from typing import Callable, Tuple
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria_adduri import addDownloadFull
 
-# from list_picker.ui.keys import edit_menu_keys
-# from list_picker.list_picker_app import Picker, start_curses, close_curses
-# from list_picker.utils.utils import *
 from listpick import *
 from listpick.listpick_app import *
 
@@ -149,9 +145,10 @@ def getStopped(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
             pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
         
             dl_speed = int(dl['downloadSpeed'])
-            time_left_s = "INF"
+            time_left_s = ""
         
-            row = ["", status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
+            # row = ["", status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
+            row = ["", status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", "", time_left_s, pth, gid]
             if show_pc_bar: row.insert(5, pc_bar)
             items.append(row)
         except:

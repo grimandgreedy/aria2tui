@@ -1,7 +1,7 @@
 #!/bin/python
 import curses
 """
-Define key dictionary for controlling list_picker.
+Define key dictionary for controlling the Picker.
 
 """
 

@@ -1,18 +1,19 @@
 # aria2tui
 
 > [!IMPORTANT] Features
-> - [ ] allow options when adding uris; perhaps use the same structure as the aria2c input file
+> - [x] allow options when adding uris; perhaps use the same structure as the aria2c input file
 >    - [x] implemented in principle
->    - [ ] Allow all possible options to be specified
+>    - [x] Allow all possible options to be specified
+> - [ ] Implement argstrings to modify group-add URIs.
 > - [ ] improve menu navigation
 >    - [x] when downloads are selected and we go back they should still be selected
-> - [ ] add global stats bar,
->   - [ ] Total DL speed, # active, 
-> - [ ] add global stats bar
+> - [x] add global stats bar,
+>   - [x] Total DL speed, # active, 
 > - [ ] monitor log file
 > - [ ] setup https connection
 > - [ ] add source column, showing site from which it is being downloaded
 > - [ ] Create passive notification
+>   - [ ]  use infobox?
 > - [ ] Add notifications to the following:
 >    - adding downloads (# succeeeded or failed)
 > - [ ] implement changeOption for downloads
@@ -22,7 +23,9 @@
 >    - [ ] queue operations only on those in the queue
 >    - [ ] retry only on errored
 > - [ ] add column to show download type (e.g., torrent)
-> - [ ] add support for multiple aria servers
+> - [x] add support for multiple aria servers
+>   - [x] Config file can be specified.
+>   - [ ] Change on the fly
 > - [ ] add more flags to filtering/searching
 >    - [ ] invert
 >    - [ ] case-sensitivity
