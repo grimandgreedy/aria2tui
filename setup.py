@@ -5,7 +5,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
     name = "Aria2TUI",
-    version = "0.1.5.21",
+    version = "0.1.5.23",
     author = "Grim",
     author_email = "grimandgreedy@protonmail.com",
     description = "Aria2TUI: A TUI Frontend for the Aria2c Download Manager",

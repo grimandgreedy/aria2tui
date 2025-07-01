@@ -2,11 +2,9 @@
 import os, sys
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.expanduser("../../../list_picker/"))
-sys.path.append(os.path.expanduser("../../../aria2tui/"))
 
 
-from listpick.ui.list_picker_colours import get_colours, get_help_colours, get_notification_colours
+from listpick.ui.picker_colours import get_colours, get_help_colours, get_notification_colours
 from listpick.utils.options_selectors import default_option_input, output_file_option_selector
 from listpick.utils.table_to_list_of_lists import *
 from listpick.utils.utils import *
@@ -16,8 +14,8 @@ from listpick.ui.input_field import *
 from listpick.utils.clipboard_operations import *
 from listpick.utils.searching import search
 from listpick.ui.help_screen import help_lines
-from listpick.ui.keys import list_picker_keys, notification_keys, options_keys, menu_keys
-from listpick.utils.generate_data import generate_list_picker_data
+from listpick.ui.keys import listpick_keys, notification_keys, options_keys, menu_keys
+from listpick.utils.generate_data import generate_picker_data
 from listpick.utils.dump import dump_state, load_state, dump_data
 from listpick.listpick_app import *
 
