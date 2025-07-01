@@ -15,7 +15,9 @@ mkdir ~/.config/aria2tui/ &&
 wget https://raw.githubusercontent.com/grimandgreedy/Aria2TUI/refs/heads/master/src/aria2tui/data/config.toml -O ~/.config/aria2tui/config.toml
 ```
 
-After editing your config and ensuring that your url, port, and secret token are correct you are all set to go:
+**Note**: If you have not used aria2c before then download [this file](https://gist.github.com/qzm/a54559726896d5e6bf21adf2363ad334) and put it in ~/.config/aria2/. I would recommend going through and configuring it but this one will get you up and running for now.
+
+After editing ~/.config/aria2tui/config.toml and ensuring that your url, port, and secret token are correct, you are all set to go:
 
 ```
 aria2tui
