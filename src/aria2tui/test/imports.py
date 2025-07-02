@@ -1,4 +1,13 @@
 #!/bin/python
+# -*- coding: utf-8 -*-
+"""
+imports.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
+#!/bin/python
 import os, sys
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))

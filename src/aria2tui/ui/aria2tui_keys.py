@@ -1,10 +1,14 @@
 #!/bin/python
-import curses
+# -*- coding: utf-8 -*-
 """
+aria2_keys.py
 Define key dictionary for controlling the Picker.
 
+Author: GrimAndGreedy
+License: MIT
 """
 
+import curses
 
 download_option_keys = {
     "refresh":                          [curses.KEY_F5],

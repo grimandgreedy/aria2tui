@@ -1,4 +1,12 @@
 #!/bin/python
+# -*- coding: utf-8 -*-
+"""
+aria2c_utils.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import curses
 import os
 import subprocess

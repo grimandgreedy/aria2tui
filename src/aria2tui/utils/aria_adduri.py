@@ -1,4 +1,11 @@
 #!/bin/python
+# -*- coding: utf-8 -*-
+"""
+aria_adduri.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
 
 import argparse
 import json

@@ -1,9 +1,15 @@
 #!/bin/python
+# -*- coding: utf-8 -*-
 """
+aria2_detailing.py
 Detailings for aria2TUI. 
     - highlights
     - modes
+
+Author: GrimAndGreedy
+License: MIT
 """
+
 highlights = [
     {
         "match": "complete",

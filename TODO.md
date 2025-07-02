@@ -82,7 +82,7 @@
 >   - [x] Put the menu options data into a separate file
 >     - [x] Make a class for the option with the name, function, args, etc.
 >   - [x] Add an Aria2TUi class
-> - [ ] Add default file manager option in config; or make yazi optional
+> - [x] Add default file manager option in config; or make yazi optional
 > - [ ] Ensure that add torrent returns the gids.
 > - [ ] Fix the startup notification when downloads are added.
 > - [ ] Add an editor command to the config so that the preferred editor can be changed.

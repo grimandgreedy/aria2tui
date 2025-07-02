@@ -1,4 +1,11 @@
 #!/bin/python
+# -*- coding: utf-8 -*-
+"""
+aria2tui_app.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
 
 import os
 import sys

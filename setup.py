@@ -1,3 +1,12 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+setup.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import setuptools
 
 with open("README.md", "r", encoding = "utf-8") as fh:
@@ -5,7 +14,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
     name = "Aria2TUI",
-    version = "0.1.6.0",
+    version = "0.1.7.0",
     author = "Grim",
     author_email = "grimandgreedy@protonmail.com",
     description = "Aria2TUI: A TUI Frontend for the Aria2c Download Manager",
@@ -17,7 +26,7 @@ setuptools.setup(
     },
     classifiers = [
         "Programming Language :: Python :: 3",
-        # "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: Unix",
     ],
     package_dir = {"": "src"},
@@ -25,7 +34,6 @@ setuptools.setup(
     entry_points={
         'console_scripts': [
             'aria2tui = aria2tui:main',
-            # 'aria2tui-post-install=aria2tui.post_install:post_install',
         ]
     },
     package_data={
@@ -40,6 +48,6 @@ setuptools.setup(
         "Requests",
         "tabulate",
         "toml",
-        "listpick >= 0.1.6.0",
+        "listpick >= 0.1.7.0",
     ],
 )
