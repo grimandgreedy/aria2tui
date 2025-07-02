@@ -1,3 +1,11 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+aria2tui_menu_options.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
 
 import os, sys
 os.chdir(os.path.dirname(os.path.realpath(__file__)))

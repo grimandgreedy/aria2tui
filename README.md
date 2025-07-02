@@ -104,7 +104,7 @@ While I use Aria2TUI every day, it is still in development and there are many th
 
 Some things that should be mentioned:
 
- - Realistically Aria2TUI will only work in a UNIX (linux, macos) environment. If you register your interest I might be able to look into what I would need to change.
+ - Realistically, Aria2TUI will only work in a UNIX (linux, macos) environment. If you register your interest I might be able to look into what I would need to change to get it to work on windows.
  - If you are performing bulk operations and the downloads are changing state rapidly--e.g., hundreds of images are changing from active/waiting to completed--it is recommended to stop the auto-refresh and operate on a static list.
     - This can be done by either:
       - exiting to the main menu ('q') and going to "View Downloads"; or

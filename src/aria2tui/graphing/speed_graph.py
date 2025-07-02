@@ -1,3 +1,12 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+speed_graph.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import sys, os
 sys.path.append(os.path.expanduser(".."))
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -10,11 +19,13 @@ import time
 import re
 from typing import Callable
 
-def escape_ansi(line: str):
+def escape_ansi(line: str) -> str:
+    """ Remove ansi characters from string. """
     ansi_escape =re.compile(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]')
     return ansi_escape.sub('', line)
 
 def handle_plotille_not_found(stdscr: curses.window) -> None:
+    """ Display ModuleNotFoundError. """
     h, w = stdscr.getmaxyx()
     s = "ModuleNotFoundError: No module named 'plotille'"
     stdscr.addstr(h//2, (w - len(s))//2, s)
@@ -33,6 +44,7 @@ def graph_speeds(
         graph_wh: Callable[None,Tuple[int, int]] = lambda: os.get_terminal_size(),
 
     ) -> None:
+    """ Display a graph of the global stats in a curses window. """
     try:
         import plotille as plt
     except:
@@ -112,6 +124,7 @@ def graph_speeds_gid(
         gid:str = ""
 
     ) -> None:
+    """ Display a graph in a curses window for a certain gid. """
     try:
         import plotille as plt
     except:

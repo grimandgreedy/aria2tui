@@ -1,4 +1,12 @@
 #!/bin/python
+# -*- coding: utf-8 -*-
+"""
+aria2c_wrapper.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import json
 from urllib import request as rq
 import base64

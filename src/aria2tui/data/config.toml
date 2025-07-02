@@ -1,4 +1,15 @@
+################################
+##
+##   Default config for Aria2TUI
+##
+##   Some common options have been commented.
+##
+################################
+
+
+
 [general]
+
 port = 6800
 token = "1234"
 url = "http://localhost"
@@ -12,19 +23,27 @@ restartcmds = ["pkill aria2c && sleep 1 && aria2c"]
 # Used when "Edit Config" option is chosen in the main menu
 ariaconfigpath = "~/.config/aria2/aria2.conf"
 
-paginate = false
 
 # File managers 
+## Terminal opens in current terminal, and gui_file_manager will fork a new process and open a new application.
 terminal_file_manager = "yazi"
 gui_file_manager = "kitty yazi"
 
 # Launchers
+## Note that the "open file(s) (grouped)" option still requires gio and xdg-mime.
 launch_command = "xdg-open"
-## Note that the grouped file open option still requires gio and xdg-mime.
+# launch_command = "termux-open"
+
 
 # Time in seconds. If timings are reduced there may be system strain. 1 and 2 seconds are the recommended values.
 global_stats_timer = 1
 refresh_timer = 2
+
+# Scrolls by default
+paginate = false
+
+
+
 
 [appearance]
 theme = 3

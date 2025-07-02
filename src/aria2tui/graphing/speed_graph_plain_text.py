@@ -1,3 +1,12 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+speed_graph_plain_text.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import time
 import os
 import subprocess
@@ -17,7 +26,8 @@ from aria2tui.utils.aria_adduri import addDownloadFull
 from listpick import *
 from listpick.listpick_app import *
 
-def graph_speeds_no_curses(get_data_function, end_time, title, wait_time):
+def graph_speeds_no_curses(get_data_function, end_time, title, wait_time) -> None:
+    """ Display a graph of the global stats in plain text. """
     ticker = 0
     x, y, y2 = [], [], []
     while ticker < end_time:
