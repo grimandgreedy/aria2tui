@@ -14,7 +14,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
     name = "Aria2TUI",
-    version = "0.1.7.0",
+    version = "0.1.8.0",
     author = "Grim",
     author_email = "grimandgreedy@protonmail.com",
     description = "Aria2TUI: A TUI Frontend for the Aria2c Download Manager",
@@ -48,6 +48,6 @@ setuptools.setup(
         "Requests",
         "tabulate",
         "toml",
-        "listpick >= 0.1.7.0",
+        "listpick >= 0.1.9.0",
     ],
 )

@@ -7,7 +7,7 @@ https://github.com/user-attachments/assets/07ab1f63-3a5e-42dd-bddb-56c948ecd620
 
 ## Quickstart
 
-Install aria2tui using pip and add download the config file.
+Install aria2tui using pip and add the config.toml file from ./src/aria2tui/data/.
 
 ```
 python -m pip install aria2tui &&
@@ -40,6 +40,30 @@ alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml 
 in addition to those requirements the application uses:
  - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
  - `xdg-open` and `gio` for opening files.
+
+## Other installation options
+
+### Git repo
+
+Clone rep
+```bash
+git clone https://github.com/grimandgreedy/Aria2TUI
+```
+
+Copy config and edit it accordingly:
+```bash
+mkdir ~/.config/aria2tui &&
+cp Aria2TUI/src/aria2tui/data/config.toml ~/.config/aria2tui
+```
+Now you can start Aria2TUI:
+```bash
+cd ./Aria2TUI/src
+python -m aria2tui.aria2tui_app
+```
+
+```bash
+alias a2="cd /path/to/Aria2TUI/src && python -m aria2tui.aria2tui_app"
+```
 
 ## Tips
 
