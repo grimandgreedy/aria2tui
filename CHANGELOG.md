@@ -1,5 +1,10 @@
 # CHANGELOG.md
 
+## [0.1.8] 2025-07-04
+ - Added asynchronous data refresh requests using threading--inherited from listpick==0.1.9.
+ - Added left-right scrolling using h/l--inherited from listpick==0.1.8.
+ - Scroll to home/end with H/L--inherited from listpick==0.1.8.
+
 ## [0.1.7] 2025-07-02
  - Added MIT license information.
 

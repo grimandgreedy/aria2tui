@@ -15,7 +15,7 @@ from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, oper
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
-from aria2tui.ui.aria2tui_keys import download_option_keys, menu_keys
+from aria2tui.ui.aria2tui_keys import download_option_keys, menu_keys, aria2tui_keys
 
 from listpick.listpick_app import *
 
@@ -132,6 +132,7 @@ downloads_data = {
     "id_column": 10,
     "centre_in_terminal_vertical": False,
     "footer_string_auto_refresh": True,
+    "keys_dict": aria2tui_keys,
     "footer_string_refresh_function": getGlobalSpeed,
     "footer_timer": global_stats_timer,
 }

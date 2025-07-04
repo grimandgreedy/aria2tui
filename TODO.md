@@ -35,8 +35,10 @@
 > - [ ] Integrate bulk downloaders
 > - [x] Add watch download speed graph
 >   - [ ] Integrate the graphs into the main list_picker so that they can be watched as a pane while list_picker runs.
-> - [ ] Make data requests asynchronous so that the data is still refreshed with a spotty connection.
-> - [ ] Make the data get requests asychronous.
+> - [x] Make data requests asynchronous so that the data is still refreshed with a spotty connection.
+>   - [x] Use threading.
+>   - [ ] Will Asyncio improve performance at all? 
+>     - [ ] Test with very large data set
 
 
 > [!Important] Improvements
