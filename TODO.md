@@ -124,7 +124,8 @@
 > - [ ] Overspill of selected header column by one character
 > - [ ] Prevent input field from overwriting footer values.
 >   - [x] Fixed after input has finished.
-> - [ ] Torrent size shows size of first file in torrent if there are multiple files...
+> - [x] Fix display of size for torrent with multiple files
+>    - [x] Torrent size shows size of first file in torrent if there are multiple files...
 > - [x] Exiting from change options still changes options
 >   - [x] Check if selected_indices is empty first.
 

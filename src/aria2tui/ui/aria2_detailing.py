@@ -17,7 +17,7 @@ highlights = [
         "color": 8,
     },
     {
-        "match": "error",
+        "match": "error|removed",
         "field": 1,
         "color": 7,
     },
