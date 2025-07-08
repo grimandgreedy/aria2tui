@@ -12,7 +12,6 @@ import curses
 from listpick.listpick_app import picker_keys
 
 aria2tui_keys = picker_keys
-if "save" in aria2tui_keys: del aria2tui_keys["save"]
 if "move_column_left" in aria2tui_keys: del aria2tui_keys["move_column_left"]
 if "move_column_right" in aria2tui_keys: del aria2tui_keys["move_column_right"]
 if "delete" in aria2tui_keys: del aria2tui_keys["delete"]
@@ -21,7 +20,7 @@ if "increase_lines_per_page" in aria2tui_keys: del aria2tui_keys["increase_lines
 if "decrease_lines_per_page" in aria2tui_keys: del aria2tui_keys["decrease_lines_per_page"]
 if "edit" in aria2tui_keys: del aria2tui_keys["edit"]
 if "edit_picker" in aria2tui_keys: del aria2tui_keys["edit_picker"]
-if "save" in aria2tui_keys: del aria2tui_keys["save"]
+# if "save" in aria2tui_keys: del aria2tui_keys["save"]
 if "load" in aria2tui_keys: del aria2tui_keys["load"]
 if "open" in aria2tui_keys: del aria2tui_keys["open"]
 if "notification_toggle" in aria2tui_keys: del aria2tui_keys["notification_toggle"]
