@@ -129,7 +129,7 @@ downloads_data = {
     "timer": refresh_timer,
     "paginate": paginate,
     "hidden_columns": [],
-    "id_column": 10,
+    "id_column": -1,
     "centre_in_terminal_vertical": False,
     "footer_string_auto_refresh": True,
     "keys_dict": aria2tui_keys,

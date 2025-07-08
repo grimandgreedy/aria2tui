@@ -1,5 +1,15 @@
 # CHANGELOG.md
 
+## [0.1.9] 2025-07-08
+ - Added download type column.
+ - Added uri column.
+ - Added header when viewing 'DL Info...'
+ - Buxfixes
+   - Fixed display of torrent size so that it shows the total size of all files in the torrent.
+   - Refresh timer remains the set value after exiting to the menu and returning to the watch downloads Picker.
+   - Fixed crash when trying to edit options.
+ - Highlight downloads with 'removed' status red.
+
 ## [0.1.8] 2025-07-04
  - Added asynchronous data refresh requests using threading--inherited from listpick==0.1.9.
  - Added left-right scrolling using h/l--inherited from listpick==0.1.8.

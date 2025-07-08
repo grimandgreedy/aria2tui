@@ -27,6 +27,7 @@ from aria2tui.utils.aria_adduri import addDownloadFull
 
 from listpick import *
 from listpick.listpick_app import *
+from listpick.ui.keys import *
 
 def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests if we can connect to the url and port. """
@@ -59,133 +60,30 @@ def te(url: str = "http://localhost", port: int = 6800) -> bool:
     except:
         return False
 
-def getQueue(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
-    """ Retrieves download queue and corresponding header from aria2 over rpc. """
-    js_rs = sendReq(tellWaiting())
-
-    items = []
-
+def getOptionAndFileInfo(gids: list[str]) -> Tuple[list, list]:
+    """ Get option and file info for each GID. Used for fetching download data for Picker rows. """
     options_batch = []
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
-        gid = dl['gid']
-        options = json.loads(getOption(gid))
-        options_batch.append(options)
+    files_info_batch = []
+    # for i in range(len(js_rs["result"])):
+    for gid in gids:
+        # gid = js_rs["result"][i]['gid']
+        options_batch.append(json.loads(getOption(gid)))
+        files_info_batch.append(json.loads(getFiles(gid)))
         
-    options_batch = sendReq(json.dumps(options_batch).encode('utf-8'))
+    all_reqs = sendReq(json.dumps(options_batch+files_info_batch).encode('utf-8'))
 
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
-        try:
-            gid = dl['gid']
-            options = options_batch[i]
-            pth = options["result"]["dir"]
-            orig_path = dl['files'][0]['path']
-            fname = orig_path[orig_path.rfind("/")+1:]
-            if fname == "":   # get from url
-                url = dl['files'][0]['uris'][0]["uri"]
-                fname = url[url.rfind("/")+1:]
-            try:
-                if "bittorrent" in dl:
-                    tmp = dl["bittorrent"]["info"]["name"]
-                    fname = tmp
-            except: pass
+    options_batch = all_reqs[:len(gids)]
+    files_info_batch = all_reqs[len(gids):]
 
-            status = dl['status']
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-            pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
-            dl_speed = int(dl['downloadSpeed'])
-            time_left_s = "INF"
-        
-            row = [i, status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
-            if show_pc_bar: row.insert(5, pc_bar)
-            items.append(row)
-        except:
-            pass
-    header = ["", "Status", "Name", "Size", "Done", "%", "Speed", "Remaining", "DIR", "GID"]
-    if show_pc_bar: header.insert(5, "%")
-    return items, header
+    return options_batch, files_info_batch
 
-
-def getStopped(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
-    """ Retrieves stopped downloads and corresponding header from aria2 over rpc. """
-    jsonreq = tellStopped()
-
-    js_rs = sendReq(tellStopped())
-
-    entries = []
+def dataToPickerRows(dls, options_batch, files_info_batch, show_pc_bar: bool = True):
     items = []
-
-    options_batch = []
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
-        gid = dl['gid']
-        options = json.loads(getOption(gid))
-        options_batch.append(options)
-        
-    options_batch = sendReq(json.dumps(options_batch).encode('utf-8'))
-
-
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
+    for i, dl in enumerate(dls):
         try:
-            gid = dl['gid']
             options = options_batch[i]
-            pth = options["result"]["dir"]
-            orig_path = dl['files'][0]['path']
-            fname = orig_path[orig_path.rfind("/")+1:]
-            if fname == "":   # get from url
-                url = dl['files'][0]['uris'][0]["uri"]
-                fname = url[url.rfind("/")+1:]
-            status_chars = {
-                    'waiting':'w',
-                    'paused':'p',
-                    'active':'a', 
-                    'error': 'e',
-                    'complete':'c'
-                    }
-            status = dl['status']
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
-            pc_complete = completed/size if size > 0 else 0
-            pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
-        
-            dl_speed = int(dl['downloadSpeed'])
-            time_left_s = ""
-        
-            # row = ["", status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
-            row = ["", status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", "", time_left_s, pth, gid]
-            if show_pc_bar: row.insert(5, pc_bar)
-            items.append(row)
-        except:
-            pass
-    header = ["", "Status", "Name", "Size", "Done", "%", "Speed", "Remaining", "DIR", "GID"]
-    if show_pc_bar: header.insert(5, "%")
-    return items[::-1], header
-
-
-def getActive(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
-    """ Retrieves active downloads and corresponding header from aria2 over rpc. """
-
-    js_rs = sendReq(tellActive())
-    items = []
-
-    options_batch = []
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
-        gid = dl['gid']
-        options = json.loads(getOption(gid))
-        options_batch.append(options)
-        
-    options_batch = sendReq(json.dumps(options_batch).encode('utf-8'))
-
-    for i in range(len(js_rs["result"])):
-        dl = js_rs["result"][i]
-        try:
+            files_info = files_info_batch[i]
             gid = dl['gid']
-            options = options_batch[i]
             pth = options["result"]["dir"]
             if "out" in options["result"]:
                 fname = options["result"]["out"]
@@ -195,29 +93,87 @@ def getActive(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
             if fname == "":   # get from url
                 url = dl['files'][0]['uris'][0]["uri"]
                 fname = url[url.rfind("/")+1:]
+            dltype = "direct"
             try:
                 if "bittorrent" in dl:
-                    tmp = dl["bittorrent"]["info"]["name"]
-                    fname = tmp
+                    dltype = "torrent"
+                    fname = dl["bittorrent"]["info"]["name"]
             except: pass
             status = dl['status']
-            size = int(dl['files'][0]['length'])
-            completed = int(dl['files'][0]['completedLength'])
+
+            size = 0
+            for file in files_info['result']:
+                if 'length' in file:
+                    size += int(file['length'])
+            # size = int(dl['files'][0]['length'])
+            completed = 0
+            for file in files_info['result']:
+                if 'completedLength' in file:
+                    completed += int(file['completedLength'])
+            # completed = int(dl['files'][0]['completedLength'])
             pc_complete = completed/size if size > 0 else 0
             pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
             dl_speed = int(dl['downloadSpeed'])
             time_left = int((size-completed)/dl_speed) if dl_speed > 0 else None
             if time_left: time_left_s = convert_seconds(time_left)
-            else: time_left_s = "INF"
+            else: time_left_s = ""
 
-            row = ["", status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, gid]
+            try:
+                uri = files_info["result"][0]["uris"][0]["uri"]
+            except:
+                uri = ""
+
+            row = [str(i), status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, dltype, uri, gid]
             if show_pc_bar: row.insert(5, pc_bar)
             items.append(row)
         except:
             pass
 
-    header = ["", "Status", "Name", "Size", "Done", "%", "Speed", "Remaining", "DIR", "GID"]
+    header = ["", "Status", "Name", "Size", "Done", "%", "Speed", "Time", "DIR", "Type", "URI", "GID"]
     if show_pc_bar: header.insert(5, "%")
+    return items, header
+
+def getQueue(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
+    """ Retrieves download queue and corresponding header from aria2 over rpc. """
+    js_rs = sendReq(tellWaiting())
+    gids = [dl["gid"] for dl in js_rs["result"]]
+    options_batch, files_info_batch = getOptionAndFileInfo(gids)
+
+    items, header = dataToPickerRows(js_rs["result"], options_batch, files_info_batch, show_pc_bar)
+
+    return items, header
+
+
+def getStopped(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
+    """ Retrieves stopped downloads and corresponding header from aria2 over rpc. """
+    js_rs = sendReq(tellStopped())
+    gids = [dl["gid"] for dl in js_rs["result"]]
+    options_batch, files_info_batch = getOptionAndFileInfo(gids)
+
+    items, header = dataToPickerRows(js_rs["result"], options_batch, files_info_batch, show_pc_bar)
+
+    for item in items: 
+        item[0] = ""                # Remove indices; only useful for queue numbering
+        
+
+    return items[::-1], header
+
+
+def getActive(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
+    """ Retrieves active downloads and corresponding header from aria2 over rpc. """
+
+    js_rs = sendReq(tellActive())
+    gids = [dl["gid"] for dl in js_rs["result"]]
+    options_batch, files_info_batch = getOptionAndFileInfo(gids)
+
+    items, header = dataToPickerRows(js_rs["result"], options_batch, files_info_batch, show_pc_bar)
+
+    rem_index = header.index("Time")
+    for item in items: 
+        item[0] = ""                # Remove indices; only useful for queue numbering
+        if item[rem_index] == "":   # If time remaining is empty (dl_speed=0) then set to INF for active dls
+            item[rem_index] = "INF"
+
     return items, header
 
 
@@ -831,6 +787,7 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
                     items=l,
                     search_query="function",
                     title=operation_name,
+                    header=["Key", "Value"],
             )
             x.run()
 
