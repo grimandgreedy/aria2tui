@@ -128,6 +128,7 @@
 >    - [x] Torrent size shows size of first file in torrent if there are multiple files...
 > - [x] Exiting from change options still changes options
 >   - [x] Check if selected_indices is empty first.
+> - [ ] Slow navigation when we have a search query and many downloads with 1 second refresh rate
 
 
 

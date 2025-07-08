@@ -22,6 +22,7 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.expanduser("../"))
 
 from listpick.listpick_app import *
+from listpick.listpick_app import Picker, start_curses, close_curses
 
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *

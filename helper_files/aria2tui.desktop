@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Aria2TUI
+Comment=TUI frontend for Aria2c download manager.
+Terminal=false
+# Exec=kitty --detach /home/user/venvs/lp/bin/python -m aria2tui
+Exec=kitty --detach python -m aria2tui
+Type=Application
+Categories=Utility;System;Network;ConsoleOnly;
+Keywords=Network;Download;aria2c;tui;aria2tui;

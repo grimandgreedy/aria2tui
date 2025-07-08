@@ -13,22 +13,23 @@ with open("README.md", "r", encoding = "utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name = "Aria2TUI",
-    version = "0.1.9.0",
+    name = "aria2tui",
+    version = "0.1.9.2",
     author = "Grim",
     author_email = "grimandgreedy@protonmail.com",
-    description = "Aria2TUI: A TUI Frontend for the Aria2c Download Manager",
+    description = "aria2tui: A TUI Frontend for the Aria2c Download Manager",
     long_description = long_description,
     long_description_content_type = "text/markdown",
-    url = "https://github.com/grimandgreedy/Aria2TUI",
+    url = "https://github.com/grimandgreedy/aria2tui",
     project_urls = {
-        "Bug Tracker": "https://github.com/grimandgreedy/Aria2TUI/issues",
+        "Bug Tracker": "https://github.com/grimandgreedy/aria2tui/issues",
     },
     classifiers = [
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Unix",
     ],
+    keywords='aria2c aria2 downloader listpick tui python curses torrent metalink',
     package_dir = {"": "src"},
     packages = setuptools.find_packages(where="src"),
     entry_points={
@@ -48,6 +49,6 @@ setuptools.setup(
         "Requests",
         "tabulate",
         "toml",
-        "listpick >= 0.1.10.12",
+        "listpick >= 0.1.10.17",
     ],
 )

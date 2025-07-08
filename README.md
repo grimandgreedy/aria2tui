@@ -1,18 +1,19 @@
-# Aria2TUI
+# aria2tui
 
-Aria2TUI is a TUI frontend for the Aria2 download utility which fetches data from an aria2c daemon over RPC and displays it using my TUI picker [listpick](https://github.com/grimandgreedy/listpick).
+Aria2tui is a TUI download management tool. It acts as a front-end for the aria2c download utility, facilitating bulk downloading, torrenting, queue control, pausing and resuming downloads, fine-tuning download options (e.g., piece length, user-agent, max speed, etc.), downloading via proxy, and much more. 
 
+Aria2tui communicates with the aria2c daemon over RPC. The UI is provided by my TUI picker [listpick](https://github.com/grimandgreedy/listpick).
 
 https://github.com/user-attachments/assets/07ab1f63-3a5e-42dd-bddb-56c948ecd620
 
 ## Quickstart
 
-Install aria2tui using pip and add the config.toml file from ./src/aria2tui/data/.
+Install aria2tui using pip and add the config.toml file from ./src/aria2tui/data/ to your config directory.
 
 ```
 python -m pip install aria2tui &&
 mkdir ~/.config/aria2tui/ &&
-wget https://raw.githubusercontent.com/grimandgreedy/Aria2TUI/refs/heads/master/src/aria2tui/data/config.toml -O ~/.config/aria2tui/config.toml
+wget https://raw.githubusercontent.com/grimandgreedy/aria2tui/refs/heads/master/src/aria2tui/data/config.toml -O ~/.config/aria2tui/config.toml
 ```
 
 **Note**: If you have not used aria2c before then download [this file](https://gist.github.com/qzm/a54559726896d5e6bf21adf2363ad334) and put it in ~/.config/aria2/. I would recommend going through and configuring it but this one will get you up and running for now.
@@ -32,7 +33,7 @@ ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml aria2tui
 
 If you wish to use it regularly, then it may be useful to add aliases to your ~/.bashrc.
 ```
-alias a2="python /path/to/Aria2TUI/aria2tui.py"
+alias a2="python /path/to/aria2tui/aria2tui.py"
 alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml aria2tui"
 alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml aria2tui"
 ```
@@ -99,7 +100,8 @@ alias a2="cd /path/to/Aria2TUI/src && python -m aria2tui.aria2tui_app"
      - ... Many more!
          - See [this section of the aria2c manual](https://aria2.github.io/manual/en/html/aria2c.html#input-file) for all available options all of which are supported.
 
-<div align="center"> <img src="assets/change_options.gif" alt="change_options" width="70%"> </div>
+<!-- <div align="center"> <img src="assets/change_options.gif" alt="change_options" width="70%"> </div> -->
+<div align="center"> <img src="https://raw.githubusercontent.com/grimandgreedy/aria2tui/refs/heads/master/assets/change_options.gif" alt="change_options" width="70%"> </div>
 
    - View current options of download
    - Retry download
@@ -109,13 +111,15 @@ alias a2="cd /path/to/Aria2TUI/src && python -m aria2tui.aria2tui_app"
    - Restart aria
  - Global and particular download transfer speed *graphs*.
 
-  <div align="center"> <img src="assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div>
+  <!-- <div align="center"> <img src="assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div> -->
+  <div align="center"> <img src="https://raw.githubusercontent.com/grimandgreedy/aria2tui/refs/heads/master/assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div>
 
  - Visual options
    - Modify theme
      - '~' to view settings and then select theme
 
-<div align="center"> <img src="assets/themes.png" alt="themes" width="70%"> </div>
+<!-- <div align="center"> <img src="assets/themes.png" alt="themes" width="70%"> </div> -->
+<div align="center"> <img src="https://github.com/grimandgreedy/aria2tui/blob/master/assets/themes.png?raw=true" alt="themes" width="70%"> </div>
 
    - Show/hide columns
      - Press Shift+Column_number to toggle or press '~' to view settings and find the column you wish to toggle.
