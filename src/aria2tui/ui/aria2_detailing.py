@@ -12,27 +12,27 @@ License: MIT
 
 highlights = [
     {
-        "match": "complete",
+        "match": "^complete[\s]*$",
         "field": 1,
         "color": 8,
     },
     {
-        "match": "error|removed",
+        "match": "^error[\s]*|^removed[\s]*$",
         "field": 1,
         "color": 7,
     },
     {
-        "match": "active",
+        "match": "^active[\s]$",
         "field": 1,
         "color": 9,
     },
     {
-        "match": "waiting",
+        "match": "^waiting[\s]*$",
         "field": 1,
         "color": 11,
     },
     {
-        "match": "paused",
+        "match": "^paused[\s]*$",
         "field": 1,
         "color": 12,
     },
@@ -64,27 +64,27 @@ highlights = [
 ]
 menu_highlights = [
     {
-        "match": "watch|view",
+        "match": "^watch|^view",
         "field": 0,
         "color": 8,
     },
     {
-        "match": "add",
+        "match": "^add",
         "field": 0,
         "color": 13,
     },
     {
-        "match": "pause|remove",
+        "match": "^pause|^remove",
         "field": 0,
         "color": 7,
     },
     {
-        "match": "get",
+        "match": "^get",
         "field": 0,
         "color": 22,
     },
     {
-        "match": "edit|restart",
+        "match": "^edit|^restart",
         "field": 0,
         "color": 10,
     },
@@ -127,19 +127,14 @@ modes = [
 ]
 operations_highlights = [
     {
-        "match": "watch|view",
-        "field": 0,
-        "color": 8,
-    },
-    {
-        "match": "add",
-        "field": 0,
-        "color": 13,
-    },
-    {
         "match": "^pause",
         "field": 0,
         "color": 22,
+    },
+    {
+        "match": "^unpause",
+        "field": 0,
+        "color": 8,
     },
     {
         "match": "^remove",
@@ -147,33 +142,27 @@ operations_highlights = [
         "color": 7,
     },
     {
-        "match": "unpause",
+        "match": r"^retry",
         "field": 0,
-        "color": 8,
+        "color": 22,
     },
     {
-        "match": r"retry[^\s]*",
-        "field": 0,
-        "color": 11,
-    },
-    {
-        "match": r"send[^\s]*|change[^\s]*",
+        "match": r"^send to|^change position",
         "field": 0,
         "color": 11,
     },
     {
-        "match": "DL INFO",
+        "match": r"^change options",
+        "field": 0,
+        "color": 13,
+    },
+    {
+        "match": "^DL INFO",
         "field": 0,
         "color": 9,
     },
     {
-        # "match": r"[^\s]*open[^\s]*(?!.*\S)",
-        "match": r"[^\s]*open[^\s]*",
-        "field": 0,
-        "color": 10,
-    },
-    {
-        "match": r"restart[^\s]*",
+        "match": r"^open",
         "field": 0,
         "color": 10,
     },

@@ -329,7 +329,7 @@ def changeOptionPicker(stdscr: curses.window, gid:str) -> str:
             sort_column=1,
             editable_columns=[False, True],
             keys_dict=edit_menu_keys,
-            startup_notification="Press 'e' to edit cell.",
+            startup_notification="'e' to edit cell. 'q' to exit. 'Return' to submit.",
     )
     selected_indices, opts, function_data = x.run()
     if not selected_indices: return "0 options changed"
