@@ -54,7 +54,7 @@ class Aria2TUI:
 
     def add_require_option_to_dl_operations(self) -> None:
         self.dl_operations_data["require_option"] =  [False if option.name != "Change Position" else True for option in self.download_options]
-        self.dl_operations_data["option_functions"] = [None if option.name != "Change Position" else lambda stdscr, refresh_screen_function: default_option_selector(stdscr, field_name="Download Position") for option in self.download_options]
+        self.dl_operations_data["option_functions"] = [None if option.name != "Change Position" else lambda stdscr, refresh_screen_function=None: default_option_selector(stdscr, field_prefix=" Download Position: ", refresh_screen_function=refresh_screen_function) for option in self.download_options]
 
     def add_graph_to_options(self) -> None:
         """ Add the transmission speed graphs to the menu options. """
@@ -196,7 +196,7 @@ def display_message(stdscr: curses.window, msg: str) -> None:
 
 def handleAriaStartPromt(stdscr):
     ## Check if aria is running
-    curses.init_pair(1, 253, 232)
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
     stdscr.bkgd(' ', curses.color_pair(1))  # Apply background color
     stdscr.refresh()
     config = get_config()

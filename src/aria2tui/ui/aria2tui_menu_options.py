@@ -51,7 +51,7 @@ download_options = [
     Option("Send to Back of Queue", changePosition, {"pos":10000}),
     Option("Retry Download", retryDownload),
     Option("Retry Download and Pause", retryDownloadAndPause),
-    Option("Remove (paused/active)", remove),
+    Option("Remove (paused)", remove),
     # Option("forceRemove", forceRemove),
     # Option("removeStopped", removeDownloadResult),
     Option("Remove (errored)", removeDownloadResult),

@@ -94,6 +94,12 @@
 > - [ ] pass Option object to applytodownloads rather than individual variables.
 > - [ ] Add picker_view variable to Option object.
 > - [ ] Add --dump-config flag
+> - [ ] Unify remove download  operations (paused and errored)
+>   - [ ] We will have to check the status of downloads and make sure we send the right operation over IPC. If they are:
+>     - [ ] Errored: removeDownloadResult
+>     - [ ] Completed: removeDownloadResult
+>     - [ ] Paused: remove
+>     - [ ] Active: pause and then remove
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **
