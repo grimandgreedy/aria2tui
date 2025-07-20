@@ -1,4 +1,7 @@
 # CHANGELOG.md
+## [0.1.10] 2025-??
+ - Fixed error when adding torrent path with ~.
+ - Fixed crash when adding a non-existent torrent path.
 
 ## [0.1.9] 2025-07-08
  - Added download type column.

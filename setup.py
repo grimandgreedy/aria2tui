@@ -14,7 +14,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
     name = "aria2tui",
-    version = "0.1.9.3",
+    version = "0.1.9.8",
     author = "Grim",
     author_email = "grimandgreedy@protonmail.com",
     description = "aria2tui: A TUI Frontend for the Aria2c Download Manager",
@@ -43,12 +43,12 @@ setuptools.setup(
     data_files=[
         ('~/.config/aria2tui', ['src/aria2tui/data/config.toml']),
     ],
-    python_requires = ">=3.0",
+    python_requires = ">=3.9",
     install_requires = [
         "plotille",
         "Requests",
         "tabulate",
         "toml",
-        "listpick >= 0.1.11.3",
+        "listpick >= 0.1.11.8",
     ],
 )

@@ -22,7 +22,7 @@ highlights = [
         "color": 7,
     },
     {
-        "match": "^active[\s]$",
+        "match": "^active[\s]*$",
         "field": 1,
         "color": 9,
     },

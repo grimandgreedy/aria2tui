@@ -535,12 +535,21 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
         elif len(line) > len("magnet:") and line[:len("magnet:")] == "magnet:":
             uris.append({"uri": line.strip()})
         else:
-            dls.append({"path": line.strip()})
+            dls.append({"path": os.path.expanduser(line.strip())})
 
+    
+
+    torrent_count = 0
     for dl in dls:
-        jsonreq = addTorrent(dl["path"])
 
-        sendReq(jsonreq)
+        try:
+            jsonreq = addTorrent(dl["path"])
+            sendReq(jsonreq)
+            torrent_count += 1
+        except:
+            pass
+
+
 
     for dl in uris:
         uri = dl["uri"]
@@ -548,7 +557,7 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
         return_val, gid = addDownload(uri=uri)
         if return_val: gids.append(gid)
 
-    return f'{len(dls)} torrent file(s) added. {len(uris)} magnet link(s) added.'
+    return f'{torrent_count} torrent file(s) added. {len(uris)} magnet link(s) added.'
 
 
 def getAllInfo(gid: str) -> list[dict]:
