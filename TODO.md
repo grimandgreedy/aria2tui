@@ -135,6 +135,7 @@
 > - [x] Exiting from change options still changes options
 >   - [x] Check if selected_indices is empty first.
 > - [ ] Slow navigation when we have a search query and many downloads with 1 second refresh rate
+> - [ ] When we add a torrent path that doesn't exist we get a crash.
 
 
 
