@@ -111,6 +111,7 @@ menu_data = {
     "hidden_columns": [],
     "keys_dict": menu_keys,
     "show_footer": False,
+    "number_columns": False,
 }
 downloads_data = {
     "top_gap": 0,
@@ -147,4 +148,5 @@ dl_operations_data = {
     "hidden_columns": [],
     "keys_dict": download_option_keys,
     "cancel_is_back": True,
+    "number_columns": False,
 }

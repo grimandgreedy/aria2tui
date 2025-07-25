@@ -136,6 +136,9 @@
 >   - [x] Check if selected_indices is empty first.
 > - [ ] Slow navigation when we have a search query and many downloads with 1 second refresh rate
 > - [ ] When we add a torrent path that doesn't exist we get a crash.
+> - [ ] Opening Files:
+>   - [ ] When we try to open a download that has been moved it prints 'xdg-mimetype argument missing'. 
+>    - Check for file existence, if it doesn't exist then suppress stderr and show a notification.
 
 
 
