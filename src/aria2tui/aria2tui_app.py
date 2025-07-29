@@ -214,6 +214,7 @@ def handleAriaStartPromt(stdscr):
                     "header": header,
                     "max_selected": 1,
                     "colour_theme_number": colour_theme_number,
+                    "number_columns": False,
                 }
                 ConnectionPicker = Picker(stdscr, **connect_data)
 
