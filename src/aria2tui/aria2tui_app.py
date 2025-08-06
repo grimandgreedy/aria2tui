@@ -22,7 +22,7 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.expanduser("../"))
 
 from listpick.listpick_app import *
-from listpick.listpick_app import Picker, start_curses, close_curses
+from listpick.listpick_app import Picker, start_curses, close_curses, restrict_curses, unrestrict_curses
 
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
@@ -89,6 +89,12 @@ class Aria2TUI:
             }),
         )
 
+    def check_and_refresh_terminal_options(self, menu_option: Option, stdscr: curses.window):
+        if "refresh_terminal_options" in menu_option.meta_args and menu_option.meta_args["refresh_terminal_options"]:
+            restrict_curses(stdscr)
+            unrestrict_curses(stdscr)
+            
+
     def run(self) -> None:
         """ Run Aria2TUI app loop. """
         while True:
@@ -127,6 +133,7 @@ class Aria2TUI:
                     applyToDownloads(self.stdscr, gids, operation.name, operation.function, operation.function_args, user_opts, view, fnames=fnames, picker_view=picker_view)
                     self.downloads_data["selections"] = {}
                     self.dl_operations_data["user_opts"] = ""
+                    self.check_and_refresh_terminal_options(operation, self.stdscr)
                 else: continue
 
             else: 
@@ -162,26 +169,37 @@ class Aria2TUI:
                         # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
                         cmd = f"nvim {tmpfile_path}"
                         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+                        self.check_and_refresh_terminal_options(menu_option, self.stdscr)
                     elif "picker_view" in menu_option.meta_args and menu_option.meta_args["picker_view"]:
                         self.downloads_data["clear_on_start"] = True
                         self.menu_data["clear_on_start"] = True
                         response = sendReq(menu_option.function(**menu_option.function_args))
                         response = flatten_data(response)
                         resp_list = [[key, val] for key, val in response.items()]
+                        config = get_config()
+                        colour_theme_number=config["appearance"]["theme"]
                         x = Picker(
-                                self.stdscr,
-                                items = resp_list,
-                                header = ["Key", "Val"],
-                                title=menu_option.name,
+                            self.stdscr,
+                            items = resp_list,
+                            header = ["Key", "Val"],
+                            title=menu_option.name,
+                            colour_theme_number=colour_theme_number,
+                            reset_colours=False,
                         )
                         x.run()
                     else:
                         if "display_message" in menu_option.meta_args and menu_option.meta_args["display_message"]:
                             display_message(self.stdscr, menu_option.meta_args["display_message"])
                         return_val = menu_option.function(**menu_option.function_args)
+                        self.check_and_refresh_terminal_options(menu_option, self.stdscr)
 
                         # Add notification of success or failure to listpicker
                         if return_val not in ["", None, []]:
+                            # If we have are returning gids and a status message then set the startup notification to the status message.
+                            if type(return_val) == type((0,0)) and len(return_val) == 2:
+                                if type(return_val[0]) == type([]) and type(return_val[1]) == type(""):
+                                    return_val = return_val[1]
+                            
                             self.downloads_data["startup_notification"] = str(return_val)
                         self.stdscr.clear()
                         self.stdscr.refresh()

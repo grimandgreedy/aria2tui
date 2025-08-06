@@ -140,6 +140,7 @@ def getQueue(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
     options_batch, files_info_batch = getOptionAndFileInfo(gids)
 
     items, header = dataToPickerRows(js_rs["result"], options_batch, files_info_batch, show_pc_bar)
+    items.sort(key=lambda x:x[1], reverse=True)
 
     return items, header
 
@@ -322,14 +323,15 @@ def changeOptionPicker(stdscr: curses.window, gid:str) -> str:
     flattened_json = flatten_data(response)
     flattened_json = [[key,val] for key, val in flattened_json.items()]
     x = Picker(
-            stdscr, 
-            items=flattened_json, 
-            header=["Key", "Value"],
-            title=f"Change Options for gid={gid}",
-            sort_column=1,
-            editable_columns=[False, True],
-            keys_dict=edit_menu_keys,
-            startup_notification="'e' to edit cell. 'q' to exit. 'Return' to submit.",
+        stdscr, 
+        items=flattened_json, 
+        header=["Key", "Value"],
+        title=f"Change Options for gid={gid}",
+        selected_column=1,
+        editable_columns=[False, True],
+        keys_dict=edit_menu_keys,
+        startup_notification="'e' to edit cell. 'q' to exit. 'Return' to submit.",
+        reset_colours=False,
     )
     selected_indices, opts, function_data = x.run()
     if not selected_indices: return "0 options changed"
@@ -370,6 +372,7 @@ def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
             editable_columns=[False, True],
             keys_dict=edit_menu_keys,
             startup_notification="Press 'e' to edit cell.",
+            reset_colours=False,
     )
     selected_indices, opts, function_data = x.run()
     if not selected_indices: return "0 options changed"
@@ -389,8 +392,12 @@ def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
 
     return f"{len(keys_with_diff_values)} option(s) changed."
 
-def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> list:
-    """Add URIs to aria server"""
+def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> Tuple[list[str], str]:
+    """
+    Add URIs to aria server.
+
+    Returns a list of the gids added along with a string message (e.g., "0 dls added")
+    """
 
     s = ""
     # s = "!!\n"
@@ -432,13 +439,16 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
             gids.append(gid)
 
     # os.system(f"notify-send '{len(dls)} downloads added'")
-    return gids
+    # return gids
+    return gids, f'{len(gids)} download(s) added.'
+    
 
-def addUrisAndPauseFull(url: str ="http://localhost", port: int =6800, token: str = "") -> None:
-    gids = addUrisFull(url=url, port=port,token=token)
+def addUrisAndPauseFull(url: str ="http://localhost", port: int =6800, token: str = "") -> Tuple[list[str], str]:
+    gids, message = addUrisFull(url=url, port=port,token=token)
     if gids:
         reqs = [json.loads(pause(gid)) for gid in gids]
         batch = sendReq(json.dumps(reqs).encode('utf-8'))
+    return gids, f"{len(gids)} downloads added and paused."
 
 
 
@@ -494,7 +504,7 @@ def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[dict], list[str]]:
     return downloads, argstrings
 
 
-def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> str:
+def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> Tuple[list[str], str]:
     """
     Open a kitty prompt to add torrents to Aria2. The file will accept torrent file paths or magnet links and they should be placed on successive lines.
 
@@ -557,7 +567,7 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
         return_val, gid = addDownload(uri=uri)
         if return_val: gids.append(gid)
 
-    return f'{torrent_count} torrent file(s) added. {len(uris)} magnet link(s) added.'
+    return gids, f'{torrent_count} torrent file(s) added. {len(uris)} magnet link(s) added.'
 
 
 def getAllInfo(gid: str) -> list[dict]:
@@ -792,11 +802,12 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
                 l += [[gid, "------"]]
                 l += [[key, val] for key, val in flatten_data(response).items()]
             x = Picker(
-                    stdscr,
-                    items=l,
-                    search_query="function",
-                    title=operation_name,
-                    header=["Key", "Value"],
+                stdscr,
+                items=l,
+                search_query="function",
+                title=operation_name,
+                header=["Key", "Value"],
+                reset_colours=False,
             )
             x.run()
 

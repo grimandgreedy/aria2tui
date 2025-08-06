@@ -65,7 +65,7 @@ download_options = [
     Option("DL Info: Aria2c Options", getOption, {}, {"picker_view":True}),
     Option("DL Info: Get All Info", getAllInfo, {}, {"picker_view":True}),
 
-    Option("Open Download Location (terminal)", lambda gid: openDownloadLocation(gid, new_window=False)),
+    Option("Open Download Location (terminal)", lambda gid: openDownloadLocation(gid, new_window=False), {}, {"refresh_terminal_options": True}),
     Option("Open Download Location (gui, new window)", openDownloadLocation),
     Option("Open File(s)", openGidFiles),
     Option("Open File(s) (do not group)", lambda gids: openGidFiles(gids, group=False)),
@@ -76,9 +76,9 @@ download_options = [
 menu_options = [
     Option("Watch Downloads", lambda: 4),
     Option("View Downloads", lambda: 4),
-    Option("Add URIs", addUris),
-    Option("Add URIs and immediately pause", addUrisAndPause),
-    Option("Add Torrents and magnet links", addTorrents),
+    Option("Add URIs", addUris, {}, {"refresh_terminal_options": True}),
+    Option("Add URIs and immediately pause", addUrisAndPause, {}, {"refresh_terminal_options": True}),
+    Option("Add Torrents and magnet links", addTorrents, {}, {"refresh_terminal_options": True}),
     # Option("Pause All", pauseAll),
     # Option("Force Pause All", forcePauseAll),
     # Option("Remove completed/errored downloads", removeCompleted),
@@ -87,7 +87,7 @@ menu_options = [
     Option("Get Global Stat", getGlobalStat,{},{"picker_view": True}),
     Option("Get Session Info", getSessionInfo,{},{"picker_view": True}),
     Option("Get Version", getVersion,{},{"picker_view": True}),
-    Option("Edit Config", editConfig),
+    Option("Edit Config", editConfig, {}, {"refresh_terminal_options": True}),
     Option("Restart Aria", restartAria,{},{"display_message": "Restarting Aria2c..." }),
 ]
 
@@ -122,8 +122,8 @@ downloads_data = {
     "title": app_name,
     "colour_theme_number": colour_theme_number,
     "refresh_function": getAll,
-    "columns_sort_method": [0, 1, 1, 7, 7, 1, 7, 5, 1, 1, 0],
-    "sort_reverse": [False, False, False, True, True, True, True, True, False, False, False],
+    "columns_sort_method": [0, 1, 1, 7, 7, 1, 6, 7, 5, 1, 1, 1, 1],
+    "sort_reverse": [False, False, False, True, True, True, True, True, False, False, False, False, False],
     "auto_refresh": True,
     "get_new_data": True,
     "get_data_startup": True,
