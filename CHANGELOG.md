@@ -1,7 +1,13 @@
 # CHANGELOG.md
 ## [0.1.10] 2025-??
- - Fixed error when adding torrent path with ~.
- - Fixed crash when adding a non-existent torrent path.
+- Fixed error when adding torrent path with ~.
+- Fixed crash when adding a non-existent torrent path.
+- Fixed cursor displaying after dropping to nvim to add uris/torrents.
+- Waiting downloads are now displayed before paused downloads on the "All" mode.
+- Ensured compatibility with latest version(s) of listpick:
+  - The sort_column is now separate from the select column so we set the selected column in the setOptions picker.
+  - The colour theme has to be set for each picker; it does not stay constant after being defined in the first picker.
+- Ensured that the display messages are consistent when adding URIs and/or torrents. Previously when URIs were addded it would return the list of GIDs; this has been replaced with a proper message showing how many were added.
 
 ## [0.1.9] 2025-07-08
  - Added download type column.
