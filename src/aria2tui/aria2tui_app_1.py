@@ -97,12 +97,10 @@ class Aria2TUI:
 
     def run(self) -> None:
         """ Run Aria2TUI app loop. """
-        DownloadsPicker = Picker(self.stdscr, **self.downloads_data)
         while True:
             ## SELECT DOWNLOADS
+            DownloadsPicker = Picker(self.stdscr, **self.downloads_data)
             selected_downloads, opts, self.downloads_data = DownloadsPicker.run()
-            # When going back to the Downloads picker after selecting a download it shouldn't wait to get new data before displaying the picker
-            DownloadsPicker.get_data_startup = False
 
             if selected_downloads:
                 operation_names = [option.name for option in self.download_options]
