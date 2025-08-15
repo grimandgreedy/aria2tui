@@ -1,4 +1,4 @@
-listpick==0.1.4.12
+listpick>=0.1.13.20
 plotille==5.0.0
 Requests==2.32.4
 setuptools==80.9.0

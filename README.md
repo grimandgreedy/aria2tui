@@ -56,6 +56,12 @@ Copy config and edit it accordingly:
 mkdir ~/.config/aria2tui &&
 cp Aria2TUI/src/aria2tui/data/config.toml ~/.config/aria2tui
 ```
+Install the requirements:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
 Now you can start Aria2TUI:
 ```bash
 cd ./Aria2TUI/src
@@ -70,6 +76,14 @@ alias a2="cd /path/to/Aria2TUI/src && python -m aria2tui.aria2tui_app"
 
  - Press '?' to see the help page which will list the available keys.
  - If you have problems starting aria2c, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
+ - By default aria2tui will track the download that the cursor is on. This is usually what you want. However, sometimes you want to stay at a particular place in the download queue--perhaps you want to remain at the top and watch the currently active downloads.
+    - Press ~ and locate the **pin cursor (pc)** option.
+      - Note: The pin symbol  will be shown in the footer to indicate the cursor tracking mode.
+ - If you are performing bulk operations and the downloads are changing state rapidly--e.g., hundreds of images are changing from active/waiting to completed--it is recommended to **toggle the auto-refresh** option to ensure data integrity while selecting which downloads to operate upon.
+    - This can be done by either:
+      - exiting to the main menu ('q') and going to "View Downloads"; or
+      - Pressing ~ and toggling auto-refresh.
+    - Note: The refresh symbol  at the top right indicates that you are in auto-refresh mode.
 
 ## Features
 
@@ -133,11 +147,6 @@ While I use Aria2TUI every day, it is still in development and there are many th
 Some things that should be mentioned:
 
  - Realistically, Aria2TUI will only work in a UNIX (linux, macos) environment. If you register your interest I might be able to look into what I would need to change to get it to work on windows.
- - If you are performing bulk operations and the downloads are changing state rapidly--e.g., hundreds of images are changing from active/waiting to completed--it is recommended to stop the auto-refresh and operate on a static list.
-    - This can be done by either:
-      - exiting to the main menu ('q') and going to "View Downloads"; or
-      - Pressing ~ and toggling the auto-refresh in the default "Watch Downloads" viewer.
-    - You know that auto-refresh is active because there is a refresh symbol in the top right.
  - Note: This was created for personal use and so some of the code is quite ugly and/or buggy and simply needs to be re-written.
 
 ## Similar Projects
