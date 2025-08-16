@@ -8,6 +8,7 @@
   - The sort_column is now separate from the select column so we set the selected column in the setOptions picker.
   - The colour theme has to be set for each picker; it does not stay constant after being defined in the first picker.
 - Ensured that the display messages are consistent when adding URIs and/or torrents. Previously when URIs were addded it would return the list of GIDs; this has been replaced with a proper message showing how many were added.
+- Split batch requests into clumps of 2000 downloads to prevent aria2c throwing an error.
 
 ## [0.1.9] 2025-07-08
  - Added download type column.
