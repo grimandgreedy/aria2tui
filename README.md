@@ -8,23 +8,77 @@ https://github.com/user-attachments/assets/07ab1f63-3a5e-42dd-bddb-56c948ecd620
 
 ## Quickstart
 
-Install aria2tui using pip and add the config.toml file from ./src/aria2tui/data/ to your config directory.
-
+Install aria2tui using pip:
+```bash
+python -m pip install aria2tui
 ```
-python -m pip install aria2tui &&
+
+Create a config.toml file and place it in ~/.config/aria2tui/config.toml.
+
+```bash
 mkdir ~/.config/aria2tui/ &&
 wget https://raw.githubusercontent.com/grimandgreedy/aria2tui/refs/heads/master/src/aria2tui/data/config.toml -O ~/.config/aria2tui/config.toml
+```
+
+```toml
+####################################################
+##   Default config for Aria2TUI
+##
+##   Some common options have been commented.
+####################################################
+
+[general]
+
+port = 6800
+token = "1234"
+url = "http://localhost"
+
+# Used for starting and restarting.
+startupcmds = ["aria2c"]
+restartcmds = ["pkill aria2c && sleep 1 && aria2c"]
+# startupcmds = ["systemctl --user start aria2d.service"]
+# restartcmds = ["systemctl --user restart aria2d.service", "notify-send 'Aria2c has been restarted.'"]
+
+# Used when "Edit Config" option is chosen in the main menu
+ariaconfigpath = "~/.config/aria2/aria2.conf"
+
+# File managers 
+## Terminal opens in current terminal, and gui_file_manager will fork a new process and open a new application.
+terminal_file_manager = "yazi"
+gui_file_manager = "kitty yazi"
+
+# Launchers
+## Note that the "open file(s) (grouped)" option still requires gio and xdg-mime.
+launch_command = "xdg-open"
+# launch_command = "termux-open"
+
+# Time in seconds. If timings are reduced there may be system strain. 1 and 2 seconds are the recommended values.
+global_stats_timer = 1
+refresh_timer = 2
+
+# Scrolls by default
+paginate = false
+
+[appearance]
+theme = 3
 ```
 
 **Note**: If you have not used aria2c before then download [this file](https://gist.github.com/qzm/a54559726896d5e6bf21adf2363ad334) and put it in ~/.config/aria2/. I would recommend going through and configuring it but this one will get you up and running for now.
 
 After editing ~/.config/aria2tui/config.toml and ensuring that your url, port, and secret token are correct, you are all set to go:
 
-```
+```bash
 aria2tui
 ```
 
-If you have multiple daemons you can specify another config file:
+
+Be aware that Aria2TUI makes use of:
+ - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
+ - `xdg-open` and `gio` for determining default applications and opening files.
+
+## Multiple config files
+
+If you have multiple daemons you can specify another config file using the ARIA2TUI_CONFIG_PATH environment variable:
 
 ```
 ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml aria2tui
@@ -38,9 +92,6 @@ alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml aria2tui"
 alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml aria2tui"
 ```
 
-in addition to those requirements the application uses:
- - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
- - `xdg-open` and `gio` for opening files.
 
 ## Other installation options
 
