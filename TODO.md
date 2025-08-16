@@ -100,6 +100,7 @@
 >     - [ ] Completed: removeDownloadResult
 >     - [ ] Paused: remove
 >     - [ ] Active: pause and then remove
+> - [ ] We should get only the properties we want from aria2c when getting the queue, stopped, etc. We are getting quite a lot of information when we have thousands of downloads.
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **

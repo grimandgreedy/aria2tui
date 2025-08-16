@@ -61,7 +61,20 @@ def te(url: str = "http://localhost", port: int = 6800) -> bool:
         return False
 
 def getOptionAndFileInfo(gids: list[str]) -> Tuple[list, list]:
-    """ Get option and file info for each GID. Used for fetching download data for Picker rows. """
+    """ 
+    Get option and file info for each GID. Used for fetching download data for Picker rows.
+    We split the gid requests into batches of 2000 to ensure that we get a resposne.
+    """
+    options_batch = []
+    files_info_batch = []
+    for i in range(len(gids)//2000 + 1):
+        tmp_options_batch, tmp_files_info_batch = getOptionAndFileInfoBatch(gids[i*2000:(i+1)*2000])
+        options_batch += tmp_options_batch
+        files_info_batch += tmp_files_info_batch
+    return options_batch, files_info_batch
+
+def getOptionAndFileInfoBatch(gids: list[str]) -> Tuple[list, list]:
+    """ Batch-get option and file info for each GID. Used for fetching download data for Picker rows. """
     options_batch = []
     files_info_batch = []
     # for i in range(len(js_rs["result"])):
