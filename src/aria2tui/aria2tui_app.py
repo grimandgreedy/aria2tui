@@ -98,6 +98,8 @@ class Aria2TUI:
     def run(self) -> None:
         """ Run Aria2TUI app loop. """
         DownloadsPicker = Picker(self.stdscr, **self.downloads_data)
+        MenuPicker = Picker(self.stdscr, **self.menu_data)
+        DownloadOperationPicker = Picker(self.stdscr, **self.dl_operations_data)
         while True:
             ## SELECT DOWNLOADS
             selected_downloads, opts, self.downloads_data = DownloadsPicker.run()
@@ -105,7 +107,7 @@ class Aria2TUI:
             DownloadsPicker.get_data_startup = False
 
             if selected_downloads:
-                operation_names = [option.name for option in self.download_options]
+                operation_names = [[option.name] for option in self.download_options]
                 self.dl_operations_data["items"] = operation_names
 
                 items, header = self.downloads_data["items"], self.downloads_data["header"]
@@ -115,11 +117,11 @@ class Aria2TUI:
 
                 # Display the download names in an infobox when selecting which operation to perform
                 self.dl_operations_data["display_infobox"] = True
-                self.dl_operations_data["infobox_items"] = fnames
+                self.dl_operations_data["infobox_items"] = [[f] for f in fnames]
                 self.dl_operations_data["infobox_title"] = f"{len(fnames)} Selected..."
 
                 ## SELECT OPERATION TO APPLY TO SELECTED DOWNLOADS
-                DownloadOperationPicker = Picker(self.stdscr, **self.dl_operations_data)
+                DownloadOperationPicker.set_function_data(self.dl_operations_data)
                 selected_operation, opts, self.dl_operations_data = DownloadOperationPicker.run()
                 if selected_operation:
                     operation = download_options[selected_operation[0]]
@@ -140,10 +142,8 @@ class Aria2TUI:
 
             else: 
 
-                self.menu_data["items"] = [menu_option.name for menu_option in self.menu_options]
                 while True:
                     ## SELECT MENU OPTION
-                    MenuPicker = Picker(self.stdscr, **self.menu_data)
                     selected_menu, opts, self.menu_data = MenuPicker.run()
 
                     # If we exit from the menu then exit altogether

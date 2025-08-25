@@ -13,7 +13,7 @@ Install aria2tui using pip:
 python -m pip install aria2tui
 ```
 
-Create a config.toml file and place it in ~/.config/aria2tui/config.toml.
+Create a config.toml file and place it in ~/.config/aria2tui/.
 
 ```bash
 mkdir ~/.config/aria2tui/ &&
@@ -22,9 +22,9 @@ wget https://raw.githubusercontent.com/grimandgreedy/aria2tui/refs/heads/master/
 
 ```toml
 ####################################################
-##   Default config for Aria2TUI
-##
-##   Some common options have been commented.
+##        Default config for Aria2TUI
+##   Some common config options have been provided
+##      and commented for your convenience
 ####################################################
 
 [general]
@@ -43,7 +43,8 @@ restartcmds = ["pkill aria2c && sleep 1 && aria2c"]
 ariaconfigpath = "~/.config/aria2/aria2.conf"
 
 # File managers 
-## Terminal opens in current terminal, and gui_file_manager will fork a new process and open a new application.
+## terminal_file_manager will open in the same terminal as Aria2TUI in a blocking fashion;
+## gui_file_manager will fork a new process and open a new application.
 terminal_file_manager = "yazi"
 gui_file_manager = "kitty yazi"
 
@@ -52,7 +53,7 @@ gui_file_manager = "kitty yazi"
 launch_command = "xdg-open"
 # launch_command = "termux-open"
 
-# Time in seconds. If timings are reduced there may be system strain. 1 and 2 seconds are the recommended values.
+# Data refresh time (in seconds) for the global stats and for the download data.
 global_stats_timer = 1
 refresh_timer = 2
 

@@ -101,8 +101,7 @@ menu_data = {
     "title": app_name,
     "colour_theme_number": colour_theme_number,
     "max_selected": 1,
-    "items": [menu_option.name for menu_option in menu_options],
-    #*******
+    "items": [[menu_option.name] for menu_option in menu_options],
     "header": ["Main Menu    "],
     "centre_in_terminal": True,
     "centre_in_cols": False,
