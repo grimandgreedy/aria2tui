@@ -111,6 +111,7 @@ menu_data = {
     "keys_dict": menu_keys,
     "show_footer": False,
     "number_columns": False,
+    "cell_cursor": False,
 }
 downloads_data = {
     "top_gap": 0,
@@ -135,6 +136,7 @@ downloads_data = {
     "keys_dict": aria2tui_keys,
     "footer_string_refresh_function": getGlobalSpeed,
     "footer_timer": global_stats_timer,
+    "cell_cursor": False,
 }
 dl_operations_data = {
     "top_gap": 0,
@@ -148,4 +150,5 @@ dl_operations_data = {
     "keys_dict": download_option_keys,
     "cancel_is_back": True,
     "number_columns": False,
+    "cell_cursor": False,
 }
