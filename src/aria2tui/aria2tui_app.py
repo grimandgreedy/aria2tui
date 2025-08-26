@@ -74,6 +74,8 @@ class Aria2TUI:
                 "title": "Download Transfer Speeds",
             }),
         )
+        options_names = [[option.name] for option in self.download_options]
+        self.dl_operations_data["items"] = options_names
 
         self.menu_options.append(
             Option("Transfer Speed Graph *experimental*", graph_speeds, {
@@ -88,6 +90,10 @@ class Aria2TUI:
                 "title": "Global Transfer Speeds",
             }),
         )
+        # self.menu_data["items"] = [[menu_option.name] for menu_option in self.menu_options],
+        menu_names = [[option.name] for option in self.menu_options]
+        self.menu_data["items"] = menu_names
+        # MenuPicker.set_function_data(self.menu_data)
 
     def check_and_refresh_terminal_options(self, menu_option: Option, stdscr: curses.window):
         if "refresh_terminal_options" in menu_option.meta_args and menu_option.meta_args["refresh_terminal_options"]:
@@ -107,8 +113,6 @@ class Aria2TUI:
             DownloadsPicker.get_data_startup = False
 
             if selected_downloads:
-                operation_names = [[option.name] for option in self.download_options]
-                self.dl_operations_data["items"] = operation_names
 
                 items, header = self.downloads_data["items"], self.downloads_data["header"]
                 gid_index, fname_index = header.index("GID"), header.index("Name")

@@ -63,6 +63,7 @@ download_option_keys = {
     "mode_next":                        [9], # Tab key
     "mode_prev":                        [353], # Shift+Tab key
     "reset_opts":                       [ord('\\')],
+    "edit_ipython":                     [5], # Ctrl+e
 }
 
 notification_keys = {
@@ -108,6 +109,7 @@ menu_keys = {
     "opts_input":                       [ord(':')],
     "mode_next":                        [9], # Tab key
     "mode_prev":                        [353], # Shift+Tab key
+    "edit_ipython":                     [5], # Ctrl+e
 }
 
 
