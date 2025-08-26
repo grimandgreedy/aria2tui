@@ -104,6 +104,7 @@ class Aria2TUI:
     def run(self) -> None:
         """ Run Aria2TUI app loop. """
         DownloadsPicker = Picker(self.stdscr, **self.downloads_data)
+        DownloadsPicker.load_input_history("~/.config/aria2tui/cmdhist.json")
         MenuPicker = Picker(self.stdscr, **self.menu_data)
         DownloadOperationPicker = Picker(self.stdscr, **self.dl_operations_data)
         while True:
@@ -152,6 +153,7 @@ class Aria2TUI:
 
                     # If we exit from the menu then exit altogether
                     if not selected_menu: 
+                        DownloadsPicker.save_input_history("~/.config/aria2tui/cmdhist.json")
                         close_curses(self.stdscr)
                         return 
 
