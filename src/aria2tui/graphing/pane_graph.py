@@ -37,12 +37,15 @@ def right_split_dl_graph(stdscr, x, y, w, h, state, row, cell, past_data: list =
         return None
 
 
-    header = state["header"]
-    gid_index, fname_index, status_index = header.index("GID"), header.index("Name"), header.index("Status")
+    try:
+        header = state["header"]
+        gid_index, fname_index, status_index = header.index("GID"), header.index("Name"), header.index("Status")
 
-    gid = state["indexed_items"][state["cursor_pos"]][1][gid_index]
-    fname  = state["indexed_items"][state["cursor_pos"]][1][fname_index]
-    status  = state["indexed_items"][state["cursor_pos"]][1][status_index]
+        gid = state["indexed_items"][state["cursor_pos"]][1][gid_index]
+        fname  = state["indexed_items"][state["cursor_pos"]][1][fname_index]
+        status  = state["indexed_items"][state["cursor_pos"]][1][status_index]
+    except:
+        return None
 
     # if status == "paused": return None
 
@@ -83,18 +86,20 @@ def get_dl_data(data, state):
     if len(state["indexed_items"]) == 0:
         return [[0], [0], [0], -1]
 
-    header = state["header"]
-    gid_index, fname_index = header.index("GID"), header.index("Name")
+    try:
+        header = state["header"]
+        gid_index, fname_index = header.index("GID"), header.index("Name")
 
-    gid = state["indexed_items"][state["cursor_pos"]][1][gid_index]
-    fname  = state["indexed_items"][state["cursor_pos"]][1][fname_index]
+        gid = state["indexed_items"][state["cursor_pos"]][1][gid_index]
+        fname  = state["indexed_items"][state["cursor_pos"]][1][fname_index]
+        req = aria2c_utils.tellStatus(gid)
+        info = aria2c_utils.sendReq(req)
+        dl = info["result"]["downloadSpeed"]
+        ul = info["result"]["uploadSpeed"]
+        dl, ul = int(dl), int(ul)
+    except:
 
-    req = aria2c_utils.tellStatus(gid)
-    info = aria2c_utils.sendReq(req)
-    dl = info["result"]["downloadSpeed"]
-    ul = info["result"]["uploadSpeed"]
-
-    dl, ul = int(dl), int(ul)
+        return data
 
     if data in [[], {}, None] or data[-1] != gid:
         return [[0], [dl], [ul], gid]
