@@ -59,7 +59,7 @@ class Aria2TUI:
     def add_graph_to_options(self) -> None:
         """ Add the transmission speed graphs to the menu options. """
         self.download_options.append(
-            Option("Transfer Speed Graph *experimental*", graph_speeds_gid, {
+            Option("Transfer Speed Graph", graph_speeds_gid, {
                 "stdscr": self.stdscr,
                 "get_data_function": lambda gid: sendReq(tellStatus(gid)),
 
@@ -78,7 +78,7 @@ class Aria2TUI:
         self.dl_operations_data["items"] = options_names
 
         self.menu_options.append(
-            Option("Transfer Speed Graph *experimental*", graph_speeds, {
+            Option("Transfer Speed Graph (Global)", graph_speeds, {
                 "stdscr": self.stdscr,
                 "get_data_function": lambda: sendReq(getGlobalStat()),
                 "graph_wh" : lambda: (

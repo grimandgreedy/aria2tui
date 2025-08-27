@@ -886,8 +886,8 @@ def get_default_config() -> dict:
             "launch_command": "xdg-open",
         },
         "appearance":{
-            "theme": 0,
-            "show_speed_graphs_default": True,
+            "theme": 3,
+            "show_speed_graphs_default": False,
         }
     }
     return default_config
