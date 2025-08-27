@@ -39,3 +39,6 @@ paginate = false
 
 [appearance]
 theme = 3
+
+# Whether the graph pane should be displayed by default
+show_speed_graphs_default = true

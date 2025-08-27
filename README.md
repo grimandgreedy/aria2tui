@@ -62,6 +62,9 @@ paginate = false
 
 [appearance]
 theme = 3
+
+# Whether the graph pane should be displayed by default
+show_speed_graphs_default = true
 ```
 
 **Note**: If you have not used aria2c before then download [this file](https://gist.github.com/qzm/a54559726896d5e6bf21adf2363ad334) and put it in ~/.config/aria2/. I would recommend going through and configuring it but this one will get you up and running for now.
