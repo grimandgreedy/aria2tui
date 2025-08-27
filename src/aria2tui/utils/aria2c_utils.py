@@ -20,6 +20,7 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 import tempfile
 import tabulate
 from typing import Callable, Tuple
+import re
 
 
 from aria2tui.lib.aria2c_wrapper import *
@@ -633,7 +634,12 @@ def getAll() -> Tuple[list[list[str]], list[str]]:
     stopped, sheader = getStopped()
     waiting, wheader = getQueue()
 
-    return active + waiting + stopped, wheader
+    dir_index = wheader.index("DIR")
+    all = active + waiting + stopped, wheader
+    for row in all[0]:
+        row[dir_index] = re.sub(r"^/home/[^/]*", "~", row[dir_index])
+
+    return all
 
 def openDownloadLocation(gid: str, new_window: bool = True) -> None:
     """ Opens the download location for a given download. """
