@@ -16,6 +16,7 @@ from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
 from aria2tui.ui.aria2tui_keys import download_option_keys, menu_keys, aria2tui_keys
+from aria2tui.graphing.pane_graph import get_dl_data, right_split_dl_graph
 
 from listpick.listpick_app import *
 
@@ -27,6 +28,7 @@ colour_theme_number=config["appearance"]["theme"]
 app_name = "Aria2TUI"
 global_stats_timer = config["general"]["global_stats_timer"]
 refresh_timer = config["general"]["refresh_timer"]
+show_graph = config["appearance"]["show_speed_graphs_default"]
 
 class Option:
     def __init__(self, name: str, function: Callable, function_args:dict = {}, meta_args: dict = {}):
@@ -137,6 +139,12 @@ downloads_data = {
     "footer_string_refresh_function": getGlobalSpeed,
     "footer_timer": global_stats_timer,
     "cell_cursor": False,
+    "split_right": show_graph,
+    "split_right_proportion": 2/3,
+    "split_right_auto_refresh": True,
+    "split_right_refresh_data_timer": 1.0,
+    "split_right_function": right_split_dl_graph,
+    "split_right_refresh_data": get_dl_data,
 }
 dl_operations_data = {
     "top_gap": 0,

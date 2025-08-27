@@ -1,5 +1,11 @@
 # CHANGELOG.md
-## [0.1.10] 2025-??
+
+## [0.1.10.0] 2025-07-27
+- Feature added: display speed graph of selected download in right pane
+- Display selected downloads in right pane when selecting an operation to perform.
+  - This was previously done using an infobox but this caused flickering.
+
+## [0.1.9.0] - [0.1.9.21] 2025-07-22
 - Fixed error when adding torrent path with ~.
 - Fixed crash when adding a non-existent torrent path.
 - Fixed cursor displaying after dropping to nvim to add uris/torrents.

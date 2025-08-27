@@ -121,9 +121,16 @@ class Aria2TUI:
                 fnames = [item[fname_index] for i, item in enumerate(items) if i in selected_downloads]
 
                 # Display the download names in an infobox when selecting which operation to perform
-                self.dl_operations_data["display_infobox"] = True
-                self.dl_operations_data["infobox_items"] = [[f] for f in fnames]
-                self.dl_operations_data["infobox_title"] = f"{len(fnames)} Selected..."
+                # self.dl_operations_data["display_infobox"] = True
+                # self.dl_operations_data["infobox_items"] = [[f] for f in fnames]
+                # self.dl_operations_data["infobox_title"] = f"{len(fnames)} Selected..."
+
+                # Display the download names in a right pane
+                self.dl_operations_data["split_right"] = True
+                self.dl_operations_data["split_right_proportion"] = 3/5
+                self.dl_operations_data["split_right_data"] = ["Selected...", fnames]
+                self.dl_operations_data["split_right_function"] = right_split_display_list
+
 
                 ## SELECT OPERATION TO APPLY TO SELECTED DOWNLOADS
                 DownloadOperationPicker.set_function_data(self.dl_operations_data)
