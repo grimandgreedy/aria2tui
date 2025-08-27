@@ -21,6 +21,9 @@ def right_split_dl_graph(stdscr, x, y, w, h, state, row, cell, past_data: list =
     for j in range(h):
         stdscr.addstr(j+y, x, ' ', curses.color_pair(state["colours_start"]+16))
 
+    if len(state["indexed_items"]) == 0:
+        return None
+
     try:
         import plotille as plt
     except:

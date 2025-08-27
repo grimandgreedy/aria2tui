@@ -82,7 +82,7 @@ Be aware that Aria2TUI makes use of:
 
 ## Multiple config files
 
-If you have multiple daemons you can specify another config file using the ARIA2TUI_CONFIG_PATH environment variable:
+If you have multiple aria2c daemons you can specify another config file using the ARIA2TUI_CONFIG_PATH environment variable:
 
 ```
 ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml aria2tui
@@ -96,6 +96,19 @@ alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml aria2tui"
 alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml aria2tui"
 ```
 
+
+## Tips
+
+ - Press '?' to see the help page which will list the available keys.
+ - If you have problems starting aria2c, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
+ - By default aria2tui will track the download that the cursor is on. This is usually what you want. However, sometimes you want to stay at a particular place in the download queue--perhaps you want to remain at the top and watch the currently active downloads.
+    - Press ~ and locate the **pin cursor (pc)** option.
+      - Note: The pin symbol  will be shown in the footer to indicate the cursor tracking mode.
+ - If you are performing bulk operations and the downloads are changing state rapidly--e.g., hundreds of images are changing from active/waiting to completed--it is recommended to **toggle the auto-refresh** option to ensure data integrity while selecting which downloads to operate upon.
+    - This can be done by either:
+      - exiting to the main menu ('q') and going to "View Downloads"; or
+      - Pressing ~ and toggling auto-refresh.
+    - Note: The refresh symbol  at the top right indicates that you are in auto-refresh mode.
 
 ## Other installation options
 
@@ -127,18 +140,6 @@ python -m aria2tui.aria2tui_app
 alias a2="cd /path/to/Aria2TUI/src && python -m aria2tui.aria2tui_app"
 ```
 
-## Tips
-
- - Press '?' to see the help page which will list the available keys.
- - If you have problems starting aria2c, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
- - By default aria2tui will track the download that the cursor is on. This is usually what you want. However, sometimes you want to stay at a particular place in the download queue--perhaps you want to remain at the top and watch the currently active downloads.
-    - Press ~ and locate the **pin cursor (pc)** option.
-      - Note: The pin symbol  will be shown in the footer to indicate the cursor tracking mode.
- - If you are performing bulk operations and the downloads are changing state rapidly--e.g., hundreds of images are changing from active/waiting to completed--it is recommended to **toggle the auto-refresh** option to ensure data integrity while selecting which downloads to operate upon.
-    - This can be done by either:
-      - exiting to the main menu ('q') and going to "View Downloads"; or
-      - Pressing ~ and toggling auto-refresh.
-    - Note: The refresh symbol  at the top right indicates that you are in auto-refresh mode.
 
 ## Features
 
