@@ -447,6 +447,8 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
 
         uri = dl["uri"]
         download_options_dict = {key: val for key,val in dl.items() if key in valid_keys}
+        if "dir" in download_options_dict:
+            download_options_dict["dir"] = os.path.expandvars(os.path.expanduser(download_options_dict["dir"]))
         # return_val, gid = addDownload(**{key:val for key,val in dl.items() if key in valid_keys})
         return_val, gid = addDownload(uri, download_options_dict=download_options_dict)
         if return_val:

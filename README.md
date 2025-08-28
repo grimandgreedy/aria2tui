@@ -4,7 +4,9 @@ Aria2tui is a TUI download management tool. It acts as a front-end for the aria2
 
 Aria2tui communicates with the aria2c daemon over RPC. The UI is provided by my TUI picker [listpick](https://github.com/grimandgreedy/listpick).
 
-https://github.com/user-attachments/assets/07ab1f63-3a5e-42dd-bddb-56c948ecd620
+<!-- https://github.com/user-attachments/assets/07ab1f63-3a5e-42dd-bddb-56c948ecd620 -->
+
+https://github.com/user-attachments/assets/7c77a13f-90c7-4e67-9946-7b7009c835ad
 
 ## Quickstart
 
@@ -202,7 +204,9 @@ While I use Aria2TUI every day, it is still in development and there are many th
 
 Some things that should be mentioned:
 
- - Realistically, Aria2TUI will only work in a UNIX (linux, macos) environment. If you register your interest I might be able to look into what I would need to change to get it to work on windows.
+ - Changing almost any download options of an active task (including the output directory) will restart the download (!!). 
+   - It is recommended to add the downloads with the desired options or to specify the desired options before starting the download.
+ - Aria2TUI will only work in a UNIX (linux, macos) environment. If you register your interest I might be able to look into what I would need to change to get it to work on windows.
  - Note: This was created for personal use and so some of the code is quite ugly and/or buggy and simply needs to be re-written.
 
 ## Similar Projects
