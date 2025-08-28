@@ -56,7 +56,7 @@ download_options = [
     Option("Remove (paused)", remove),
     # Option("forceRemove", forceRemove),
     # Option("removeStopped", removeDownloadResult),
-    Option("Remove (errored)", removeDownloadResult),
+    Option("Remove (errored/completed)", removeDownloadResult),
 
 
     Option("DL Info: Files", getFiles, {}, {"picker_view":True}),
