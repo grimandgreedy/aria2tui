@@ -1,5 +1,8 @@
 # CHANGELOG.md
 
+## [0.1.10.4] 2025-07-29
+ - Added more right panes: DL progress, Files, DL pieces.
+
 ## [0.1.10.0] 2025-07-27
 - Feature added: display speed graph of selected download in right pane
 - Display selected downloads in right pane when selecting an operation to perform.

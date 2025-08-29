@@ -17,6 +17,9 @@ from aria2tui.utils.aria2c_utils import *
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
 from aria2tui.ui.aria2tui_keys import download_option_keys, menu_keys, aria2tui_keys
 from aria2tui.graphing.pane_graph import get_dl_data, right_split_dl_graph
+from aria2tui.graphing.pane_graph_progress import get_dl_progress, right_split_dl_progress_graph
+from aria2tui.graphing.pane_pieces import right_split_piece_progress, get_dl_pieces
+from aria2tui.graphing.pane_files import right_split_files, get_dl_files
 
 from listpick.listpick_app import *
 
@@ -139,12 +142,54 @@ downloads_data = {
     "footer_string_refresh_function": getGlobalSpeed,
     "footer_timer": global_stats_timer,
     "cell_cursor": False,
+
     "split_right": show_graph,
-    "split_right_proportion": 2/3,
-    "split_right_auto_refresh": True,
-    "split_right_refresh_data_timer": 1.0,
-    "split_right_function": right_split_dl_graph,
-    "split_right_refresh_data": get_dl_data,
+    "right_panes": [
+        # DL files
+        {
+            "proportion": 1/2,
+            "display": right_split_files,
+            "get_data": get_dl_files,
+            "data": [],
+            "auto_refresh": True,
+            "refresh_time": 0.1,
+        },
+        # DL transfer speed graph
+        {
+            "proportion": 3/5,
+            "display": right_split_dl_graph,
+            "get_data": get_dl_data,
+            "data": [],
+            "auto_refresh": True,
+            "refresh_time": 1.0,
+        },
+        # DL progress graph
+        {
+            "proportion": 3/5,
+            "display": right_split_dl_progress_graph,
+            "get_data": get_dl_progress,
+            "data": [],
+            "auto_refresh": True,
+            "refresh_time": 1.0,
+        },
+        # DL Pieces
+        {
+            "proportion": 2/3,
+            "display": right_split_piece_progress,
+            "get_data": get_dl_pieces,
+            "data": [],
+            "auto_refresh": True,
+            "refresh_time": 1.0,
+        },
+    ],
+    "right_pane_index": 1,
+    # "split_right_function": right_split_dl_graph,
+    # "split_right_refresh_data": get_dl_data,
+    # "split_right_proportion": 2/3,
+    # "split_right_auto_refresh": True,
+    # "split_right_refresh_data_timer": 1.0,
+    # "split_right_function": right_split_dl_progress_graph,
+    # "split_right_refresh_data": get_dl_progress,
 }
 dl_operations_data = {
     "top_gap": 0,
