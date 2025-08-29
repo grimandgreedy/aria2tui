@@ -1,6 +1,31 @@
 from listpick.pane.pane_utils import escape_ansi
 from aria2tui.utils.aria2c_utils import bytes_to_human_readable
 import curses
+from datetime import datetime
+
+
+def seconds_to_short_format(seconds) -> str:
+    """ 
+    Convert a number of seconds to the most significant unit.
+
+    Seconds and minutes have no decimal places, hours and days have one decimal place.
+    E.g., 
+        50->50s
+        61->1m
+        359->6m
+        86400*3/2->1.5d
+    """
+    if seconds < 60:
+        return f'{int(seconds)}s'
+    elif seconds < 3600:
+        minutes = round(seconds / 60)
+        return f'{minutes}m'
+    elif seconds < 86400:
+        hours = round(seconds / 3600, 1)
+        return f'{hours}h'
+    else:
+        days = round(seconds / 86400, 1)
+        return f'{days}d'
 
 def right_split_dl_graph(stdscr, x, y, w, h, state, row, cell, past_data: list = [], data: list = [], test: bool = False):
     """
@@ -13,13 +38,20 @@ def right_split_dl_graph(stdscr, x, y, w, h, state, row, cell, past_data: list =
     if test: return True
 
     # Title
-    title = "Graph"
+    title = "DL Speeds"
     if len(title) < w: title = f"{title:^{w}}"
     stdscr.addstr(y, x,title[:w], curses.color_pair(state["colours_start"]+4) | curses.A_BOLD)
 
     # Separator
     for j in range(h):
         stdscr.addstr(j+y, x, ' ', curses.color_pair(state["colours_start"]+16))
+
+    # Display pane count
+    pane_count = len(state["right_panes"])
+    pane_index = state["right_pane_index"]
+    if pane_count > 1:
+        s = f" {pane_index+1}/{pane_count} "
+        stdscr.addstr(y+h-1, x+w-len(s)-1, s, curses.color_pair(state["colours_start"]+20))
 
     if len(state["indexed_items"]) == 0:
         return None
@@ -52,7 +84,9 @@ def right_split_dl_graph(stdscr, x, y, w, h, state, row, cell, past_data: list =
     # Display file name
     if len(fname) < w:
         fname = f"{fname:^{w}}"
-    stdscr.addstr(y+1, x+2, fname[:w-2])
+    else:
+        fname = f" {fname}"
+    stdscr.addstr(y+1, x+1, fname[:w-1], curses.color_pair(state["colours_start"]+2) | curses.A_BOLD | curses.A_UNDERLINE)
 
     # We need at least 23 chars of width and at least 10 rows to display a meaningful graph.
     if w <= 23 or h < 10:
@@ -62,11 +96,14 @@ def right_split_dl_graph(stdscr, x, y, w, h, state, row, cell, past_data: list =
         return None
 
     x_vals, dl_speeds, ul_speeds = data[0], data[1], data[2]
-    graph_str = get_graph_string(x_vals, dl_speeds, ul_speeds, width=w-3-7, height=h-4)
+
+    # x_vals consist of datetime.now() so we need to convert it to unix time and then make them relative to the first in the lest
+    x_vals = [x.timestamp() for x in x_vals]
+    x_vals = [x - x_vals[0] for x in x_vals]
+    graph_str = get_graph_string(x_vals, dl_speeds, ul_speeds, width=w-3-10, height=h-4)
 
     for i, s in enumerate(graph_str.split("\n")):
         s = escape_ansi(s)
-        s = s[3:]
         stdscr.addstr(y+3+i, x+2, s[:w-2])
 
     return []
@@ -76,7 +113,7 @@ def get_dl_data(data, state):
     """
     Get dl speed and add it to data[1]
 
-    data[0]: 0,1,2,...,n+1
+    data[0]: datetime_0, datetime_1, ..., datetime_n
     data[1]: dl_speed_at_0, dl_speed_at_1, ...
     data[2]: ul_speed_at_0, ul_speed_at_1, ...
     data[3]: row id
@@ -84,7 +121,7 @@ def get_dl_data(data, state):
     from aria2tui.utils import aria2c_utils
 
     if len(state["indexed_items"]) == 0:
-        return [[0], [0], [0], -1]
+        return [[datetime.now()], [0], [0], -1]
 
     try:
         header = state["header"]
@@ -102,9 +139,12 @@ def get_dl_data(data, state):
         return data
 
     if data in [[], {}, None] or data[-1] != gid:
-        return [[0], [dl], [ul], gid]
+        # return [[0], [dl], [ul], gid]
+        return [[datetime.now()], [dl], [ul], gid]
     else:
-        data[0].append(data[0][-1]+1)
+        # data[0].append(data[0][-1]+1)
+        data[0].append(datetime.now())
+        # data[0].insert(0, data[0][0]+1)
         data[1].append(dl)
         data[2].append(ul)
     return data
@@ -125,24 +165,19 @@ def get_graph_string(x_vals, dl_speeds, ul_speeds, width=50, height=20, title=No
     # Set the dimensions of the graph
     fig.width = width-10
     fig.height = height-4
-    fig.x_ticks_fkt = lambda x, _: f"{int(x)}s"
-    fig.y_ticks_fkt = lambda y, _: bytes_to_human_readable(int(y))
+    # fig.x_ticks_fkt = lambda x, _: f"{int(x)}s"
+    fig.x_ticks_fkt = lambda x, _: seconds_to_short_format(x)
+    fig.y_ticks_fkt = lambda y, _: bytes_to_human_readable(int(y))+"/s"
     fig.set_y_limits(min_=0)
     fig.set_x_limits(min_=0)
+    fig.x_label = "t"
+    fig.y_label = "data/s"
+    fig.origin = False
 
 
-    fig.text([x_vals[-1]], [dl_speeds[0]], ['Dn'])
+    fig.text([x_vals[-1]], [dl_speeds[-1]], ['Dn'])
     fig.text([x_vals[0]], [ul_speeds[0]], ['Up'])
     
-    # Set the title and labels if provided
-    if title:
-        fig.title = title
-    if x_label:
-        fig.xlabel = x_label
-    if y_label:
-        fig.ylabel = y_label
+    graph_str = str(fig.show())
     
-    # Generate the ASCII art of the graph
-    ascii_art = str(fig.show())
-    
-    return ascii_art
+    return graph_str
