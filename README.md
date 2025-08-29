@@ -65,8 +65,12 @@ paginate = false
 [appearance]
 theme = 3
 
-# Whether the graph pane should be displayed by default
-show_speed_graphs_default = false
+# Whether the right pane (DL Info, DL graphs) should be displayed by default when opening aria2tui
+show_right_pane_default = false
+
+# Which pane index should be displayed when opening the right pane
+# [0=DL Files (info), 1=speed graph, 2=progress graph, 3=download pieces]
+right_pane_default_index = 0
 ```
 
 **Note**: If you have not used aria2c before then download [this file](https://gist.github.com/qzm/a54559726896d5e6bf21adf2363ad334) and put it in ~/.config/aria2/.

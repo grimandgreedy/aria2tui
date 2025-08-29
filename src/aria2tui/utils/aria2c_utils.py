@@ -895,7 +895,8 @@ def get_default_config() -> dict:
         },
         "appearance":{
             "theme": 3,
-            "show_speed_graphs_default": False,
+            "show_right_pane_default": False,
+            "right_pane_default_index": 0,
         }
     }
     return default_config

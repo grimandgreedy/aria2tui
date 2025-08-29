@@ -1,7 +1,14 @@
-from listpick.pane.pane_utils import escape_ansi
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+pane_files.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 from aria2tui.utils.aria2c_utils import bytes_to_human_readable
 import curses
-from datetime import datetime
 import os
 from aria2tui.utils.aria2c_utils import bytes_to_human_readable
 import re
@@ -88,9 +95,9 @@ def get_dl_files(data, state) -> list:
         fname  = state["indexed_items"][state["cursor_pos"]][1][fname_index]
 
 
-        # If we have already got the list of files for this dl then return them
-        if data not in [[], {}, None, ""] and data[-1] == gid:
-            return data
+        # # If we have already got the list of files for this dl then return them
+        # if data not in [[], {}, None, ""] and data[-1] == gid:
+        #     return data
 
         req = aria2c_utils.tellStatus(gid)
         info = aria2c_utils.sendReq(req)
@@ -112,6 +119,7 @@ def get_dl_files(data, state) -> list:
             
         max_width = max(len(s) for s in sizes)
 
+        if len(files) == 1 and files[0].strip() == "": return [[], gid]
         for i in range(len(files)):
             done = files_dict["result"][i]["completedLength"]
             total = files_dict["result"][i]["length"]
