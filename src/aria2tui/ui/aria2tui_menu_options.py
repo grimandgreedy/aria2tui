@@ -152,7 +152,7 @@ downloads_data = {
             "get_data": get_dl_files,
             "data": [],
             "auto_refresh": True,
-            "refresh_time": 0.1,
+            "refresh_time": 0.2,
         },
         # DL transfer speed graph
         {
@@ -182,7 +182,7 @@ downloads_data = {
             "refresh_time": 1.0,
         },
     ],
-    "right_pane_index": 1,
+    "right_pane_index": 0,
     # "split_right_function": right_split_dl_graph,
     # "split_right_refresh_data": get_dl_data,
     # "split_right_proportion": 2/3,

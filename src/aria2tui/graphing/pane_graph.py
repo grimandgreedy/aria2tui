@@ -1,3 +1,12 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+pane_graph.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 from listpick.pane.pane_utils import escape_ansi
 from aria2tui.utils.aria2c_utils import bytes_to_human_readable
 import curses

@@ -1,8 +1,13 @@
-from listpick.pane.pane_utils import escape_ansi
-from aria2tui.utils.aria2c_utils import bytes_to_human_readable
-import curses
-from datetime import datetime
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+pane_pieces.py
 
+Author: GrimAndGreedy
+License: MIT
+"""
+
+import curses
 
 def right_split_piece_progress(stdscr, x, y, w, h, state, row, cell, past_data: list = [], data: list = [], test: bool = False):
     """
