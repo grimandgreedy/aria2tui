@@ -638,8 +638,12 @@ def getAll() -> Tuple[list[list[str]], list[str]]:
 
     dir_index = wheader.index("DIR")
     all = active + waiting + stopped, wheader
+    home = "/home/" + os.getlogin()
     for row in all[0]:
-        row[dir_index] = re.sub(r"^/home/[^/]*", "~", row[dir_index])
+
+        if row[dir_index].startswith(home):
+            row[dir_index] = "~" + row[dir_index][len(home):]
+
 
     return all
 
@@ -821,6 +825,8 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
             l = []
             for i, response in enumerate(responses):
                 l += [[gid, "------"]]
+                if "result" in response: response = response["result"]
+                response = process_dl_dict(response)
                 l += [[key, val] for key, val in flatten_data(response).items()]
             x = Picker(
                 stdscr,
@@ -833,6 +839,15 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
             x.run()
 
     stdscr.clear()
+
+def process_dl_dict(dls):
+    if "result" in dls:
+        dls = dls["result"]
+    for dl in dls:
+        for key in dl:
+            if key in ["length", "completedLength"]:
+                dl[key] = bytes_to_human_readable(dl[key])
+    return dls
 
 def getGlobalSpeed() -> str:
     resp = sendReq(getGlobalStat())
