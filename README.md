@@ -1,6 +1,6 @@
 # aria2tui
 
-Aria2tui is a TUI download management tool. It acts as a front-end for the aria2c download utility, facilitating bulk downloading, torrenting, queue control, pausing and resuming downloads, fine-tuning download options (e.g., piece length, user-agent, max speed, etc.), downloading via proxy, and much more. 
+Aria2tui is a TUI download management tool. It acts as a client for the aria2c download utility, facilitating bulk downloading, torrenting, queue control, the fine-tuning of download options (e.g., piece length, user-agent, max speed, etc.), downloading via proxy, and much more. 
 
 Aria2tui communicates with the aria2c daemon over RPC. The UI is provided by my TUI picker [listpick](https://github.com/grimandgreedy/listpick).
 
