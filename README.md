@@ -68,7 +68,7 @@ theme = 3
 # Whether the right pane (DL Info, DL graphs) should be displayed by default when opening aria2tui
 show_right_pane_default = false
 
-# Which pane index should be displayed when opening the right pane
+# Which pane should be displayed first when the sidebar is opened.
 # [0=DL Files (info), 1=speed graph, 2=progress graph, 3=download pieces]
 right_pane_default_index = 0
 ```

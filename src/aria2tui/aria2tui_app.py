@@ -229,27 +229,30 @@ def display_message(stdscr: curses.window, msg: str) -> None:
 
 def handleAriaStartPromt(stdscr):
     ## Check if aria is running
-    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
-    stdscr.bkgd(' ', curses.color_pair(1))  # Apply background color
+    curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    stdscr.bkgd(' ', curses.color_pair(2))  # Apply background color
     stdscr.refresh()
     config = get_config()
 
     colour_theme_number=config["appearance"]["theme"]
+
+    header, choices = ["Aria2c Connection Down. Do you want to start it?"], ["Yes", "No"]
+    connect_data = {
+        "items": choices,
+        "title": "Aria2TUI",
+        "header": header,
+        "max_selected": 1,
+        "colour_theme_number": colour_theme_number,
+        "number_columns": False,
+    }
+    ConnectionPicker = Picker(stdscr, **connect_data)
+    ConnectionPicker.splash_screen("Testing Aria2 Connection")
+
     while True:
         connection_up = testConnection()
         can_connect = testAriaConnection()
         if not can_connect:
             if not connection_up:
-                header, choices = ["Aria2c Connection Down. Do you want to start it?"], ["Yes", "No"]
-                connect_data = {
-                    "items": choices,
-                    "title": "Aria2TUI",
-                    "header": header,
-                    "max_selected": 1,
-                    "colour_theme_number": colour_theme_number,
-                    "number_columns": False,
-                }
-                ConnectionPicker = Picker(stdscr, **connect_data)
 
                 choice, opts, function_data = ConnectionPicker.run()
 
@@ -258,30 +261,16 @@ def handleAriaStartPromt(stdscr):
                     exit()
 
                 config = get_config()
-
-                h, w = stdscr.getmaxyx()
-                if (h>8 and w >20):
-                    s = "Starting Aria2c Now..."
-                    stdscr.addstr(h//2-1, (w-len(s))//2, s)
-                    s = f'startupcmds = {config["general"]["startupcmds"]}'
-                    stdscr.addstr(h//2+1, (w-min(len(s), w))//2, s[:w])
-                    stdscr.refresh()
+                ConnectionPicker.splash_screen("Starting Aria2c Now...")
 
                 for cmd in config["general"]["startupcmds"]:
                     subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
                 time.sleep(2)
             else:
-                h, w = stdscr.getmaxyx()
-                if (h>8 and w >20):
-                    s = "The connection is up but unresponsive..."
-                    stdscr.addstr(h//2, (w-len(s))//2, s)
-                    s="Is your token correct in config.toml?"
-                    stdscr.addstr(h//2+1, (w-len(s))//2, s)
-                    stdscr.refresh()
-                    stdscr.timeout(5000)
-                    stdscr.getch()
-                close_curses(stdscr)
+                ConnectionPicker.splash_screen(["The connection is up but unresponsive...", "Is your token correct in your aria2tui.toml?"])
+                stdscr.timeout(5000)
+                stdscr.getch()
                 exit()
         else:
             break

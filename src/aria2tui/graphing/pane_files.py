@@ -10,7 +10,6 @@ License: MIT
 from aria2tui.utils.aria2c_utils import bytes_to_human_readable
 import curses
 import os
-from aria2tui.utils.aria2c_utils import bytes_to_human_readable
 import re
 
 

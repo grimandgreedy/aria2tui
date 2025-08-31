@@ -31,7 +31,8 @@ colour_theme_number=config["appearance"]["theme"]
 app_name = "Aria2TUI"
 global_stats_timer = config["general"]["global_stats_timer"]
 refresh_timer = config["general"]["refresh_timer"]
-show_graph = config["appearance"]["show_speed_graphs_default"]
+show_graph = config["appearance"]["show_right_pane_default"]
+right_pane_index = config["appearance"]["right_pane_default_index"]
 
 class Option:
     def __init__(self, name: str, function: Callable, function_args:dict = {}, meta_args: dict = {}):
@@ -182,7 +183,7 @@ downloads_data = {
             "refresh_time": 1.0,
         },
     ],
-    "right_pane_index": 0,
+    "right_pane_index": right_pane_index,
     # "split_right_function": right_split_dl_graph,
     # "split_right_refresh_data": get_dl_data,
     # "split_right_proportion": 2/3,

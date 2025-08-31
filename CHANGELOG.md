@@ -1,4 +1,9 @@
 # CHANGELOG.md
+## [0.1.10.6] 2025-07-31
+ - Fixed bug which caused crash due to config key error.
+ - Aria2TUI connection now uses a picker spash screen.
+   - This fixes pink flash when colours dict changed to the other picker.
+ - Improved DL info display.
 
 ## [0.1.10.5] 2025-07-29
  - Added to config options: default pane.
