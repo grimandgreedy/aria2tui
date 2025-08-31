@@ -1,4 +1,8 @@
 # CHANGELOG.md
+
+## [0.1.10.8] 2025-07-31
+ - Fixed bug in right pane of the download options picker.
+
 ## [0.1.10.6] 2025-07-31
  - Fixed bug which caused crash due to config key error.
  - Aria2TUI connection now uses a picker spash screen.

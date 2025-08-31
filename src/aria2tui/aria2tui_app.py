@@ -126,11 +126,17 @@ class Aria2TUI:
                 # self.dl_operations_data["infobox_title"] = f"{len(fnames)} Selected..."
 
                 # Display the download names in a right pane
+                self.dl_operations_data["right_panes"] = [
+                    {
+                        "proportion": 2/3,
+                        "auto_refresh": False,
+                        "get_data": lambda data, state: [],
+                        "display": right_split_display_list,
+                        "data": ["Selected...", fnames],
+                        "refresh_time": 1.0,
+                    },
+                ]
                 self.dl_operations_data["split_right"] = True
-                self.dl_operations_data["split_right_proportion"] = 3/5
-                self.dl_operations_data["split_right_data"] = ["Selected...", fnames]
-                self.dl_operations_data["split_right_function"] = right_split_display_list
-
 
                 ## SELECT OPERATION TO APPLY TO SELECTED DOWNLOADS
                 DownloadOperationPicker.set_function_data(self.dl_operations_data)
