@@ -413,17 +413,20 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
     Returns a list of the gids added along with a string message (e.g., "0 dls added")
     """
 
-    s = ""
+    s = "# URL\n"
+    s += "#    indented_option=value\n"
+    s += '\n'
     # s = "!!\n"
     # s += "# !! arguments inside !! will be applied to all downloads that follow\n"
     # s += "# !pause=true,queue=0! add and pause, send all to front of queue\n"
     # s += "# !!argstrings not yet fully implemented\n"
     s += '# https://docs.python.org/3/_static/py.png\n'
-    s += '#    dir=/home/user/pngfiles/\n'
-    s +=  '# https://docs.python.org/3/_static/py.jpg\n'
-    s +=  '# https://docs.python.org/3/_static/py.svg\n#    pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n'
-    s += '#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n\n'
-    s += "# Valid options can be found in the aria2c manual at: https://aria2.github.io/manual/en/html/aria2c.html#input-file\n\n"
+    s += '# magnet:?xt=urn:btih:...\n'
+    s +=  '# https://docs.python.org/3/_static/py.svg\n#    out=pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n'
+    s += '#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n'
+    s += '\n'
+    s += "# The full list of DL options can be seen here:\n"
+    s += "# https://aria2.github.io/manual/en/html/aria2c.html#input-file\n\n\n"
 
     ## Create tmpfile
     with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
@@ -584,6 +587,42 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
         if return_val: gids.append(gid)
 
     return gids, f'{torrent_count} torrent file(s) added. {len(uris)} magnet link(s) added.'
+
+
+def addTorrentsFilePickerFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> Tuple[list[str], str]:
+    """
+    Open a kitty prompt to add torrents to Aria2. The file will accept torrent file paths or magnet links and they should be placed on successive lines.
+
+    Example entry for the prompt:
+        ```
+        /home/user/Downloads/torrents/example.torrent
+        magnet:?xt=urn:btih:...
+        ```
+    """
+    with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+        subprocess.run(f"yazi --chooser-file={tmpfile.name}", shell=True)
+
+        lines = tmpfile.readlines()
+        if lines:
+            filenames = [line.decode("utf-8").strip() for line in lines]
+
+    dls = []
+    gids = []
+    for line in lines:
+        if line.strip():
+            dls.append({"path": os.path.expanduser(line.strip())})
+
+    torrent_count = 0
+    for dl in dls:
+
+        try:
+            jsonreq = addTorrent(dl["path"])
+            sendReq(jsonreq)
+            torrent_count += 1
+        except:
+            pass
+
+    return gids, f'{torrent_count}/{len(dls)} torrent file(s) added.'
 
 
 def getAllInfo(gid: str) -> list[dict]:
@@ -956,6 +995,7 @@ tellStopped = lambda offset=0, max=10000:  tellStoppedFull(offset=0, max=max, to
 tellStatus = lambda gid:  tellStatusFull(gid, token=token)
 sendReq = lambda jsonreq, url=url, port=port: sendReqFull(jsonreq, url=url, port=port)
 addTorrents = lambda url=url, port=port, token=token: addTorrentsFull(url=url, port=port, token=token)
+addTorrentsFilePicker = lambda url=url, port=port, token=token: addTorrentsFilePickerFull(url=url, port=port, token=token)
 addUris = lambda url=url, port=port, token=token: addUrisFull(url=url, port=port, token=token)
 addUrisAndPause = lambda url=url, port=port, token=token: addUrisAndPauseFull(url=url, port=port, token=token)
 testConnection = lambda url=url, port=port: testConnectionFull(url=url, port=port)

@@ -41,10 +41,6 @@ class Option:
         self.function_args = function_args
         self.meta_args = meta_args
 
-
-
-
-
 download_options = [
     Option("Pause",   pause),
     Option("Unpause", unpause),
@@ -84,7 +80,8 @@ menu_options = [
     Option("View Downloads", lambda: 4),
     Option("Add URIs", addUris, {}, {"refresh_terminal_options": True}),
     Option("Add URIs and immediately pause", addUrisAndPause, {}, {"refresh_terminal_options": True}),
-    Option("Add Torrents and magnet links", addTorrents, {}, {"refresh_terminal_options": True}),
+    Option("Add Torrents (file picker)", addTorrentsFilePicker, {}, {"refresh_terminal_options": True}),
+    Option("Add Torrents (nvim)", addTorrents, {}, {"refresh_terminal_options": True}),
     # Option("Pause All", pauseAll),
     # Option("Force Pause All", forcePauseAll),
     # Option("Remove completed/errored downloads", removeCompleted),
@@ -157,7 +154,7 @@ downloads_data = {
         },
         # DL transfer speed graph
         {
-            "proportion": 3/5,
+            "proportion": 2/3,
             "display": right_split_dl_graph,
             "get_data": get_dl_data,
             "data": [],
@@ -166,7 +163,7 @@ downloads_data = {
         },
         # DL progress graph
         {
-            "proportion": 3/5,
+            "proportion": 2/3,
             "display": right_split_dl_progress_graph,
             "get_data": get_dl_progress,
             "data": [],
