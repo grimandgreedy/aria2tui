@@ -1,26 +1,28 @@
 # CHANGELOG.md
+## [0.1.10.9] 2025-09-01
+ - Added file picker option when adding torrents.
 
-## [0.1.10.8] 2025-07-31
+## [0.1.10.8] 2025-08-31
  - Fixed bug in right pane of the download options picker.
 
-## [0.1.10.6] 2025-07-31
+## [0.1.10.6] 2025-08-31
  - Fixed bug which caused crash due to config key error.
  - Aria2TUI connection now uses a picker spash screen.
    - This fixes pink flash when colours dict changed to the other picker.
  - Improved DL info display.
 
-## [0.1.10.5] 2025-07-29
+## [0.1.10.5] 2025-08-29
  - Added to config options: default pane.
 
-## [0.1.10.5] 2025-07-29
+## [0.1.10.5] 2025-08-29
  - Added right panes: DL progress, DL Files, DL pieces.
 
-## [0.1.10.0] 2025-07-27
+## [0.1.10.0] 2025-08-27
 - Feature added: display speed graph of selected download in right pane
 - Display selected downloads in right pane when selecting an operation to perform.
   - This was previously done using an infobox but this caused flickering.
 
-## [0.1.9.0] - [0.1.9.21] 2025-07-22
+## [0.1.9.0] - [0.1.9.21] 2025-08-22
 - Fixed error when adding torrent path with ~.
 - Fixed crash when adding a non-existent torrent path.
 - Fixed cursor displaying after dropping to nvim to add uris/torrents.
@@ -31,7 +33,7 @@
 - Ensured that the display messages are consistent when adding URIs and/or torrents. Previously when URIs were addded it would return the list of GIDs; this has been replaced with a proper message showing how many were added.
 - Split batch requests into clumps of 2000 downloads to prevent aria2c throwing an error.
 
-## [0.1.9] 2025-07-08
+## [0.1.9] 2025-08-08
  - Added download type column.
  - Added uri column.
  - Added header when viewing 'DL Info...'
