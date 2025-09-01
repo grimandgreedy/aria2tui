@@ -1,4 +1,7 @@
 # CHANGELOG.md
+## [0.1.10.10] 2025-09-01
+ - Fixed notification display after adding DLs.
+
 ## [0.1.10.9] 2025-09-01
  - Added file picker option when adding torrents.
 
