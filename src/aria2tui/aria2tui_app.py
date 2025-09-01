@@ -219,9 +219,8 @@ class Aria2TUI:
                             # If we have are returning gids and a status message then set the startup notification to the status message.
                             if type(return_val) == type((0,0)) and len(return_val) == 2:
                                 if type(return_val[0]) == type([]) and type(return_val[1]) == type(""):
-                                    return_val = return_val[1]
-                            
-                            self.downloads_data["startup_notification"] = str(return_val)
+                                    DownloadsPicker.startup_notification = str(return_val[1])
+
                         self.stdscr.clear()
                         self.stdscr.refresh()
                         break
