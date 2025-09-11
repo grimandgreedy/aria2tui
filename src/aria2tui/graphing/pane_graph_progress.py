@@ -156,10 +156,6 @@ def get_dl_progress(data, state):
         else:
             progress = int(done)/int(total)
     except Exception as e:
-        import pyperclip
-        pyperclip.copy(str(e))
-        os.system(f"notify-send {repr(e)}")
-
         return data
 
     if data in [[], {}, None] or data[-1] != gid:

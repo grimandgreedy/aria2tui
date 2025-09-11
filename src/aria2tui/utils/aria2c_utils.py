@@ -457,7 +457,6 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
         if return_val:
             gids.append(gid)
 
-    # os.system(f"notify-send '{len(dls)} downloads added'")
     # return gids
     return gids, f'{len(gids)} download(s) added.'
     
@@ -669,7 +668,7 @@ def retryDownloadAndPauseFull(gid: str, url: str ="http://localhost", port: int 
 
 
 
-def getAll() -> Tuple[list[list[str]], list[str]]:
+def getAll(items, header, visible_rows_indices, getting_data):
     """ Retrieves all downloads: active, stopped, and queue. Also returns the header. """
     active, aheader = getActive()
     stopped, sheader = getStopped()
@@ -683,6 +682,24 @@ def getAll() -> Tuple[list[list[str]], list[str]]:
         if row[dir_index].startswith(home):
             row[dir_index] = "~" + row[dir_index][len(home):]
 
+    items[:] = active + waiting + stopped
+    header[:] = wheader
+
+    getting_data.set()
+
+def returnAll() -> Tuple[list[list[str]], list[str]]:
+    """ Retrieves all downloads: active, stopped, and queue. Also returns the header. """
+    active, aheader = getActive()
+    stopped, sheader = getStopped()
+    waiting, wheader = getQueue()
+
+    dir_index = wheader.index("DIR")
+    all = active + waiting + stopped, wheader
+    home = "/home/" + os.getlogin()
+    for row in all[0]:
+
+        if row[dir_index].startswith(home):
+            row[dir_index] = "~" + row[dir_index][len(home):]
 
     return all
 

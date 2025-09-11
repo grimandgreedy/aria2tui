@@ -13,13 +13,12 @@ import os
 import re
 
 
-def right_split_files(stdscr, x, y, w, h, state, row, cell, past_data: list = [], data: list = [], test: bool = False):
+def right_split_files(stdscr, x, y, w, h, state, row, cell: list = [], data: list = [], test: bool = False):
     """
-    Display a graph of the data in right pane.
+    Display the files of the cursor-hovered download in the right pane.
 
-    data[0] = x_vals
-    data[1] = y_vals
-    data[2] = id
+    data[0]: list of files
+    data[1]: gid
     """
     if test: return True
 
@@ -58,6 +57,10 @@ def right_split_files(stdscr, x, y, w, h, state, row, cell, past_data: list = []
     else:
         fname = f" {fname}"
     stdscr.addstr(y+1, x+1, fname[:w-1], curses.color_pair(state["colours_start"]+2) | curses.A_BOLD | curses.A_UNDERLINE)
+
+    # # If the gid is different then update the data
+    # if len(data) and gid != data[1]:
+    #     data = [get_dl_files(data, state), gid]
 
 
     if data in [[], {}, None, ""]:
