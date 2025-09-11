@@ -284,29 +284,44 @@ def handleAriaStartPromt(stdscr):
 def aria2tui() -> None:
     """ Main function """
 
-    ## Run curses
-    stdscr = start_curses()
+    if len(sys.argv) == 3 and sys.argv[1] == "--add_download":
+        uri = sys.argv[2]
+        return_val, gid = addDownload(uri)
+        if return_val:
+            message = f"Success! download added: gid={gid}."
+        else:
+            message = "Error adding download."
+        print(message)
+        try:
+            os.system(f"notify-send '{message}'")
+        except:
+            pass
+    else:
+        ## Run curses
+        stdscr = start_curses()
 
-    ## Check if aria is running and prompt the user to start it if not
-    handleAriaStartPromt(stdscr)
+        ## Check if aria is running and prompt the user to start it if not
+        handleAriaStartPromt(stdscr)
 
-    app = Aria2TUI(
-        stdscr, 
-        download_options,
-        menu_options,
-        menu_data,
-        downloads_data,
-        dl_operations_data,
-    )
-    app.run()
-    # begin(stdscr)
+        app = Aria2TUI(
+            stdscr, 
+            download_options,
+            menu_options,
+            menu_data,
+            downloads_data,
+            dl_operations_data,
+        )
+        app.run()
+        # begin(stdscr)
 
-    ## Clean up curses and clear terminal
-    stdscr.clear()
-    stdscr.refresh()
-    close_curses(stdscr)
-    os.system('cls' if os.name == 'nt' else 'clear')
+        ## Clean up curses and clear terminal
+        stdscr.clear()
+        stdscr.refresh()
+        close_curses(stdscr)
+        os.system('cls' if os.name == 'nt' else 'clear')
+
 
 if __name__ == "__main__":
     # global menu_options, download_options, menu_data, downloads_data, dl_operations_data
+
     aria2tui()

@@ -1,4 +1,9 @@
 # CHANGELOG.md
+## [0.1.10.11] 2025-09-12
+ - --add_download flag added so that aria2tui can be used as the default magnet link opener.
+ - Fixed graph ticks.
+
+
 ## [0.1.10.10] 2025-09-01
  - Fixed notification display after adding DLs.
 

@@ -68,7 +68,7 @@ def graph_speeds(
         fig.plot(x, y)
         fig.plot(x, y2)
 
-        fig.y_ticks_fkt = lambda y, _: bytes_to_human_readable(y)
+        fig.y_ticks_fkt = lambda y, _: bytes_to_human_readable(y) + "/s"
         fig.x_ticks_fkt = lambda x, _: f"{int(x)}s"
         fig.set_y_limits(min_=0)
         fig.set_x_limits(min_=0)
@@ -95,7 +95,7 @@ def graph_speeds(
 
             stdscr.addstr(i+1+ypos, xpos , line[:min(width,maxw)])
 
-        # Show the extreme points of the width and also the last printable char
+        # Show the extreme points of the width and also the last printable char (for debugging)
         show_control_chars = False
         if show_control_chars:
             stdscr.addstr(0,0, f"{maxw}, {maxh}")
@@ -147,7 +147,7 @@ def graph_speeds_gid(
         fig.plot(x, y)
         fig.plot(x, y2)
 
-        fig.y_ticks_fkt = lambda y, _: bytes_to_human_readable(y)
+        fig.y_ticks_fkt = lambda y, _: bytes_to_human_readable(y) + "/s"
         fig.x_ticks_fkt = lambda x, _: f"{int(x)}s"
         fig.set_y_limits(min_=0)
         fig.set_x_limits(min_=0)
