@@ -16,10 +16,8 @@ import toml
 import json
 import curses
 
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
 # os.chdir("../..")
 # sys.path.append(os.path.expanduser("../../"))
-sys.path.append(os.path.expanduser("../"))
 
 from listpick.listpick_app import *
 from listpick.listpick_app import Picker, start_curses, close_curses, restrict_curses, unrestrict_curses
