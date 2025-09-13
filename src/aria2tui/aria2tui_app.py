@@ -269,9 +269,9 @@ def handleAriaStartPromt(stdscr):
                 ConnectionPicker.splash_screen("Starting Aria2c Now...")
 
                 for cmd in config["general"]["startupcmds"]:
-                    subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+                    subprocess.run(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
-                time.sleep(2)
+                time.sleep(0.2)
             else:
                 ConnectionPicker.splash_screen(["The connection is up but unresponsive...", "Is your token correct in your aria2tui.toml?"])
                 stdscr.timeout(5000)
@@ -284,7 +284,49 @@ def handleAriaStartPromt(stdscr):
 def aria2tui() -> None:
     """ Main function """
 
-    if len(sys.argv) == 3 and sys.argv[1] == "--add_download":
+    if len(sys.argv) == 3 and sys.argv[1].startswith("--add_download"):
+        connection_up = testConnection()
+        if not connection_up and sys.argv[1] == "--add_download_bg":
+            exit_ = False
+            try:
+                import tkinter as tk
+                from tkinter import messagebox
+
+                # No main window
+                root = tk.Tk()
+                root.withdraw()
+
+                response = messagebox.askyesno("Aria2TUI", "Aria2c connection failed. Start daemon?")
+
+                if not response:
+                    exit_ = True
+                else:
+                    # Attempt to start aria2c
+                    config = get_config()
+                    for cmd in config["general"]["startupcmds"]:
+                        subprocess.run(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+                    time.sleep(0.1)
+
+            except Exception as e:
+                message = "Problem encountered. Download not added."
+                os.system(f"notify-send '{message}'")
+                sys.exit()
+            finally:
+                if exit_:
+                    message = "Exiting. Download not added."
+                    os.system(f"notify-send '{message}'")
+                    sys.exit()
+
+                connection_up = testConnection()
+                if not connection_up:
+                    message = "Problem encountered. Check your aria2tui config. Download not added."
+                    os.system(f"notify-send '{message}'")
+                    exit()
+        elif not connection_up:
+            stdscr = start_curses()
+            handleAriaStartPromt(stdscr)
+            close_curses(stdscr)
+
         uri = sys.argv[2]
         return_val, gid = addDownload(uri)
         if return_val:
@@ -293,32 +335,34 @@ def aria2tui() -> None:
             message = "Error adding download."
         print(message)
         try:
-            os.system(f"notify-send '{message}'")
+            if sys.argv[1] == "--add_download_bg":
+                os.system(f"notify-send '{message}'")
         except:
             pass
-    else:
-        ## Run curses
-        stdscr = start_curses()
+        return None
 
-        ## Check if aria is running and prompt the user to start it if not
-        handleAriaStartPromt(stdscr)
+    ## Run curses
+    stdscr = start_curses()
 
-        app = Aria2TUI(
-            stdscr, 
-            download_options,
-            menu_options,
-            menu_data,
-            downloads_data,
-            dl_operations_data,
-        )
-        app.run()
-        # begin(stdscr)
+    ## Check if aria is running and prompt the user to start it if not
+    handleAriaStartPromt(stdscr)
 
-        ## Clean up curses and clear terminal
-        stdscr.clear()
-        stdscr.refresh()
-        close_curses(stdscr)
-        os.system('cls' if os.name == 'nt' else 'clear')
+    app = Aria2TUI(
+        stdscr, 
+        download_options,
+        menu_options,
+        menu_data,
+        downloads_data,
+        dl_operations_data,
+    )
+    app.run()
+    # begin(stdscr)
+
+    ## Clean up curses and clear terminal
+    stdscr.clear()
+    stdscr.refresh()
+    close_curses(stdscr)
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 
 if __name__ == "__main__":
