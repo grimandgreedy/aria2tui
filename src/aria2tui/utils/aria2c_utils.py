@@ -425,7 +425,7 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
     s +=  '# https://docs.python.org/3/_static/py.svg\n#    out=pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n'
     s += '#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n'
     s += '\n'
-    s += "# The full list of DL options can be seen here:\n"
+    s += "# The full list of DL options can be viewed here:\n"
     s += "# https://aria2.github.io/manual/en/html/aria2c.html#input-file\n\n\n"
 
     ## Create tmpfile
@@ -490,6 +490,7 @@ def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[dict], list[str]]:
             exampleimage.iso
             dir=/home/user/images/
         ```
+        returns [{"uri": "http://example.com/image.iso", "dir": "/home/user/images"}], []
     """
 
     downloads = []
@@ -572,7 +573,9 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
 
         try:
             jsonreq = addTorrent(dl["path"])
-            sendReq(jsonreq)
+            resp = sendReq(jsonreq)
+            if "result" in resp:
+                gids.append(resp["response"])
             torrent_count += 1
         except:
             pass
@@ -623,6 +626,97 @@ def addTorrentsFilePickerFull(url: str ="http://localhost", port: int = 6800, to
 
     return gids, f'{torrent_count}/{len(dls)} torrent file(s) added.'
 
+
+def addDownloadsAndTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> Tuple[list[str], str]:
+    """
+    Open a kitty prompt to add torrents to Aria2. The file will accept torrent file paths or magnet links and they should be placed on successive lines.
+
+    Example entry for the prompt:
+        ```
+        /home/user/Downloads/torrents/example.torrent
+        magnet:?xt=urn:btih:...
+        ```
+    """
+
+    s = "# Add http(s) links, magnet links, metalinks, or torrent files (by path).\n"
+    s += "# URL\n"
+    s += "#    indented_option=value\n"
+    s += '\n'
+    # s = "!!\n"
+    # s += "# !! arguments inside !! will be applied to all downloads that follow\n"
+    # s += "# !pause=true,queue=0! add and pause, send all to front of queue\n"
+    # s += "# !!argstrings not yet fully implemented\n"
+    s += '# https://docs.python.org/3/_static/py.png\n'
+    s += '# magnet:?xt=urn:btih:...\n'
+    s += "# /path/to/file.torrent\n"
+    s +=  '# https://docs.python.org/3/_static/py.svg\n#    out=pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n'
+    s += '#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n'
+    s += '\n'
+    s += "# The full list of DL options can be viewed here:\n"
+    s += "# https://aria2.github.io/manual/en/html/aria2c.html#input-file\n\n\n"
+
+    ## Create tmpfile
+    with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
+        tmpfile.write(s)
+        tmpfile_path = tmpfile.name
+    cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
+    process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+
+    with open(tmpfile_path, "r") as f:
+        lines = f.readlines()
+
+    dls_list, argstrs = input_file_lines_to_dict(lines)
+
+    valid_keys = input_file_accepted_options
+    dls = []
+    uris = []
+    gids = []
+
+
+    for dl in dls_list:
+        if "uri" not in dl:
+            continue
+
+
+        dl_type = classify_download_string(dl["uri"])
+        if dl_type in ["HTTP", "FTP", "Magnet", "Metalink"]:
+            download_options_dict = {key: val for key,val in dl.items() if key in valid_keys}
+            if "dir" in download_options_dict:
+                download_options_dict["dir"] = os.path.expandvars(os.path.expanduser(download_options_dict["dir"]))
+            uris.append({"uri": dl["uri"], "options": download_options_dict})
+        else:
+            dls.append({"path": os.path.expanduser(dl["uri"])})
+
+    torrent_count = 0
+    for dl in dls:
+
+        try:
+            jsonreq = addTorrent(dl["path"])
+            resp = sendReq(jsonreq)
+            torrent_count += 1
+            if "result" in resp:
+                gids.append(resp["result"])
+        except:
+            pass
+
+
+
+    for dl in uris:
+        uri = dl["uri"]
+        options = dl["options"]
+
+        return_val, gid = addDownload(uri=uri, download_options_dict=options)
+        if return_val: gids.append(gid)
+
+    return gids, f'{torrent_count} torrent file(s) added. {len(uris)} magnet link(s) added.'
+
+def addDownloadsAndTorrentsAndPauseFull(url: str ="http://localhost", port: int =6800, token: str = "") -> Tuple[list[str], str]:
+    """ Launch nvim with a tmpfile and allow the user to provide links and/or paths to torrent files. Add them and pause them."""
+    gids, message = addDownloadsAndTorrentsFull(url=url, port=port,token=token)
+    if gids:
+        reqs = [json.loads(pause(gid)) for gid in gids]
+        batch = sendReq(json.dumps(reqs).encode('utf-8'))
+    return gids, f"{len(gids)} downloads added and paused."
 
 def getAllInfo(gid: str) -> list[dict]:
     """
@@ -972,6 +1066,30 @@ def get_default_config() -> dict:
     }
     return default_config
 
+def classify_download_string(input_string: str) -> str:
+    magnet_link_pattern = r'^magnet:\?xt=urn:btih'
+    metalink_pattern = r'^metalink:'
+    ftp_pattern = r'^(ftp|ftps|sftp)://'
+    http_pattern = r'^(http|https)://'
+
+    # Check if the input string matches any of the patterns
+    if re.match(magnet_link_pattern, input_string):
+        return "Magnet"
+    elif re.match(metalink_pattern, input_string):
+        return "Metalink"
+    elif re.match(ftp_pattern, input_string):
+        return "FTP"
+    elif re.match(http_pattern, input_string):
+        return "HTTP"
+
+    # Check if the input string is a file path
+    if os.path.exists(os.path.expanduser(os.path.expandvars(input_string))) and os.path.isfile(input_string) and input_string.endswith(".torrent"):
+        return "Torrent File"
+
+    return ""
+
+
+
 # default = get_default_config()
 config = get_config()
 url = config["general"]["url"]
@@ -1015,5 +1133,8 @@ addTorrents = lambda url=url, port=port, token=token: addTorrentsFull(url=url, p
 addTorrentsFilePicker = lambda url=url, port=port, token=token: addTorrentsFilePickerFull(url=url, port=port, token=token)
 addUris = lambda url=url, port=port, token=token: addUrisFull(url=url, port=port, token=token)
 addUrisAndPause = lambda url=url, port=port, token=token: addUrisAndPauseFull(url=url, port=port, token=token)
+addDownloadsAndTorrents = lambda url=url, port=port, token=token: addDownloadsAndTorrentsFull(url=url, port=port, token=token)
+addDownloadsAndTorrentsAndPause = lambda url=url, port=port, token=token: addDownloadsAndTorrentsAndPauseFull(url=url, port=port, token=token)
 testConnection = lambda url=url, port=port: testConnectionFull(url=url, port=port)
 testAriaConnection = lambda url=url, port=port: testAriaConnectionFull(url=url, port=port)
+

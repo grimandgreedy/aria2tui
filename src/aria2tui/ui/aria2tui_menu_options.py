@@ -8,9 +8,6 @@ License: MIT
 """
 
 import os, sys
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append("..")
-os.chdir("../../..")
 from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, operations_highlights
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
@@ -78,10 +75,12 @@ download_options = [
 menu_options = [
     Option("Watch Downloads", lambda: 4),
     Option("View Downloads", lambda: 4),
-    Option("Add URIs", addUris, {}, {"refresh_terminal_options": True}),
-    Option("Add URIs and immediately pause", addUrisAndPause, {}, {"refresh_terminal_options": True}),
+    # Option("Add URIs", addUris, {}, {"refresh_terminal_options": True}),
+    # Option("Add URIs and immediately pause", addUrisAndPause, {}, {"refresh_terminal_options": True}),
+    Option("Add Download Tasks", addDownloadsAndTorrents, {}, {"refresh_terminal_options": True}),
+    Option("Add Download Tasks & Pause", addDownloadsAndTorrentsAndPause, {}, {"refresh_terminal_options": True}),
     Option("Add Torrents (file picker)", addTorrentsFilePicker, {}, {"refresh_terminal_options": True}),
-    Option("Add Torrents (nvim)", addTorrents, {}, {"refresh_terminal_options": True}),
+    # Option("Add Torrents (nvim)", addTorrents, {}, {"refresh_terminal_options": True}),
     # Option("Pause All", pauseAll),
     # Option("Force Pause All", forcePauseAll),
     # Option("Remove completed/errored downloads", removeCompleted),
@@ -181,6 +180,7 @@ downloads_data = {
         },
     ],
     "right_pane_index": right_pane_index,
+    "footer_string": "?/s 󰇚 ?/s 󰕒 | ?A ?W ?S",
     # "split_right_function": right_split_dl_graph,
     # "split_right_refresh_data": get_dl_data,
     # "split_right_proportion": 2/3,

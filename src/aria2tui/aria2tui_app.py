@@ -170,17 +170,17 @@ class Aria2TUI:
 
                     menu_option = self.menu_options[selected_menu[0]]
                     if menu_option.name == "View Downloads":
-                        self.downloads_data["auto_refresh"] = False
+                        DownloadsPicker.auto_refresh = False
                         break
                     elif menu_option.name == "Watch Downloads":
-                        self.downloads_data["auto_refresh"] = True
+                        DownloadsPicker.auto_refresh = True
                         break
 
                     ## if it is a view operation such as "View Global Stats" then send the request and open it with nvim
                     elif "view" in menu_option.meta_args and menu_option.meta_args["view"]:
                         # Ensure that the screen is cleared after nvim closes, otherwise artifcats remain.
-                        self.downloads_data["clear_on_start"] = True
-                        self.menu_data["clear_on_start"] = True
+                        DownloadsPicker.clear_on_start = True
+                        MenuPicker.clear_on_start = True
                         response = sendReq(menu_option.function(**menu_option.function_args))
                         with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
                             tmpfile.write(json.dumps(response, indent=4))
@@ -190,8 +190,8 @@ class Aria2TUI:
                         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
                         self.check_and_refresh_terminal_options(menu_option, self.stdscr)
                     elif "picker_view" in menu_option.meta_args and menu_option.meta_args["picker_view"]:
-                        self.downloads_data["clear_on_start"] = True
-                        self.menu_data["clear_on_start"] = True
+                        DownloadsPicker.clear_on_start = True
+                        MenuPicker.clear_on_start = True
                         response = sendReq(menu_option.function(**menu_option.function_args))
                         response = flatten_data(response)
                         resp_list = [[key, val] for key, val in response.items()]
@@ -326,7 +326,29 @@ def aria2tui() -> None:
             close_curses(stdscr)
 
         uri = sys.argv[2]
-        return_val, gid = addDownload(uri)
+        dl_type = classify_download_string(sys.argv[2])
+        if dl_type in ["Magnet", "Metalink", "FTP", "HTTP"]:
+            return_val, gid = addDownload(uri)
+        elif dl_type == "Torrent File":
+            try:
+                js_req = addTorrent(uri)
+                sendReq(js_req)
+                message = "Torrent added successfully."
+            except:
+                message = "Error adding download."
+            finally:
+                os.system(f"notify-send '{message}'")
+                sys.exit(1)
+        else:
+            try:
+                message = "Error adding download."
+                os.system(f"notify-send '{message}'")
+            except:
+                pass
+            finally:
+                sys.exit(1)
+
+
         if return_val:
             message = f"Success! download added: gid={gid}."
         else:
@@ -364,6 +386,4 @@ def aria2tui() -> None:
 
 
 if __name__ == "__main__":
-    # global menu_options, download_options, menu_data, downloads_data, dl_operations_data
-
     aria2tui()
