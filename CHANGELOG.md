@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.11.0] 2025-09-16
+ - We can now select which files (from a torrent) that we want to download and which to skip.
+ - File info pane now shows which files are being downloaded ([*]) and which are to be skipped ([ ]).
+ - Updated size in columns to reflect only the total size of the target files--i.e., excluding skipped files.
+ - Added colour to the speed and progress graphs--by converting ansi to a colours dict.
+ - Graph ticks are now rounded for small units (B/s and KB/s).
+
 ## [0.1.10.16] 2025-09-15
  - Added unified "Add Download Tasks" menu option--no longer do torrent file paths and uris have to be added separately.
  - Fixed "View Downloads" still auto-refreshing.

@@ -45,6 +45,7 @@ download_options = [
     Option("Change Options Picker (for all selected)", changeOptionsBatchPicker),
     Option("Change Options nvim (for each selected)", changeOptionDialog),
     Option("Change Options nvim (for all selected)", changeOptionBatchDialog),
+    Option("Select Which Files To Download (active/paused/waiting)", selected_download),
     Option("Change Position", changePosition),
     Option("Send to Front of Queue", changePosition, {"pos":0}),
     Option("Send to Back of Queue", changePosition, {"pos":10000}),

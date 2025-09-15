@@ -171,4 +171,9 @@ operations_highlights = [
         "field": 0,
         "color": 9,
     },
+    {
+        "match": "^Select",
+        "field": 0,
+        "color": 10,
+    },
 ]
