@@ -118,12 +118,14 @@ def dataToPickerRows(dls, options_batch, files_info_batch, show_pc_bar: bool = T
             size = 0
             for file in files_info['result']:
                 if 'length' in file:
-                    size += int(file['length'])
+                    if 'selected' in file and file['selected'] == "true":
+                        size += int(file['length'])
             # size = int(dl['files'][0]['length'])
             completed = 0
             for file in files_info['result']:
                 if 'completedLength' in file:
-                    completed += int(file['completedLength'])
+                    if 'selected' in file and file['selected'] == "true":
+                        completed += int(file['completedLength'])
             # completed = int(dl['files'][0]['completedLength'])
             pc_complete = completed/size if size > 0 else 0
             pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
@@ -936,6 +938,8 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
         operation_function_args["title"] = f"{repr(fname)} Transfer Speeds"
         operation_function(gid=str(gids[0]), **operation_function_args)
 
+    elif operation_name == "Select Which Files To Download (active/paused/waiting)":
+        selected_download(stdscr, gids)
     else:
         for gid in gids:
             try:
@@ -999,6 +1003,39 @@ def process_dl_dict(dls):
                 dl[key] = bytes_to_human_readable(dl[key])
     return dls
 
+def selected_download(stdscr, gids):
+    """ For each gid, present the user with the files for that gid and allow them to select which should be downloaded. """
+
+    for gid in gids:
+        req = getFiles(gid)
+        files_dict = sendReq(req)["result"]
+
+        # files = [os.path.basename(f["path"]) for f in files_dict]
+        files = [f["path"] for f in files_dict]
+        sizes = [bytes_to_human_readable(f["length"]) for f in files_dict]
+        selected_indices = [i for i in range(len(files_dict)) if files_dict[i]['selected'] == 'true']
+        selections = {i: f['selected'] == "true" for i, f in enumerate(files_dict)}
+        items = [[files[i], sizes[i]] for i in range(len(files))]
+        header = ["File", "Size"]
+        
+        selectionsPicker = Picker(
+            stdscr,
+            items=items,
+            header=header,
+            selections=selections,
+            cell_cursor=False,
+        )
+        modified_selections, options, function_data = selectionsPicker.run()
+        if selected_indices != modified_selections and function_data["last_key"] != ord("q"):
+            selected = ",".join([str(x+1) for x in modified_selections])
+            try:
+                js_req = changeOption(gid, "select-file", selected)
+                resp = sendReq(js_req)
+            except:
+                pass
+
+
+
 def getGlobalSpeed() -> str:
     resp = sendReq(getGlobalStat())
     up = bytes_to_human_readable(resp['result']['uploadSpeed'])
@@ -1009,7 +1046,21 @@ def getGlobalSpeed() -> str:
     return f"{down}/s 󰇚 {up}/s 󰕒 | {numActive}A {numWaiting}W {numStopped}S"
     return f"{down}/s 󰇚  {up}/s 󰕒"
         
-def bytes_to_human_readable(size: float) -> str:
+def bytes_to_human_readable(size: float, sep =" ", round_at=1) -> str:
+    """
+    Convert a number of bytes to a human readable string.
+
+    size (int): the number of bytes
+    sep (str): the string that should separate the size from the units.
+                A single space by default.
+    round_at (int): the unit below which the figure should be rounded
+            round_at=0:  0.0B, 23.1KB, 2.3MB
+            round_at=1:  0B, 23.1KB, 2.3MB
+            round_at=2:  0B, 23KB, 2.3MB
+
+    Examples:
+    1024000 -> 1 MB
+    """
     suffixes = ['B', 'KB', 'MB', 'GB', 'TB']
     if isinstance(size, str):
         size=float(size)
@@ -1017,7 +1068,11 @@ def bytes_to_human_readable(size: float) -> str:
     while size >= 1024 and i < len(suffixes)-1:
         size /= 1024.0
         i += 1
-    return f"{size:.1f} {suffixes[i]}"
+    if i < round_at:
+        size_str = f"{int(size)}"
+    else:
+        size_str = f"{size:.1f}"
+    return f"{size_str}{sep}{suffixes[i]}"
 
 def get_config(path="") -> dict:
     """ Get config from file. """

@@ -8,6 +8,7 @@ License: MIT
 """
 
 from listpick.pane.pane_utils import escape_ansi
+from aria2tui.graphing.graph_utils import display_ansi
 from aria2tui.utils.aria2c_utils import bytes_to_human_readable
 import curses
 from datetime import datetime
@@ -109,11 +110,27 @@ def right_split_dl_graph(stdscr, x, y, w, h, state, row, cell, past_data: list =
     # x_vals consist of datetime.now() so we need to convert it to unix time and then make them relative to the first in the lest
     x_vals = [x.timestamp() for x in x_vals]
     x_vals = [x - x_vals[0] for x in x_vals]
+
+
     graph_str = get_graph_string(x_vals, dl_speeds, ul_speeds, width=w-3-10, height=h-4)
 
-    for i, s in enumerate(graph_str.split("\n")):
-        s = escape_ansi(s)
-        stdscr.addstr(y+3+i, x+2, s[:w-2])
+    # default_colours = state["colours"]["unselected_fg"], state["colours"]["unselected_bg"]
+    default_colours = curses.COLOR_WHITE, state["colours"]["unselected_bg"]
+    if curses.COLOR_PAIRS > 64:
+        display_ansi(
+            stdscr,
+            ansi_lines=graph_str.split("\n"),
+            x=x+2,
+            y=y+3,
+            w=w-2,
+            h=h-3,
+            pair_offset=200,
+            default_colours=default_colours,
+        )
+    else:
+        for i, s in enumerate(graph_str.split("\n")):
+            s = escape_ansi(s)
+            stdscr.addstr(y+3+i, x+2, s[:w-2])
 
     return []
 
@@ -166,17 +183,19 @@ def get_graph_string(x_vals, dl_speeds, ul_speeds, width=50, height=20, title=No
     import plotille as plt
     # Create a figure and axis object using plotille
     fig = plt.Figure()
+    fig.color_mode = 'byte'
+
     
     # Plot the data on the figure
-    fig.plot(x_vals, dl_speeds)
-    fig.plot(x_vals, ul_speeds)
+    fig.plot(x_vals, dl_speeds, lc=curses.COLOR_BLUE)
+    fig.plot(x_vals, ul_speeds, lc=curses.COLOR_GREEN)
     
     # Set the dimensions of the graph
     fig.width = width-10
     fig.height = height-4
     # fig.x_ticks_fkt = lambda x, _: f"{int(x)}s"
     fig.x_ticks_fkt = lambda x, _: seconds_to_short_format(x)
-    fig.y_ticks_fkt = lambda y, _: bytes_to_human_readable(int(y))+"/s"
+    fig.y_ticks_fkt = lambda y, _: bytes_to_human_readable(int(y), sep=" ", round_at=2)+"/s"
     fig.set_y_limits(min_=0)
     fig.set_x_limits(min_=0)
     fig.x_label = "t"
@@ -184,8 +203,8 @@ def get_graph_string(x_vals, dl_speeds, ul_speeds, width=50, height=20, title=No
     fig.origin = False
 
 
-    fig.text([x_vals[-1]], [dl_speeds[-1]], ['Dn'])
-    fig.text([x_vals[0]], [ul_speeds[0]], ['Up'])
+    fig.text([x_vals[0]], [ul_speeds[0]], ['Up'], lc=curses.COLOR_GREEN)
+    fig.text([x_vals[-1]], [dl_speeds[-1]], ['Dn'], lc=curses.COLOR_BLUE)
     
     graph_str = str(fig.show())
     

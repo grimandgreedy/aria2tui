@@ -8,9 +8,11 @@ License: MIT
 """
 
 from listpick.pane.pane_utils import escape_ansi
+from aria2tui.graphing.graph_utils import display_ansi
 import curses
 from datetime import datetime
 from math import ceil
+import curses
 
 
 def seconds_to_short_format(seconds) -> str:
@@ -119,10 +121,26 @@ def right_split_dl_progress_graph(stdscr, x, y, w, h, state, row, cell, past_dat
     x_vals = [x - x_vals[0] for x in x_vals]
     graph_str = get_progress_graph_string(x_vals, dls_progress, width=w-3-7, height=h-4)
 
-    for i, s in enumerate(graph_str.split("\n")):
-        s = escape_ansi(s)
-        s = s[3:]
-        stdscr.addstr(y+3+i, x+2, s[:w-2])
+
+    default_colours = state["colours"]["unselected_fg"], state["colours"]["unselected_bg"]
+    default_colours = curses.COLOR_YELLOW, state["colours"]["unselected_bg"]
+    if curses.COLOR_PAIRS > 64:
+        display_ansi(
+            stdscr,
+            ansi_lines=[s[3:] for s in graph_str.split("\n")],
+            x=x+2,
+            y=y+3,
+            w=w-2,
+            h=h-3,
+            pair_offset=200,
+            default_colours=default_colours,
+        )
+
+    else:
+        for i, s in enumerate(graph_str.split("\n")):
+            s = escape_ansi(s)
+            s = s[3:]
+            stdscr.addstr(y+3+i, x+2, s[:w-2])
 
     return []
 
@@ -174,6 +192,7 @@ def get_progress_graph_string(x_vals, dls_progress, width=50, height=20, title=N
     import numpy as np
     # Create a figure and axis object using plotille
     fig = plt.Figure()
+    fig.color_mode = 'byte'
     if len(x_vals) == 1:
         x_dense = [x_vals[0]+i*(1/(4*width)) for i in range(width*2)]
         y_dense = [dls_progress[0] for _ in range(width*2)]
@@ -202,7 +221,7 @@ def get_progress_graph_string(x_vals, dls_progress, width=50, height=20, title=N
         x_dense, y_dense = x_vals, dls_progress
 
     for x, y in zip(x_dense, y_dense):
-        fig.plot([x, x], [0, y])
+        fig.plot([x, x], [0, y], lc=curses.COLOR_BLUE)
     
     # if dls_progress[-1] != 1:
     #     # fig.text([x_dense[len(x_dense)//2]], [dls_progress[-1]], [f"{dls_progress[-1]*100:.1f}%"])
@@ -214,7 +233,7 @@ def get_progress_graph_string(x_vals, dls_progress, width=50, height=20, title=N
     pc = f"{dls_progress[-1]*100:.1f}%" if dls_progress[-1] < 1 else "100%"
     text_y = min(y_dense[-1] + 0.1, 0.95)
     text_x = max((width-8)/width * x_dense[-1], 0)
-    fig.text([text_x], [text_y], [pc])
+    fig.text([text_x], [text_y], [pc], lc=curses.COLOR_BLUE)
 
     fig.width = width-10
     fig.height = height-4

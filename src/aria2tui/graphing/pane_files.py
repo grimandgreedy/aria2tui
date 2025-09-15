@@ -130,7 +130,11 @@ def get_dl_files(data, state) -> list:
             else:
                 progress = int(done)/int(total)
 
-            files[i] = f"{sizes[i]:<{max_width}} [{progress*100:.1f}%] {files[i]}"
+            selected_q = files_dict["result"][i]["selected"]
+            selected = "[*]" if selected_q == "true" else "[ ]"
+
+            # files[i] = f"{sizes[i]:<{max_width}} [{progress*100:.1f}%] {files[i]}"
+            files[i] = f"{selected} {sizes[i]:<{max_width}} [{progress*100:.1f}%] {files[i]}"
 
         return [files, gid]
     except:
