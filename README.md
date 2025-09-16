@@ -154,7 +154,7 @@ Some things that should be mentioned:
 
  - Aria2TUI was made to work on UNIX systems.
  - Changing many download options of an active task will restart the download (!!). 
- - Note: This was created for personal use and so some of the code remains quite ugly and/or buggy and simply needs to be re-written.
+ - Note that aria2tui was created for personal use and so some of the code remains quite ugly and/or buggy and simply needs to be re-written.
 
 ## Aria2TUI uses
  - `curses`
