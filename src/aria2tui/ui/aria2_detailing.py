@@ -172,7 +172,7 @@ operations_highlights = [
         "color": 9,
     },
     {
-        "match": "^Select",
+        "match": "^Modify",
         "field": 0,
         "color": 10,
     },

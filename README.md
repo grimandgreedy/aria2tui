@@ -10,17 +10,15 @@ https://github.com/user-attachments/assets/7c77a13f-90c7-4e67-9946-7b7009c835ad
 
 ## Quickstart
 
+
+See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki).
+
 Install aria2tui using pip:
 ```bash
 python -m pip install aria2tui
 ```
 
 Create a `config.toml` file and place it in `~/.config/aria2tui/`. Here is the default config:
-
-<!-- ```bash -->
-<!-- mkdir ~/.config/aria2tui/ && -->
-<!-- wget https://raw.githubusercontent.com/grimandgreedy/aria2tui/refs/heads/master/src/aria2tui/data/config.toml -O ~/.config/aria2tui/config.toml -->
-<!-- ``` -->
 
 ```toml
 ####################################################
@@ -81,26 +79,11 @@ After editing ~/.config/aria2tui/config.toml and ensuring that your url, port, a
 aria2tui
 ```
 
-
 Be aware that Aria2TUI makes use of:
+ - `yazi` for selecting torrent files.
  - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
  - `xdg-open` and `gio` for determining default applications and opening files.
 
-## Multiple config files
-
-If you have multiple aria2c daemons you can specify another config file using the ARIA2TUI_CONFIG_PATH environment variable:
-
-```
-ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml aria2tui
-ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml aria2tui
-```
-
-If you wish to use it regularly, then it may be useful to add aliases to your ~/.bashrc.
-```
-alias a2="python /path/to/aria2tui/aria2tui.py"
-alias a2t="ARIA2TUI_CONFIG_PATH=/path/to/config/aria2c_torrents.toml aria2tui"
-alias a2n="ARIA2TUI_CONFIG_PATH=/path/to/config/aria_on_home_server_config.toml aria2tui"
-```
 
 
 ## Tips
@@ -130,6 +113,7 @@ Copy config and edit it accordingly:
 mkdir ~/.config/aria2tui &&
 cp Aria2TUI/src/aria2tui/data/config.toml ~/.config/aria2tui
 ```
+
 Install the requirements:
 
 ```bash

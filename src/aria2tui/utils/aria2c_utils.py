@@ -346,7 +346,7 @@ def changeOptionPicker(stdscr: curses.window, gid:str) -> str:
         selected_column=1,
         editable_columns=[False, True],
         keys_dict=edit_menu_keys,
-        startup_notification="'e' to edit cell. 'q' to exit. 'Return' to submit.",
+        startup_notification="'e' to edit cell. 'q' to exit. 'Return' to submit changes.",
         reset_colours=False,
     )
     selected_indices, opts, function_data = x.run()
@@ -387,7 +387,7 @@ def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
             sort_column=1,
             editable_columns=[False, True],
             keys_dict=edit_menu_keys,
-            startup_notification="Press 'e' to edit cell.",
+            startup_notification="'e' to edit cell. 'q' to exit. 'Return' to submit changes.",
             reset_colours=False,
     )
     selected_indices, opts, function_data = x.run()
@@ -748,14 +748,22 @@ def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, 
     status = sendReq(tellStatus(gid))
     options = sendReq(getOption(gid))
 
-    uri = status["result"]["files"][0]["uris"][0]["uri"]
-    dl = {
-        "dir": status["result"]["dir"],
-    }
-    dl["out"] = options["result"]["out"] if "out" in options["result"] else ""
-    return_val, gid = addDownload(uri=uri, download_options_dict=dl)
-    if return_val: return gid
-    else: return ""
+    if "bittorrent" not in status["result"]:
+
+        uri = status["result"]["files"][0]["uris"][0]["uri"]
+        dl = {
+            "dir": status["result"]["dir"],
+        }
+        dl["out"] = options["result"]["out"] if "out" in options["result"] else ""
+        return_val, gid = addDownload(uri=uri, download_options_dict=dl)
+        if return_val: return gid
+        else: return ""
+    else:
+        pass
+
+
+
+    return ""
 
 def retryDownloadAndPauseFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str ="") -> None:
     """ Retries a download by getting the options of the existing download and using it to add a new download and then pauses the download. Does not remove the old download. Returns the gid of the new download or an empty string if there is an error. """
@@ -938,7 +946,7 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
         operation_function_args["title"] = f"{repr(fname)} Transfer Speeds"
         operation_function(gid=str(gids[0]), **operation_function_args)
 
-    elif operation_name == "Select Which Files To Download (active/paused/waiting)":
+    elif operation_name == "Modify torrent files (active/paused/waiting)":
         selected_download(stdscr, gids)
     else:
         for gid in gids:
@@ -1009,21 +1017,32 @@ def selected_download(stdscr, gids):
     for gid in gids:
         req = getFiles(gid)
         files_dict = sendReq(req)["result"]
+        options = sendReq(getOption(gid))
+        dir = options["result"]["dir"]
 
         # files = [os.path.basename(f["path"]) for f in files_dict]
-        files = [f["path"] for f in files_dict]
+        files = [f["path"].replace(dir, "") for f in files_dict]
         sizes = [bytes_to_human_readable(f["length"]) for f in files_dict]
         selected_indices = [i for i in range(len(files_dict)) if files_dict[i]['selected'] == 'true']
         selections = {i: f['selected'] == "true" for i, f in enumerate(files_dict)}
         items = [[files[i], sizes[i]] for i in range(len(files))]
         header = ["File", "Size"]
         
+        # from listpick.ui.keys import picker_keys as pk
+        # from copy import copy
+        # pk = copy(pk)
+        # pk["edit"] = [ord('e')]
+
         selectionsPicker = Picker(
             stdscr,
             items=items,
             header=header,
             selections=selections,
             cell_cursor=False,
+            editable_columns=[True, False],
+            editable_by_default=True,
+            keys_dict=picker_keys,
+            startup_notification="Selected files will be downloaded. Non-selected will be skipped. 'e' to edit filename. 'q' to exit. 'Return' to submit changes.",
         )
         modified_selections, options, function_data = selectionsPicker.run()
         if selected_indices != modified_selections and function_data["last_key"] != ord("q"):
@@ -1033,6 +1052,19 @@ def selected_download(stdscr, gids):
                 resp = sendReq(js_req)
             except:
                 pass
+        filename_changes = False
+        for i, row in enumerate(selectionsPicker.items):
+            if files[i] == row[0]: continue
+            # If the values differ then a name has been changed
+
+            filename_changes = True
+            js_req = changeOption(gid, "index-out", f"{i+1}={row[0]}")
+            resp = sendReq(js_req)
+        if filename_changes:
+            js_req = changeOption(gid, "check-integrity", "true")
+            resp = sendReq(js_req)
+
+
 
 
 
