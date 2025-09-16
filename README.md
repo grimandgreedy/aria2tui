@@ -1,8 +1,8 @@
 # aria2tui
 
-Aria2tui is a TUI download management tool. It acts as a client for the aria2c download utility, facilitating bulk downloading, torrenting, queue control, the fine-tuning of download options (e.g., piece length, user-agent, max speed, etc.), downloading via proxy, and much more. 
+Aria2TUI is a download management tool. It acts as a TUI client for the aria2c download utility, facilitating bulk downloading, torrenting, queue control, the fine-tuning of download options (e.g., piece length, user-agent, max speed, etc.), downloading via proxy, and much more. 
 
-Aria2tui communicates with the aria2c daemon over RPC. The UI is provided by my TUI picker [listpick](https://github.com/grimandgreedy/listpick).
+Aria2tui communicates with an aria2c daemon over RPC. The UI is provided by my TUI picker [listpick](https://github.com/grimandgreedy/listpick).
 
 <!-- https://github.com/user-attachments/assets/07ab1f63-3a5e-42dd-bddb-56c948ecd620 -->
 
@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/7c77a13f-90c7-4e67-9946-7b7009c835ad
 
 ## Quickstart
 
-See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki).
+See the newly created [wiki](https://github.com/grimandgreedy/aria2tui/wiki).
 
 Install aria2tui using pip:
 ```bash
@@ -78,18 +78,14 @@ After editing ~/.config/aria2tui/config.toml and ensuring that your url, port, a
 aria2tui
 ```
 
-Be aware that Aria2TUI makes use of:
- - `yazi` for selecting torrent files.
- - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
- - `xdg-open` and `gio` for determining default applications and opening files.
 
 ## Tips
 
  - See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki), which will cover most questions.
- - Press '?' to see the help page which will list the available keys.
+ - Press '?' in aria2tui to see the help page which will list the keys and their functions.
  - If you have problems starting aria2c, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
  - By default aria2tui will track the download that the cursor is on. This is usually what you want. However, sometimes you want to stay at a particular place in the download queue--perhaps you want to remain at the top and watch the currently active downloads.
-    - Press ~ and locate the **pin cursor (pc)** option.
+    - Press ~ and locate the **pin cursor (pc)** option (`th<Return> will do the same).
       - Note: The pin symbol  will be shown in the footer to indicate the cursor tracking mode.
  - If you are performing bulk operations and the downloads are changing state rapidly--e.g., hundreds of images are changing from active/waiting to completed--it is recommended to **toggle the auto-refresh** option to ensure data integrity while selecting which downloads to operate upon.
     - This can be done by either:
@@ -136,6 +132,8 @@ Be aware that Aria2TUI makes use of:
   <!-- <div align="center"> <img src="assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div> -->
   <div align="center"> <img src="https://raw.githubusercontent.com/grimandgreedy/aria2tui/refs/heads/master/assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div>
 
+ - Piping to shell commands
+   - Strings from selected cells can be piped to a given command 
  - Visual options
    - Modify theme
      - '~' to view settings and then select theme
@@ -154,10 +152,14 @@ Some things that should be mentioned:
 
  - Aria2TUI was made to work on UNIX systems.
  - Changing many download options of an active task will restart the download (!!). 
- - Note that aria2tui was created for personal use and so some of the code remains quite ugly and/or buggy and simply needs to be re-written.
+ - Aria2tui was created for personal use and so some of the code remains quite ugly and/or buggy and simply needs to be re-written.
 
-## Aria2TUI uses
- - `curses`
+## Aria2TUI makes use of...
+
+ - `yazi` for selecting torrent files.
+ - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
+ - `xdg-open` and `gio` for determining default applications and opening files.
+ - `curses` for controlling the terminal display
  - [listpick](https://github.com/grimandgreedy/listpick) for the terminal user-interface
  - [plotille](https://github.com/tammoippen/plotille) for graphs
  - [pyperclip](https://github.com/asweigart/pyperclip) for clipboard access

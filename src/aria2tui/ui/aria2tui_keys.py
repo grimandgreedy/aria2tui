@@ -11,6 +11,7 @@ License: MIT
 import curses
 from listpick.listpick_app import picker_keys
 from copy import copy
+from listpick.utils import keycodes
 
 aria2tui_keys = copy(picker_keys)
 if "move_column_left" in aria2tui_keys: del aria2tui_keys["move_column_left"]
@@ -28,6 +29,8 @@ if "notification_toggle" in aria2tui_keys: del aria2tui_keys["notification_toggl
 if "undo" in aria2tui_keys: del aria2tui_keys["undo"]
 if "add_column" in aria2tui_keys: del aria2tui_keys["add_column"]
 if "add_row" in aria2tui_keys: del aria2tui_keys["add_row"]
+if "file_next" in aria2tui_keys: del aria2tui_keys["file_prev"]
+if "file_prev" in aria2tui_keys: del aria2tui_keys["file_next"]
 
 download_option_keys = {
     "refresh":                          [curses.KEY_F5],
@@ -44,8 +47,8 @@ download_option_keys = {
     "page_down":                        [curses.KEY_NPAGE, 6],
     "cursor_bottom":                    [ord('G'), curses.KEY_END],
     "cursor_top":                       [ord('g'), curses.KEY_HOME],
-    "five_up":                          [ord('K')],
-    "five_down":                        [ord('J')],
+    "five_up":                          [ord('K'), keycodes.META_k],
+    "five_down":                        [ord('J'), keycodes.META_j],
     "enter":                            [ord('\n'), curses.KEY_ENTER, ord('l'), 13],
     "redraw_screen":                    [12], # Ctrl-l
     "cycle_sort_method":                [ord('s')],
@@ -98,8 +101,8 @@ menu_keys = {
     "page_down":                        [curses.KEY_NPAGE, 6],
     "cursor_bottom":                    [ord('G'), curses.KEY_END],
     "cursor_top":                       [ord('g'), curses.KEY_HOME],
-    "five_up":                          [ord('K')],
-    "five_down":                        [ord('J')],
+    "five_up":                          [ord('K'), keycodes.META_k],
+    "five_down":                        [ord('J'), keycodes.META_j],
     "enter":                            [ord('\n'), curses.KEY_ENTER, ord('l'), 13],
     "redraw_screen":                    [12], # Ctrl-l
     "filter_input":                     [ord('f')],
