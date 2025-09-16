@@ -1,5 +1,11 @@
 # aria2tui
 
+> - [ ] Torrents:
+>   - [ ] Allow changing torrent file names.
+>   - [x] Allow files to be skipped.
+> - [ ] Change the Change options nvim so that it uses key-value pairs rather than json.
+> - [ ] Retry bittorent downloads
+
 > [!IMPORTANT] Features
 > - [x] allow options when adding uris; perhaps use the same structure as the aria2c input file
 >    - [x] implemented in principle

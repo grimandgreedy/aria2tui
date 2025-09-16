@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.11.1] 2025-09-17
+
+ - Multifile torrents can now be managed a lot better.
+   - Files can be skipped
+   - Filenames can be edited
+   - See the wiki
+
 ## [0.1.11.0] 2025-09-16
  - We can now select which files (from a torrent) that we want to download and which to skip.
  - File info pane now shows which files are being downloaded ([*]) and which are to be skipped ([ ]).

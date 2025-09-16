@@ -10,8 +10,9 @@ License: MIT
 
 import curses
 from listpick.listpick_app import picker_keys
+from copy import copy
 
-aria2tui_keys = picker_keys
+aria2tui_keys = copy(picker_keys)
 if "move_column_left" in aria2tui_keys: del aria2tui_keys["move_column_left"]
 if "move_column_right" in aria2tui_keys: del aria2tui_keys["move_column_right"]
 if "delete" in aria2tui_keys: del aria2tui_keys["delete"]
