@@ -267,7 +267,7 @@ def handleAriaStartPromt(stdscr):
                 ConnectionPicker.splash_screen("Starting Aria2c Now...")
 
                 for cmd in config["general"]["startupcmds"]:
-                    subprocess.run(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+                    subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
                 time.sleep(0.2)
             else:

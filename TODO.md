@@ -5,6 +5,7 @@
 >   - [x] Allow files to be skipped.
 > - [ ] Change the Change options nvim so that it uses key-value pairs rather than json.
 > - [ ] Retry bittorent downloads
+> - [ ] ??? All keys can be seen in the help...
 
 > [!IMPORTANT] Features
 > - [x] allow options when adding uris; perhaps use the same structure as the aria2c input file
