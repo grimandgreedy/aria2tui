@@ -15,10 +15,10 @@
  - Graph ticks are now rounded for small units (B/s and KB/s).
 
 ## [0.1.10.16] 2025-09-15
- - Added unified "Add Download Tasks" menu option--no longer do torrent file paths and uris have to be added separately.
+ - Added unified "Add Download Tasks" menu option--URIs and torrents no longer have to be added separately.
  - Fixed "View Downloads" still auto-refreshing.
  - Added --add_download_bg flag which uses a gui popup if aria is not running.
- - Added footer string to ensure that the footer doesn't resize after loading the footer string.
+ - Added placeholder footer string to ensure that the footer doesn't resize after loading the footer string.
 
 ## [0.1.10.11] 2025-09-12
  - --add_download flag added so that aria2tui can be used as the default magnet link opener.
