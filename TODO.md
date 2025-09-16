@@ -58,7 +58,7 @@
 > - [ ] add to config
 >    - [x] url
 >    - [x] port
->    - [x] startupcmds
+>    - [x] startup commands
 >    - [x] theme
 >    - [x] paging vs scrolling
 >    - [ ] highlights off

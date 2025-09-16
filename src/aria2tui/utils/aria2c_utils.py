@@ -205,7 +205,7 @@ def printResults(items: list[list[str]], header: list[str]=[]) -> None:
 
 def restartAria() -> None:
     """Restart aria2 daemon."""
-    for cmd in config["general"]["restartcmds"]:
+    for cmd in config["general"]["restart_commands"]:
         subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
     # cmd = f"systemctl --user restart aria2d.service"
     # subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
@@ -217,7 +217,7 @@ def editConfig() -> None:
     """ Edit the config file in nvim. """
     config =  get_config()
 
-    file = config["general"]["ariaconfigpath"]
+    file = config["general"]["aria2_config_path"]
     cmd = f"nvim {file}"
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
@@ -1116,16 +1116,34 @@ def get_config(path="") -> dict:
         if os.path.exists(os.path.expanduser(os.environ["ARIA2TUI_CONFIG_PATH"])):
             CONFIGPATH = os.environ["ARIA2TUI_CONFIG_PATH"]
 
+    ## Ensure that users with old keys in their config are not bothered by key changes
+    new_keys_to_old = {
+        "startup_commands": "startupcmds",
+        "restart_commands": "restartcmds",
+        "aria2_config_path": "ariaconfigpath",
+    }
+    old_keys_to_new = {
+        "startupcmds": "startup_commands",
+        "restartcmds": "restart_commands",
+        "ariaconfigpath": "aria2_config_path"
+    }
+
     if os.path.exists(os.path.expanduser(CONFIGPATH)):
         with open(os.path.expanduser(CONFIGPATH), "r") as f:
-            config = toml.load(f)
+            user_config = toml.load(f)
 
-        if "general" in config:
-            for key in config["general"]:
-                full_config["general"][key] = config["general"][key]
-        if "appearance" in config:
-            for key in config["appearance"]:
-                full_config["appearance"][key] = config["appearance"][key]
+        if "general" in user_config:
+            for user_key in user_config["general"]:
+                full_config_key = user_key
+                if user_key in old_keys_to_new:
+                    full_config_key = old_keys_to_new[user_key]
+                full_config["general"][full_config_key] = user_config["general"][user_key]
+        if "appearance" in user_config:
+            for user_key in user_config["appearance"]:
+                full_config_key = user_key
+                if user_key in old_keys_to_new:
+                    full_config_key = old_keys_to_new[user_key]
+                full_config["appearance"][full_config_key] = user_config["appearance"][user_key]
 
     return full_config
 
@@ -1135,9 +1153,9 @@ def get_default_config() -> dict:
             "url": "http://localhost",
             "port": "6800",
             "token": "",
-            "startupcmds": ["aria2c"],
-            "restartcmds": ["pkill aria2c && sleep 1 && aria2c"],
-            "ariaconfigpath": "~/.config/aria2/aria2.conf",
+            "startup_commands": ["aria2c"],
+            "restart_commands": ["pkill aria2c && sleep 1 && aria2c"],
+            "aria2_config_path": "~/.config/aria2/aria2.conf",
             "paginate": False,
             "refresh_timer": 2,
             "global_stats_timer": 1,
