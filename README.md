@@ -10,7 +10,6 @@ https://github.com/user-attachments/assets/7c77a13f-90c7-4e67-9946-7b7009c835ad
 
 ## Quickstart
 
-
 See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki).
 
 Install aria2tui using pip:
@@ -84,10 +83,9 @@ Be aware that Aria2TUI makes use of:
  - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
  - `xdg-open` and `gio` for determining default applications and opening files.
 
-
-
 ## Tips
 
+ - See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki), which will cover most questions.
  - Press '?' to see the help page which will list the available keys.
  - If you have problems starting aria2c, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
  - By default aria2tui will track the download that the cursor is on. This is usually what you want. However, sometimes you want to stay at a particular place in the download queue--perhaps you want to remain at the top and watch the currently active downloads.
@@ -99,77 +97,41 @@ Be aware that Aria2TUI makes use of:
       - Pressing ~ and toggling auto-refresh.
     - Note: The refresh symbol  at the top right indicates that you are in auto-refresh mode.
 
-## Other installation options
-
-### Git repo
-
-Clone rep
-```bash
-git clone https://github.com/grimandgreedy/Aria2TUI
-```
-
-Copy config and edit it accordingly:
-```bash
-mkdir ~/.config/aria2tui &&
-cp Aria2TUI/src/aria2tui/data/config.toml ~/.config/aria2tui
-```
-
-Install the requirements:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-Now you can start Aria2TUI:
-```bash
-cd ./Aria2TUI/src
-python -m aria2tui.aria2tui_app
-```
-
-```bash
-alias a2="cd /path/to/Aria2TUI/src && python -m aria2tui.aria2tui_app"
-```
-
-
 ## Features
 
  - Dynamic display of downloads
      - View active, queue, errored, stopped
- - Sort/filter/search using regular expressions
- - Add downloads with options
-   - Simply dump a list of links;
-     - or specify options:
-       - proxy
-       - User agent
-       - ... Many more!
-          - See [this section of the aria2c manual](https://aria2.github.io/manual/en/html/aria2c.html#input-file) for all available options all of which are supported
+ - Sorting of downloads
+ - Filter/search using regular expressions
+ - Add downloads
+   - You can simply dump a list of links or specify options for each
+   - See [this section of the aria2c manual](https://aria2.github.io/manual/en/html/aria2c.html#input-file) for all available options all of which are supported
  - Add magnet links and torrent files
  - Operations on downloads:
    - Pause/unpause
    - Remove
    - Change position in queue
    - Open downloaded files
-   - Open download location (with yazi)
-   - Change download options by value of keys in nvim
-
-     - Select download(s) you wish to change the value
-     - Change save directory
-     - Specify proxy, proxy user, and proxy password
-     - Specify user-agent
-     - Specify download piece length
-     - ... Many more!
-         - See [this section of the aria2c manual](https://aria2.github.io/manual/en/html/aria2c.html#input-file) for all available options all of which are supported.
-
+   - Open download location
 <!-- <div align="center"> <img src="assets/change_options.gif" alt="change_options" width="70%"> </div> -->
-<div align="center"> <img src="https://raw.githubusercontent.com/grimandgreedy/aria2tui/refs/heads/master/assets/change_options.gif" alt="change_options" width="70%"> </div>
-
-   - View current options of download
+<!-- <div align="center"> <img src="https://raw.githubusercontent.com/grimandgreedy/aria2tui/refs/heads/master/assets/change_options.gif" alt="change_options" width="70%"> </div> -->
+   - View download information
    - Retry download
+   - Rename download
+   - Rename files
+   - Change output directory
+ - Manage torrents
+   - Skip files
+   - Rename torrent files
  - Interact with aria2 daemon
    - Edit config
    - Pause all
    - Restart aria
- - Global and particular download transfer speed *graphs*.
+ - Transfer speed *graphs*.
+   - Right pane or speed graph from the operations menu
+   - A global speed graph can also be shown from the main menu
+ - Progress *graphs*.
+   - Right pane, view 3
 
   <!-- <div align="center"> <img src="assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div> -->
   <div align="center"> <img src="https://raw.githubusercontent.com/grimandgreedy/aria2tui/refs/heads/master/assets/transfer_speed_graph.png" alt="speed_graph" width="70%"> </div>
@@ -188,18 +150,21 @@ alias a2="cd /path/to/Aria2TUI/src && python -m aria2tui.aria2tui_app"
 
 ## Important
 
-While I use Aria2TUI every day, it is still in development and there are many things that still need to be cleaned up.
-
 Some things that should be mentioned:
 
- - Changing almost any download options of an active task (including the output directory) will restart the download (!!). 
-   - It is recommended to add the downloads with the desired options or to specify the desired options before starting the download.
- - Aria2TUI will only work in a UNIX (linux, macos) environment. If you register your interest I might be able to look into what I would need to change to get it to work on windows.
- - Note: This was created for personal use and so some of the code is quite ugly and/or buggy and simply needs to be re-written.
+ - Aria2TUI was made to work on UNIX systems.
+ - Changing many download options of an active task will restart the download (!!). 
+ - Note: This was created for personal use and so some of the code remains quite ugly and/or buggy and simply needs to be re-written.
+
+## Aria2TUI uses
+ - `curses`
+ - [listpick](https://github.com/grimandgreedy/listpick) for the terminal user-interface
+ - [plotille](https://github.com/tammoippen/plotille) for graphs
+ - [pyperclip](https://github.com/asweigart/pyperclip) for clipboard access
 
 ## Similar Projects
 
-- [Ariang](https://github.com/mayswind/AriaNg) A web client for aria2c.
+- [Ariang](https://github.com/mayswind/AriaNg) A web client for aria2c
 
 ## Support and Feedback
 
