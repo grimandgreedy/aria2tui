@@ -33,13 +33,13 @@ token = "1234"
 url = "http://localhost"
 
 # Used for starting and restarting.
-startupcmds = ["aria2c"]
-restartcmds = ["pkill aria2c && sleep 1 && aria2c"]
-# startupcmds = ["systemctl --user start aria2d.service"]
-# restartcmds = ["systemctl --user restart aria2d.service", "notify-send 'Aria2c has been restarted.'"]
+startup_commands = ["aria2c"]
+restart_commands = ["pkill aria2c && sleep 1 && aria2c"]
+# startup_commands = ["systemctl --user start aria2d.service"]
+# restart_commands = ["systemctl --user restart aria2d.service", "notify-send 'Aria2c has been restarted.'"]
 
 # Used when "Edit Config" option is chosen in the main menu
-ariaconfigpath = "~/.config/aria2/aria2.conf"
+aria2_config_path = "~/.config/aria2/aria2.conf"
 
 # File managers 
 ## terminal_file_manager will open in the same terminal as Aria2TUI in a blocking fashion;
