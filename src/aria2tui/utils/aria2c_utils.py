@@ -710,7 +710,15 @@ def addDownloadsAndTorrentsFull(url: str ="http://localhost", port: int = 6800, 
         return_val, gid = addDownload(uri=uri, download_options_dict=options)
         if return_val: gids.append(gid)
 
-    return gids, f'{torrent_count} torrent file(s) added. {len(uris)} magnet link(s) added.'
+    if len(uris) and torrent_count:
+        msg = f"{len(uris)} direct download(s) added. {torrent_count} torrent(s) added."
+    elif len(uris):
+        msg = f"{len(uris)} direct download(s) added."
+    elif torrent_count:
+        msg = f"{torrent_count} torrent(s) added."
+    else:
+        msg = ""
+    return gids, msg
 
 def addDownloadsAndTorrentsAndPauseFull(url: str ="http://localhost", port: int =6800, token: str = "") -> Tuple[list[str], str]:
     """ Launch nvim with a tmpfile and allow the user to provide links and/or paths to torrent files. Add them and pause them."""
@@ -718,7 +726,7 @@ def addDownloadsAndTorrentsAndPauseFull(url: str ="http://localhost", port: int 
     if gids:
         reqs = [json.loads(pause(gid)) for gid in gids]
         batch = sendReq(json.dumps(reqs).encode('utf-8'))
-    return gids, f"{len(gids)} downloads added and paused."
+    return gids, f"{len(gids)} download(s) added and paused."
 
 def getAllInfo(gid: str) -> list[dict]:
     """
@@ -997,6 +1005,7 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
                 title=operation_name,
                 header=["Key", "Value"],
                 reset_colours=False,
+                cell_cursor=False,
             )
             x.run()
 
