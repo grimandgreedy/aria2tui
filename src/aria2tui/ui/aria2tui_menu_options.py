@@ -154,7 +154,7 @@ downloads_data = {
         },
         # DL transfer speed graph
         {
-            "proportion": 2/3,
+            "proportion": 1/3,
             "display": right_split_dl_graph,
             "get_data": get_dl_data,
             "data": [],
@@ -163,7 +163,7 @@ downloads_data = {
         },
         # DL progress graph
         {
-            "proportion": 2/3,
+            "proportion": 1/3,
             "display": right_split_dl_progress_graph,
             "get_data": get_dl_progress,
             "data": [],
@@ -172,7 +172,7 @@ downloads_data = {
         },
         # DL Pieces
         {
-            "proportion": 2/3,
+            "proportion": 1/3,
             "display": right_split_piece_progress,
             "get_data": get_dl_pieces,
             "data": [],

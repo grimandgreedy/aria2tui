@@ -126,7 +126,7 @@ class Aria2TUI:
                 # Display the download names in a right pane
                 self.dl_operations_data["right_panes"] = [
                     {
-                        "proportion": 2/3,
+                        "proportion": 1/3,
                         "auto_refresh": False,
                         "get_data": lambda data, state: [],
                         "display": right_split_display_list,

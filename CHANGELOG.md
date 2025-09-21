@@ -1,5 +1,10 @@
 # CHANGELOG.md
 
+## [0.1.11.3] 2025-09-17
+ - Fixed display notifications when adding download tasks.
+ - Ensured compatibility with listpick changes to pane size parameter.
+
+
 ## [0.1.11.1] 2025-09-17
 
  - Multifile torrents can now be managed a lot better.
