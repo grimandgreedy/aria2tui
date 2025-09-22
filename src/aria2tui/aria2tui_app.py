@@ -150,7 +150,19 @@ class Aria2TUI:
 
 
                     ## APPLY THE SELECTED OPERATION TO THE SELECTED DOWNLOADS
-                    applyToDownloads(self.stdscr, gids, operation.name, operation.function, operation.function_args, user_opts, view, fnames=fnames, picker_view=picker_view)
+                    applyToDownloads(
+                        self.stdscr,
+                        operation,
+                        gids,
+                        operation.name,
+                        operation.function,
+                        operation.function_args,
+                        user_opts,
+                        view,
+                        fnames=fnames,
+                        picker_view=picker_view
+                    )
+
                     self.downloads_data["selections"] = {}
                     self.dl_operations_data["user_opts"] = ""
                     self.check_and_refresh_terminal_options(operation, self.stdscr)

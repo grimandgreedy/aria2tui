@@ -19,6 +19,7 @@ from aria2tui.graphing.pane_pieces import right_split_piece_progress, get_dl_pie
 from aria2tui.graphing.pane_files import right_split_files, get_dl_files
 
 from listpick.listpick_app import *
+from aria2tui.utils.display_info import *
 
 config = get_config()
 paginate = config["general"]["paginate"]
@@ -32,11 +33,18 @@ show_graph = config["appearance"]["show_right_pane_default"]
 right_pane_index = config["appearance"]["right_pane_default_index"]
 
 class Option:
-    def __init__(self, name: str, function: Callable, function_args:dict = {}, meta_args: dict = {}):
+    def __init__(
+        self, name: str,
+        function: Callable,
+        function_args:dict = {},
+        meta_args: dict = {},
+        exec_only: bool = False,
+    ):
         self.name = name
         self.function = function
         self.function_args = function_args
         self.meta_args = meta_args
+        self.exec_only = exec_only
 
 download_options = [
     Option("Pause",   pause),
@@ -57,7 +65,7 @@ download_options = [
     Option("Remove (errored/completed)", removeDownloadResult),
 
 
-    Option("DL Info: Files", getFiles, {}, {"picker_view":True}),
+    Option("DL Info: Files", display_files, {}, {"picker_view":True}, exec_only = True),
     Option("DL Info: Servers", getServers, {}, {"picker_view":True}),
     Option("DL Info: Peers", getPeers, {}, {"picker_view":True}),
     Option("DL Info: URIs", getUris, {}, {"picker_view":True}),

@@ -110,6 +110,13 @@
 > - [ ] We should get only the properties we want from aria2c when getting the queue, stopped, etc. We are getting quite a lot of information when we have thousands of downloads.
 > - [ ] Create wiki
 >   - [ ] xdg-mime default aria2tui-link-handler.desktop x-scheme-handler/magnet
+> - [ ] Improve display of downloads info:
+>   - [x] DL Info: Files
+>   - [ ] DL Info: Servers
+>   - [ ] DL Info: Peers
+>   - [ ] DL Info: Status
+>   - [ ] DL Info: Options
+>   - [ ] DL Info: Get all Info
 
 > [!error] Errors
 > - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **
