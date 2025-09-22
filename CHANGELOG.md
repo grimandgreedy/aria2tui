@@ -1,6 +1,8 @@
 # CHANGELOG.md
+## [0.1.11.4] 2025-09-22
+ - Ensured that changing options using nvim uses the same key=value format as the input files. Previously a structured json was used.
 
-## [0.1.11.3] 2025-09-17
+## [0.1.11.3] 2025-09-21
  - Fixed display notifications when adding download tasks.
  - Ensured compatibility with listpick changes to pane size parameter.
 

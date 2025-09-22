@@ -231,17 +231,25 @@ def changeOptionDialog(gid:str) -> str:
         return str(e)
 
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
-        json.dump(current_options, f, indent=4)
+        for key, value in current_options.items():
+            f.write(f"{key}={value}\n")
+
         temp_file = f.name
 
     cmd = f"nvim -i NONE {temp_file}"
     subprocess.run(cmd, shell=True)
 
+    loaded_options = {}
     with open(temp_file, "r") as f:
-        loaded_options = json.load(f)
+        for line in f.readlines():
+            line = line.strip()
+            if "=" in line:
+                ind = line.index("=")
+                key, value = line[:ind], line[ind+1:]
+                loaded_options[key.strip()] = value.strip()
 
     # Get difference between dicts
-    keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
+    keys_with_diff_values = set(key for key in current_options if key in loaded_options and current_options[key] != loaded_options.get(key, None))
 
     reqs = []
     for key in keys_with_diff_values:
@@ -305,17 +313,25 @@ def changeOptionBatchDialog(gids:list) -> str:
         return str(e)
 
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
-        json.dump(current_options, f, indent=4)
+        for key, value in current_options.items():
+            f.write(f"{key}={value}\n")
+
         temp_file = f.name
 
     cmd = f"nvim -i NONE {temp_file}"
     subprocess.run(cmd, shell=True)
 
+    loaded_options = {}
     with open(temp_file, "r") as f:
-        loaded_options = json.load(f)
+        for line in f.readlines():
+            line = line.strip()
+            if "=" in line:
+                ind = line.index("=")
+                key, value = line[:ind], line[ind+1:]
+                loaded_options[key.strip()] = value.strip()
 
     # Get difference between dicts
-    keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
+    keys_with_diff_values = set(key for key in current_options if key in loaded_options and current_options[key] != loaded_options.get(key, None))
 
     reqs = []
     for gid in gids:
