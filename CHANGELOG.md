@@ -1,4 +1,7 @@
 # CHANGELOG.md
+## [0.1.11.5] 2025-09-23
+ - Improved data display for DL Info: Files.
+
 ## [0.1.11.4] 2025-09-22
  - Ensured that changing options using nvim uses the same key=value format as the input files. Previously a structured json was used.
 

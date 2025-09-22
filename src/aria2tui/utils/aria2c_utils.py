@@ -92,6 +92,7 @@ def getOptionAndFileInfoBatch(gids: list[str]) -> Tuple[list, list]:
     return options_batch, files_info_batch
 
 def dataToPickerRows(dls, options_batch, files_info_batch, show_pc_bar: bool = True):
+    """ Take list of dl dicts and return list of desired attributes along with a header. """
     items = []
     for i, dl in enumerate(dls):
         try:
@@ -243,6 +244,8 @@ def changeOptionDialog(gid:str) -> str:
     with open(temp_file, "r") as f:
         for line in f.readlines():
             line = line.strip()
+            if line.startswith("#"):
+                continue
             if "=" in line:
                 ind = line.index("=")
                 key, value = line[:ind], line[ind+1:]
@@ -325,6 +328,8 @@ def changeOptionBatchDialog(gids:list) -> str:
     with open(temp_file, "r") as f:
         for line in f.readlines():
             line = line.strip()
+            if line.startswith("#"):
+                continue
             if "=" in line:
                 ind = line.index("=")
                 key, value = line[:ind], line[ind+1:]
@@ -951,40 +956,54 @@ def openFiles(files: list[str]) -> None:
         subprocess.Popen(f"gio launch /usr/share/applications/{app} {files_str}", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
 
-def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str = "", operation_function: Callable = lambda:None, operation_function_args: dict = {}, user_opts: str = "", view: bool =False, fnames:list=[], picker_view: bool = False) -> None:
+def applyToDownloads(
+    stdscr: curses.window,
+    operation,
+    gids: list = [],
+    operation_name: str = "",
+    operation_function: Callable = lambda:None,
+    operation_function_args: dict = {},
+    user_opts: str = "",
+    view: bool =False,
+    fnames:list=[],
+    picker_view: bool = False
+) -> None:
 
     responses = []
     if len(gids) ==0 : return None
-    if operation_name in ["Open File(s) (do not group)", "Open File(s)"]:
+    if operation.name in ["Open File(s) (do not group)", "Open File(s)"]:
         operation_function(gids)
-    elif operation_name in ["Change Options nvim (for all selected)"]:
+    elif operation.name in ["Change Options nvim (for all selected)"]:
         operation_function(gids)
-    elif operation_name in ["Change Options Picker (for each selected)"]:
-        operation_function(stdscr, gids[0])
-    elif operation_name in ["Change Options Picker (for all selected)"]:
+    elif operation.name in ["Change Options Picker (for each selected)"]:
+        for gid in gids:
+            operation_function(stdscr, gid)
+    elif operation.name in ["Change Options Picker (for all selected)"]:
         operation_function(stdscr, gids)
-    elif operation_name == "Transfer Speed Graph *experimental*":
+    elif operation.name == "Transfer Speed Graph *experimental*":
         fname = fnames[0]
         if len(fname)>20: fname = fname[:17] + '...'
 
         operation_function_args["title"] = f"{repr(fname)} Transfer Speeds"
         operation_function(gid=str(gids[0]), **operation_function_args)
 
-    elif operation_name == "Modify torrent files (active/paused/waiting)":
+    elif operation.name == "Modify torrent files (active/paused/waiting)":
         selected_download(stdscr, gids)
+    elif operation.exec_only:
+        operation.function(stdscr, gids, fnames, operation, **operation.function_args)
     else:
         for gid in gids:
             try:
                 jsonreq = {}
-                if operation_name == "Change Position":
+                if operation.name == "Change Position":
                     position = int(user_opts) if user_opts.strip().isdigit() else 0
                     jsonreq = operation_function(str(gid), position)
-                elif operation_name == "DL Info: Get All Info":
+                elif operation.name == "DL Info: Get All Info":
                     js_rs = getAllInfo(str(gid))
                     responses.append(js_rs)
-                elif operation_name == "Send to Back of Queue":
+                elif operation.name == "Send to Back of Queue":
                     jsonreq = operation_function(str(gid), pos=10000)
-                elif operation_name == "Send to Front of Queue":
+                elif operation.name == "Send to Front of Queue":
                     jsonreq = operation_function(str(gid), pos=0)
                 # elif len(operation_list) > 2:
                 #     operation_kwargs = operation_list[2]
@@ -1018,7 +1037,7 @@ def applyToDownloads(stdscr: curses.window, gids: list = [], operation_name: str
                 stdscr,
                 items=l,
                 search_query="function",
-                title=operation_name,
+                title=operation.name,
                 header=["Key", "Value"],
                 reset_colours=False,
                 cell_cursor=False,
@@ -1217,6 +1236,8 @@ def classify_download_string(input_string: str) -> str:
         return "Torrent File"
 
     return ""
+
+
 
 
 
