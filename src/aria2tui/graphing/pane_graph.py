@@ -115,7 +115,7 @@ def right_split_dl_graph(stdscr, x, y, w, h, state, row, cell, past_data: list =
     graph_str = get_graph_string(x_vals, dl_speeds, ul_speeds, width=w-3-10, height=h-4)
 
     # default_colours = state["colours"]["unselected_fg"], state["colours"]["unselected_bg"]
-    default_colours = curses.COLOR_WHITE, state["colours"]["unselected_bg"]
+    default_colours = curses.COLOR_YELLOW, state["colours"]["unselected_bg"]
     if curses.COLOR_PAIRS > 64:
         display_ansi(
             stdscr,

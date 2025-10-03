@@ -30,11 +30,44 @@ from listpick import *
 from listpick.listpick_app import *
 from listpick.ui.keys import *
 
+
+class Operation:
+    def __init__(
+        self,
+        name: str,
+        function: Callable,
+        # function: Callable[curses.window, list[str], list[str]],
+        function_args:dict = {},
+        meta_args: dict = {},
+        exec_only: bool = False,
+        accepts_gids_list: bool = False,
+        send_request: bool = False,
+        view: bool = False,
+        picker_view: bool = False,
+    ):
+        self.name = name
+        self.function = function
+        self.function_args = function_args
+        self.meta_args = meta_args
+        self.exec_only = exec_only
+        self.accepts_gids_list = accepts_gids_list
+        self.send_request = send_request
+        self.view = view
+        self.picker_view = picker_view
+        """
+        Operation.function(
+            stdscr: curses.window,
+            gids: list[str],
+            fnames: list[str],
+
+        )
+        """
+
 def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests if we can connect to the url and port. """
     url = f'{url}:{port}/jsonrpc'
     try:
-        with rq.urlopen(url, listMethods()) as c:
+        with rq.urlopen(url, listMethods(), timeout=1) as c:
             response = c.read()
         return True
     except:
@@ -45,7 +78,7 @@ def testAriaConnectionFull(url: str = "http://localhost", port: int = 6800) -> b
     url = f'{url}:{port}/jsonrpc'
     try:
         getVersion()
-        with rq.urlopen(url, getVersion()) as c:
+        with rq.urlopen(url, getVersion(), timeout=1) as c:
             response = c.read()
         return True
     except:
@@ -55,7 +88,7 @@ def te(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests the connection to the Aria2 server. """
     url = f'{url}:{port}/jsonrpc'
     try:
-        with rq.urlopen(url, listMethods()) as c:
+        with rq.urlopen(url, listMethods(), timeout=1) as c:
             response = c.read()
         return True
     except:
@@ -405,7 +438,7 @@ def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
             items=flattened_json, 
             header=["Key", "Value"],
             title=f"Change Options for {len(gids)} download(s)",
-            sort_column=1,
+            selected_column=1,
             editable_columns=[False, True],
             keys_dict=edit_menu_keys,
             startup_notification="'e' to edit cell. 'q' to exit. 'Return' to submit changes.",
@@ -958,7 +991,7 @@ def openFiles(files: list[str]) -> None:
 
 def applyToDownloads(
     stdscr: curses.window,
-    operation,
+    operation: Operation,
     gids: list = [],
     operation_name: str = "",
     operation_function: Callable = lambda:None,
@@ -968,81 +1001,89 @@ def applyToDownloads(
     fnames:list=[],
     picker_view: bool = False
 ) -> None:
+    """
+    Applies a given operation to a list of aria2c GIDs.
+
+    Parameters:
+    - stdscr: The standard screen object from curses.
+    - operation: An object containing details about the operation to perform.
+    - gids: A list of download IDs to which the operation will be applied.
+    - operation_name: Optional name for the operation.
+    - operation_function: Optional function to handle the operation logic.
+    - operation_function_args: Optional arguments for the operation function.
+    - user_opts: User-provided options, such as position for change operations.
+    - view: Flag indicating whether to display the results in a view.
+    - fnames: List of filenames corresponding to the gids.
+    - picker_view: Flag indicating whether to use a picker view for displaying results.
+
+    Returns: None
+    """
 
     responses = []
-    if len(gids) ==0 : return None
-    if operation.name in ["Open File(s) (do not group)", "Open File(s)"]:
-        operation_function(gids)
-    elif operation.name in ["Change Options nvim (for all selected)"]:
-        operation_function(gids)
-    elif operation.name in ["Change Options Picker (for each selected)"]:
-        for gid in gids:
-            operation_function(stdscr, gid)
-    elif operation.name in ["Change Options Picker (for all selected)"]:
-        operation_function(stdscr, gids)
-    elif operation.name == "Transfer Speed Graph *experimental*":
-        fname = fnames[0]
-        if len(fname)>20: fname = fname[:17] + '...'
+    if len(gids) == 0 : return None
 
-        operation_function_args["title"] = f"{repr(fname)} Transfer Speeds"
-        operation_function(gid=str(gids[0]), **operation_function_args)
-
-    elif operation.name == "Modify torrent files (active/paused/waiting)":
-        selected_download(stdscr, gids)
-    elif operation.exec_only:
-        operation.function(stdscr, gids, fnames, operation, **operation.function_args)
+    result = []
+    if operation.accepts_gids_list:
+        result = operation.function(
+            stdscr=stdscr, 
+            gids=gids,
+            fnames=fnames,
+            operation=operation,
+            function_args=operation.function_args
+        )
+        if operation.send_request:
+            result = sendReq(result)
     else:
-        for gid in gids:
+        for i, gid in enumerate(gids):
             try:
                 jsonreq = {}
                 if operation.name == "Change Position":
                     position = int(user_opts) if user_opts.strip().isdigit() else 0
-                    jsonreq = operation_function(str(gid), position)
-                elif operation.name == "DL Info: Get All Info":
-                    js_rs = getAllInfo(str(gid))
-                    responses.append(js_rs)
-                elif operation.name == "Send to Back of Queue":
-                    jsonreq = operation_function(str(gid), pos=10000)
-                elif operation.name == "Send to Front of Queue":
-                    jsonreq = operation_function(str(gid), pos=0)
-                # elif len(operation_list) > 2:
-                #     operation_kwargs = operation_list[2]
-                #     jsonreq = operation_function(str(gid), **operation_kwargs)
+                    result_part = changePosition(gid, pos=position)
                 else:
-                    jsonreq = operation_function(gid=str(gid), **operation_function_args)
+                    result_part = operation.function(
+                        stdscr=stdscr, 
+                        gid=gid,
+                        fname=fnames[i],
+                        operation=operation,
+                        function_args=operation.function_args
+                    )
 
-                js_rs = sendReq(jsonreq)
-                responses.append(js_rs)
+                if operation.send_request:
+                    result_part = sendReq(result_part)
+                result.append(result_part)
             except:
                 pass
-                # responses.append({})
-        if view:
-            with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
-                for i, response in enumerate(responses):
-                    tmpfile.write(f'{"*"*50}\n{str(i)+": "+gids[i]:^50}\n{"*"*50}\n')
-                    tmpfile.write(json.dumps(response, indent=4))
-                tmpfile_path = tmpfile.name
-            # cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
-            # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
-            cmd = f"nvim {tmpfile_path}"
-            process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-        elif picker_view:
-            l = []
+
+
+    if operation.picker_view:
+        l = []
+        for i, response in enumerate(result):
+            l += [[gid, "------"]]
+            if "result" in response: response = response["result"]
+            response = process_dl_dict(response)
+            l += [[key, val] for key, val in flatten_data(response).items()]
+        x = Picker(
+            stdscr,
+            items=l,
+            search_query="function",
+            title=operation.name,
+            header=["Key", "Value"],
+            reset_colours=False,
+            cell_cursor=False,
+        )
+        x.run()
+    elif operation.view:
+        with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
             for i, response in enumerate(responses):
-                l += [[gid, "------"]]
-                if "result" in response: response = response["result"]
-                response = process_dl_dict(response)
-                l += [[key, val] for key, val in flatten_data(response).items()]
-            x = Picker(
-                stdscr,
-                items=l,
-                search_query="function",
-                title=operation.name,
-                header=["Key", "Value"],
-                reset_colours=False,
-                cell_cursor=False,
-            )
-            x.run()
+                tmpfile.write(f'{"*"*50}\n{str(i)+": "+gids[i]:^50}\n{"*"*50}\n')
+                tmpfile.write(json.dumps(result, indent=4))
+            tmpfile_path = tmpfile.name
+        # cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
+        # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
+        cmd = f"nvim {tmpfile_path}"
+        process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+
 
     stdscr.clear()
 
@@ -1055,8 +1096,17 @@ def process_dl_dict(dls):
                 dl[key] = bytes_to_human_readable(dl[key])
     return dls
 
-def selected_download(stdscr, gids):
-    """ For each gid, present the user with the files for that gid and allow them to select which should be downloaded. """
+def download_selected_files(stdscr, gids):
+    """
+    Present the user with files for each given GID and allow them to select which files should be downloaded.
+
+    Args:
+        stdscr (ncurses.window): The main window for ncurses application.
+        gids (list): A list of group IDs for which files are to be selected.
+
+    Returns:
+        None
+    """
 
     for gid in gids:
         req = getFiles(gid)

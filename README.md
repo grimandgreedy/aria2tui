@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/7c77a13f-90c7-4e67-9946-7b7009c835ad
 
 ## Quickstart
 
-See the newly created [wiki](https://github.com/grimandgreedy/aria2tui/wiki).
+See the [wiki](https://github.com/grimandgreedy/aria2tui/wiki).
 
 Install aria2tui using pip:
 ```bash

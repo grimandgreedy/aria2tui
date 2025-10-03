@@ -1,4 +1,14 @@
 # CHANGELOG.md
+## [0.1.11.6] 2025-10-03
+ - Added a timeout when testing the connection to the aria daemon to ensure that if aria2c crashes (but is still running) the pplication does not simply hang.
+ - Improved the Operation class so that it accounts for all of the relevant menu options without requiring special cases in the logic of the applyToDownloads() function.
+ - Cleaned up the applyToDownloads() function
+ - Improved documentation for a few key functions (applyToDownloads, main app loop)
+ - Enabled colours for up/download graphs in the full-screen graphs.
+ - Made the full-screen graphs the same style as the pane graphs.
+
+ Added timeout when testing connection. Cleaned up applyToDownloads() function. Improved Operation class.
+
 ## [0.1.11.5] 2025-09-23
  - Improved data display for DL Info: Files.
 

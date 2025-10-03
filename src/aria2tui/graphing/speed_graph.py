@@ -8,16 +8,15 @@ License: MIT
 """
 
 import sys, os
-sys.path.append(os.path.expanduser(".."))
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.chdir("../../..")
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
+from aria2tui.graphing.graph_utils import display_ansi
 from listpick import *
 from listpick.listpick_app import *
 import time
 import re
 from typing import Callable
+import curses
 
 def escape_ansi(line: str) -> str:
     """ Remove ansi characters from string. """
@@ -64,16 +63,23 @@ def graph_speeds(
         y.append(down)
         y2.append(up)
 
+
         fig = plt.Figure()
-        fig.plot(x, y)
-        fig.plot(x, y2)
+        fig.color_mode = 'byte'
+        fig.origin = False
+
+        # Plot values
+        fig.plot(x, y, lc=curses.COLOR_BLUE)
+        fig.plot(x, y2, lc=curses.COLOR_GREEN)
 
         fig.y_ticks_fkt = lambda y, _: bytes_to_human_readable(y) + "/s"
         fig.x_ticks_fkt = lambda x, _: f"{int(x)}s"
         fig.set_y_limits(min_=0)
         fig.set_x_limits(min_=0)
-        fig.text([x[-1]], [y[0]], ['Dn'])
-        fig.text([x[0]], [y2[0]], ['Up'])
+        fig.x_label = "t"
+        fig.y_label = "data/s"
+        fig.text([x[-1]], [y[0]], ['Dn'], lc=curses.COLOR_BLUE)
+        fig.text([x[0]], [y2[0]], ['Up'], lc=curses.COLOR_GREEN)
 
         width, height = graph_wh()
         fig.width = width - 7
@@ -82,18 +88,35 @@ def graph_speeds(
         xpos, ypos = xposf(), yposf()
         maxw, maxh = globw-xpos-1, globh-ypos
 
-        stdscr.erase()
+        stdscr.clear()
+
+        default_colours = curses.COLOR_YELLOW, 232
+        curses.init_pair(199, default_colours[0], default_colours[1])
 
         # Draw title
-        stdscr.addstr(ypos, xpos, f"{title:^{min(width,maxw)}}")
+        stdscr.addstr(ypos, xpos, f"{title:^{min(width,maxw)}}", curses.color_pair(199))
+
+        # Clear background
+        stdscr.bkgd(' ', curses.color_pair(199))  # Apply background color
 
         # Draw graph
-        lines = fig.show().split('\n')
-        for i, line in enumerate(lines):
-            if i > maxh-2: break
-            line = escape_ansi(line)
+        graph_str = fig.show()
 
-            stdscr.addstr(i+1+ypos, xpos , line[:min(width,maxw)])
+        if curses.COLOR_PAIRS > 64:
+            display_ansi(
+                stdscr,
+                ansi_lines=graph_str.split("\n"),
+                x=xpos,
+                y=ypos,
+                w=width,
+                h=height,
+                pair_offset=200,
+                default_colours=default_colours,
+            )
+        else:
+            for i, s in enumerate(graph_str.split("\n")):
+                s = escape_ansi(s)
+                stdscr.addstr(ypos+i, xpos, s[:width])
 
         # Show the extreme points of the width and also the last printable char (for debugging)
         show_control_chars = False
@@ -144,15 +167,21 @@ def graph_speeds_gid(
         y2.append(up)
 
         fig = plt.Figure()
-        fig.plot(x, y)
-        fig.plot(x, y2)
+        fig.color_mode = 'byte'
+        fig.origin = False
+
+
+        fig.plot(x, y, curses.COLOR_BLUE)
+        fig.plot(x, y2, curses.COLOR_GREEN)
 
         fig.y_ticks_fkt = lambda y, _: bytes_to_human_readable(y) + "/s"
         fig.x_ticks_fkt = lambda x, _: f"{int(x)}s"
         fig.set_y_limits(min_=0)
         fig.set_x_limits(min_=0)
-        fig.text([x[-1]], [y[0]], ['Dn'])
-        fig.text([x[0]], [y2[0]], ['Up'])
+        fig.x_label = "t"
+        fig.y_label = "data/s"
+        fig.text([x[-1]], [y[0]], ['Dn'], curses.COLOR_BLUE)
+        fig.text([x[0]], [y2[0]], ['Up'], curses.COLOR_GREEN)
 
         width, height = graph_wh()
         fig.width = width - 7
@@ -161,18 +190,36 @@ def graph_speeds_gid(
         xpos, ypos = xposf(), yposf()
         maxw, maxh = globw-xpos-1, globh-ypos
 
-        stdscr.erase()
+        stdscr.clear()
+
+
+        default_colours = curses.COLOR_YELLOW, 232
+        curses.init_pair(199, default_colours[0], default_colours[1])
 
         # Draw title
-        stdscr.addstr(ypos, xpos, f"{title:^{min(width,maxw)}}")
+        stdscr.addstr(ypos, xpos, f"{title:^{min(width,maxw)}}", curses.color_pair(199))
+
+        # Clear background
+        stdscr.bkgd(' ', curses.color_pair(199))  # Apply background color
 
         # Draw graph
-        lines = fig.show().split('\n')
-        for i, line in enumerate(lines):
-            if i > maxh-2: break
-            line = escape_ansi(line)
+        graph_str = fig.show()
 
-            stdscr.addstr(i+1+ypos, xpos , line[:min(width,maxw)])
+        if curses.COLOR_PAIRS > 64:
+            display_ansi(
+                stdscr,
+                ansi_lines=graph_str.split("\n"),
+                x=xpos,
+                y=ypos,
+                w=width,
+                h=height,
+                pair_offset=200,
+                default_colours=default_colours,
+            )
+        else:
+            for i, s in enumerate(graph_str.split("\n")):
+                s = escape_ansi(s)
+                stdscr.addstr(ypos+i, xpos, s[:width])
 
         # Show the extreme points of the width and also the last printable char
         show_control_chars = False
