@@ -1,7 +1,34 @@
 import curses
 import re
 
-def display_ansi(stdscr, ansi_lines, x=0, y=0, w=None, h=None, colour_pair_map={}, pair_offset=1, default_colours=(curses.COLOR_WHITE, curses.COLOR_BLACK)):
+def display_ansi(
+    stdscr: curses.window,
+    ansi_lines: list[str],
+    x: int = 0,
+    y: int = 0,
+    w: int = None,
+    h: int = None,
+    colour_pair_map: dict[tuple[int, int], int] = {},
+    pair_offset: int = 1,
+    default_colours: tuple[int, int] = (curses.COLOR_WHITE, curses.COLOR_BLACK)
+) -> None:
+    """
+    Display ANSI formatted text on a curses window.
+
+    Parameters:
+    - stdscr: The main curses window.
+    - ansi_lines: A list of strings containing ANSI escape sequences.
+    - x (int): Horizontal starting position. Default is 0.
+    - y (int): Vertical starting position. Default is 0.
+    - w (int): Width of the display area. Default is the full width of the window minus x.
+    - h (int): Height of the display area. Default is the full height of the window minus y.
+    - colour_pair_map (dict): A dictionary mapping (fg, bg) color pairs to curses pair numbers.
+    - pair_offset (int): The offset for generating new color pairs. Default is 1.
+    - default_colours (tuple): Default foreground and background colours. Default is (curses.COLOR_WHITE, curses.COLOR_BLACK).
+
+    Returns:
+    None
+    """
     max_pairs = 255 if hasattr(curses, 'COLOR_PAIRS') else 64
 
     colour_pair_map = {}
@@ -53,7 +80,7 @@ def display_ansi(stdscr, ansi_lines, x=0, y=0, w=None, h=None, colour_pair_map={
             if x_offset >= w:
                 break
 
-def parse_ansi(text):
+def parse_ansi(text: str):
     """
     Parses ANSI escape sequences and returns a list of (text, fg, bg) tuples.
     Supports full SGR sequences including 8-bit foreground and background.

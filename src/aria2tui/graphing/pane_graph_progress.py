@@ -221,19 +221,12 @@ def get_progress_graph_string(x_vals, dls_progress, width=50, height=20, title=N
         x_dense, y_dense = x_vals, dls_progress
 
     for x, y in zip(x_dense, y_dense):
-        fig.plot([x, x], [0, y], lc=curses.COLOR_BLUE)
+        fig.plot([x, x], [0, y], lc=curses.COLOR_WHITE)
     
-    # if dls_progress[-1] != 1:
-    #     # fig.text([x_dense[len(x_dense)//2]], [dls_progress[-1]], [f"{dls_progress[-1]*100:.1f}%"])
-    #     # fig.text([(max(x_dense)-min(x_dense))/2], [.5], [f"{dls_progress[-1]*100:.1f}%"])
-    #     fig.text([0], [0.95], [f"{dls_progress[-1]*100:.1f}%"])
-    # else:
-    #     # fig.text([(max(x_dense)-min(x_dense))/2], [.5], [f"{dls_progress[-1]*100:.1f}%"])
-    #     fig.text([0], [0.95], [f"{dls_progress[-1]*100:.1f}%"])
     pc = f"{dls_progress[-1]*100:.1f}%" if dls_progress[-1] < 1 else "100%"
     text_y = min(y_dense[-1] + 0.1, 0.95)
     text_x = max((width-8)/width * x_dense[-1], 0)
-    fig.text([text_x], [text_y], [pc], lc=curses.COLOR_BLUE)
+    fig.text([text_x], [text_y], [pc], lc=curses.COLOR_WHITE)
 
     fig.width = width-10
     fig.height = height-4

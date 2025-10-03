@@ -7,7 +7,12 @@ Author: GrimAndGreedy
 License: MIT
 """
 
-import os, sys
+import os
+import sys
+import curses 
+
+from listpick.listpick_app import *
+
 from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, operations_highlights
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
@@ -17,9 +22,8 @@ from aria2tui.graphing.pane_graph import get_dl_data, right_split_dl_graph
 from aria2tui.graphing.pane_graph_progress import get_dl_progress, right_split_dl_progress_graph
 from aria2tui.graphing.pane_pieces import right_split_piece_progress, get_dl_pieces
 from aria2tui.graphing.pane_files import right_split_files, get_dl_files
-
-from listpick.listpick_app import *
 from aria2tui.utils.display_info import *
+
 
 config = get_config()
 paginate = config["general"]["paginate"]
@@ -32,74 +36,249 @@ refresh_timer = config["general"]["refresh_timer"]
 show_graph = config["appearance"]["show_right_pane_default"]
 right_pane_index = config["appearance"]["right_pane_default_index"]
 
-class Option:
-    def __init__(
-        self, name: str,
-        function: Callable,
-        function_args:dict = {},
-        meta_args: dict = {},
-        exec_only: bool = False,
-    ):
-        self.name = name
-        self.function = function
-        self.function_args = function_args
-        self.meta_args = meta_args
-        self.exec_only = exec_only
 
 download_options = [
-    Option("Pause",   pause),
-    Option("Unpause", unpause),
-    Option("Change Options Picker (for each selected)", changeOptionPicker),
-    Option("Change Options Picker (for all selected)", changeOptionsBatchPicker),
-    Option("Change Options nvim (for each selected)", changeOptionDialog),
-    Option("Change Options nvim (for all selected)", changeOptionBatchDialog),
-    Option("Modify torrent files (active/paused/waiting)", selected_download),
-    Option("Change Position", changePosition),
-    Option("Send to Front of Queue", changePosition, {"pos":0}),
-    Option("Send to Back of Queue", changePosition, {"pos":10000}),
-    Option("Retry Download", retryDownload),
-    Option("Retry Download and Pause", retryDownloadAndPause),
-    Option("Remove (paused/waiting)", remove),
-    # Option("forceRemove", forceRemove),
-    # Option("removeStopped", removeDownloadResult),
-    Option("Remove (errored/completed)", removeDownloadResult),
+    Operation(
+        name="Resume Download(s)",
+        function=lambda stdscr, gid, fname, operation, function_args: unpause(gid),
+        send_request=True
+    ),
+    Operation(
+        name="Pause Download(s)",
+        function=lambda stdscr, gid, fname, operation, function_args: pause(gid),
+        send_request=True,
+    ),
+    Operation(
+        name="Change Options Picker (for each selected)",
+        function=lambda stdscr, gid, fname, operation, function_args: changeOptionPicker(stdscr, gid),
+    ),
+    Operation(
+        name="Change Options Picker (for all selected)",
+        function=lambda stdscr, gids, fnames, operation, function_args: changeOptionsBatchPicker(stdscr, gids),
+        accepts_gids_list=True,
+    ),
+    Operation(
+        name="Change Options nvim (for each selected)",
+        function=lambda stdscr, gid, fname, operation, function_args: changeOptionDialog(gid),
+    ),
+    Operation(
+        name="Change Options nvim (for all selected)",
+        function=lambda stdscr, gids, fnames, operation, function_args: changeOptionBatchDialog(gids),
+        accepts_gids_list=True,
+    ),
+    Operation(
+        name="Modify torrent files (active/paused/waiting)",
+        function=lambda stdscr, gids, fnames, operation, function_args: download_selected_files(stdscr, gids),
+        accepts_gids_list=True,
+    ),
+    Operation(
+        name="Change Position",
+        function=lambda stdscr, gid, fname, operation, function_args: changePosition(gid),
+        send_request=True,
+    ),
+    Operation(
+        name="Send to Front of Queue",
+        function=lambda stdscr, gid, fname, operation, function_args: changePosition(gid, pos=0),
+        send_request=True,
+    ),
+    Operation(
+        name="Send to Back of Queue",
+        function=lambda stdscr, gid, fname, operation, function_args: changePosition(gid, pos=100000),
+        send_request=True,
+    ),
+    Operation(
+        name="Retry Download",
+        function=lambda stdscr, gid, fname, operation, function_args: retryDownload(gid),
+    ),
+    Operation(
+        name="Retry Download and Pause",
+        function=lambda stdscr, gid, fname, operation, function_args: retryDownloadAndPause(gid),
+    ),
+    Operation(
+        name="Remove (paused/waiting)",
+        function=lambda stdscr, gid, fname, operation, function_args: remove(gid),
+        send_request=True,
+    ),
+    # Operation("forceRemove", forceRemove),
+    # Operation("removeStopped", removeDownloadResult),
+    Operation(
+        name="Remove (errored/completed)",
+        function=lambda stdscr, gid, fname, operation, function_args: removeDownloadResult(gid),
+        send_request=True,
+    ),
 
+    Operation(
+        name="DL Info: Files",
+        function=lambda stdscr, gids, fnames, operation, function_args: display_files(stdscr, gids, fnames, operation),
+        accepts_gids_list=True,
+    ),
+    Operation(
+        name="DL Info: Servers",
+        function=lambda stdscr, gid, fname, operation, function_args: getServers(gid),
+        meta_args={"picker_view":True},
+        send_request=True,
+        picker_view=True,
+    ),
+    Operation(
+        name="DL Info: Peers",
+        function=lambda stdscr, gid, fname, operation, function_args: getPeers(gid),
+        meta_args={"picker_view":True},
+        send_request=True,
+        picker_view=True,
+    ),
+    Operation(
+        name="DL Info: URIs",
+        function=lambda stdscr, gid, fname, operation, function_args: getUris(gid),
+        meta_args={"picker_view":True},
+        send_request=True,
+        picker_view=True,
+    ),
+    Operation(
+        name="DL Info: Status Info",
+        function=lambda stdscr, gid, fname, operation, function_args: tellStatus(gid),
+        meta_args={"picker_view":True},
+        send_request=True,
+        picker_view=True,
+    ),
+    Operation(
+        name="DL Info: Aria2c Options",
+        function=lambda stdscr, gid, fname, operation, function_args: getOption(gid),
+        meta_args={"picker_view":True},
+        send_request=True,
+        picker_view=True,
+    ),
+    Operation(
+        name="DL Info: Get All Info",
+        function=lambda stdscr, gid, fname, operation, function_args: getAllInfo(gid),
+        meta_args={"picker_view":True},
+        picker_view=True,
+    ),
+    Operation(
+        name="Open Download Location (terminal)",
+        function=lambda stdscr, gid, fname, operation, function_args: openDownloadLocation(gid, new_window=False),
+        meta_args={"refresh_terminal_options": True}
+    ),
+    Operation(
+        name="Open Download Location (gui, new window)",
+        function=lambda stdscr, gid, fname, operation, function_args: openDownloadLocation(gid),
+    ),
+    Operation(
+        name="Open File(s)",
+        function=lambda stdscr, gids, fnames, operation, function_args: openGidFiles(gids),
+        accepts_gids_list=True,
+    ),
+    Operation(
+        name="Open File(s) (do not group)",
+        function=lambda stdscr, gids, fnames, operation, function_args: openGidFiles(gids, group=False),
+        accepts_gids_list=True,
+    ),
+    Operation(
+        name="Transfer Speed Graph", 
+        function=lambda stdscr, gid, fname, operation, function_args: graph_speeds_gid(stdscr, gid=gid, **function_args), 
+        function_args={
+            "get_data_function": lambda gid: sendReq(tellStatus(gid)),
 
-    Option("DL Info: Files", display_files, {}, {"picker_view":True}, exec_only = True),
-    Option("DL Info: Servers", getServers, {}, {"picker_view":True}),
-    Option("DL Info: Peers", getPeers, {}, {"picker_view":True}),
-    Option("DL Info: URIs", getUris, {}, {"picker_view":True}),
-    Option("DL Info: Status Info", tellStatus, {}, {"picker_view":True}),
-    Option("DL Info: Aria2c Options", getOption, {}, {"picker_view":True}),
-    Option("DL Info: Get All Info", getAllInfo, {}, {"picker_view":True}),
+            "graph_wh" : lambda: (
+                9*os.get_terminal_size()[0]//10,
+                9*os.get_terminal_size()[1]//10,
+            ),
+            "timeout": 1000,
 
-    Option("Open Download Location (terminal)", lambda gid: openDownloadLocation(gid, new_window=False), {}, {"refresh_terminal_options": True}),
-    Option("Open Download Location (gui, new window)", openDownloadLocation),
-    Option("Open File(s)", openGidFiles),
-    Option("Open File(s) (do not group)", lambda gids: openGidFiles(gids, group=False)),
+            "xposf" : lambda: os.get_terminal_size()[0]//20,
+            "yposf" : lambda: os.get_terminal_size()[1]//20,
+            "title": "Download Transfer Speeds",
+        }
+    ),
 
 ]
 
 
 menu_options = [
-    Option("Watch Downloads", lambda: 4),
-    Option("View Downloads", lambda: 4),
-    # Option("Add URIs", addUris, {}, {"refresh_terminal_options": True}),
-    # Option("Add URIs and immediately pause", addUrisAndPause, {}, {"refresh_terminal_options": True}),
-    Option("Add Download Tasks", addDownloadsAndTorrents, {}, {"refresh_terminal_options": True}),
-    Option("Add Download Tasks & Pause", addDownloadsAndTorrentsAndPause, {}, {"refresh_terminal_options": True}),
-    Option("Add Torrents (file picker)", addTorrentsFilePicker, {}, {"refresh_terminal_options": True}),
-    # Option("Add Torrents (nvim)", addTorrents, {}, {"refresh_terminal_options": True}),
-    # Option("Pause All", pauseAll),
-    # Option("Force Pause All", forcePauseAll),
-    # Option("Remove completed/errored downloads", removeCompleted),
+    Operation(
+        name="Watch Downloads",
+        function=lambda: 4
+    ),
+    Operation(
+        name="View Downloads",
+        function=lambda stdscr=None, gid=0, fname="", operation=None, function_args={}: 4,
+    ),
+    # Operation( name="Add URIs", addUris, {}, {"refresh_terminal_options": True}),
+    # Operation( name="Add URIs and immediately pause", addUrisAndPause, {}, {"refresh_terminal_options": True}),
+    Operation(
+        name="Add Download Tasks",
+        function=lambda stdscr, gids, fnames, operation, function_args: addDownloadsAndTorrents(),
+        meta_args={"refresh_terminal_options": True}),
+    Operation(
+        name="Add Download Tasks & Pause", 
+        function=lambda stdscr, gids, fnames, operation, function_args: addDownloadsAndTorrentsAndPause(),
+        meta_args={"refresh_terminal_options": True}
+    ),
+    Operation(
+        name="Add Torrents (file picker)",
+        function=lambda stdscr, gids, fnames, operation, function_args: addTorrentsFilePicker(),
+        meta_args={"refresh_terminal_options": True},
+    ),
+    # Operation( name="Add Torrents (nvim)", addTorrents, {}, {"refresh_terminal_options": True}),
+    # Operation( name="Pause All", pauseAll),
+    # Operation( name="Force Pause All", forcePauseAll),
+    # Operation( name="Remove completed/errored downloads", removeCompleted),
 
-    Option("Get Global Options", getGlobalOption,{},{"picker_view": True}),
-    Option("Get Global Stat", getGlobalStat,{},{"picker_view": True}),
-    Option("Get Session Info", getSessionInfo,{},{"picker_view": True}),
-    Option("Get Version", getVersion,{},{"picker_view": True}),
-    Option("Edit Config", editConfig, {}, {"refresh_terminal_options": True}),
-    Option("Restart Aria", restartAria,{},{"display_message": "Restarting Aria2c..." }),
+    Operation(
+        name="Get Global Options",
+        function=lambda stdscr, gids, fnames, operation, function_args: getGlobalOption(),
+        picker_view=True,
+        send_request=True,
+        meta_args={"picker_view": True}
+    ),
+    Operation(
+        name="Get Global Stats",
+        function=lambda stdscr, gids, fnames, operation, function_args: getGlobalStat(),
+        picker_view=True,
+        send_request=True,
+        meta_args={"picker_view": True},
+    ),
+    Operation(
+        name="Get Session Info",
+        function=lambda stdscr, gids, fnames, operation, function_args: getSessionInfo(),
+        picker_view=True,
+        send_request=True,
+        meta_args={"picker_view": True}
+    ),
+    Operation(
+        name="Get Version",
+        function=lambda stdscr, gids, fnames, operation, function_args: getVersion(),
+        picker_view=True,
+        send_request=True,
+        meta_args={"picker_view": True}
+    ),
+    Operation(
+        name="Edit Config",
+        function=lambda stdscr, gids, fnames, operation, function_args: editConfig(), 
+        meta_args= {"refresh_terminal_options": True}
+    ),
+    Operation(
+        name="Restart Aria",
+        function=lambda stdscr, gids, fnames, operation, function_args: restartAria(),
+        picker_view=True,
+        meta_args={"display_message": "Restarting Aria2c..." }
+    ),
+    Operation(
+        name="Transfer Speed Graph (Global)", 
+        function=lambda stdscr, gids, fnames, operation, function_args: graph_speeds(stdscr, **function_args), 
+        function_args={
+            "get_data_function": lambda: sendReq(getGlobalStat()),
+
+            "graph_wh" : lambda: (
+                9*os.get_terminal_size()[0]//10,
+                9*os.get_terminal_size()[1]//10,
+            ),
+            "timeout": 1000,
+
+            "xposf" : lambda: os.get_terminal_size()[0]//20,
+            "yposf" : lambda: os.get_terminal_size()[1]//20,
+            "title": "Global Transfer Speeds",
+        }
+    ),
 ]
 
 
@@ -199,6 +378,7 @@ downloads_data = {
     # "split_right_refresh_data": get_dl_progress,
 }
 dl_operations_data = {
+    "items": [[download_option.name] for download_option in download_options],
     "top_gap": 0,
     "highlights": operations_highlights,
     "paginate": paginate,

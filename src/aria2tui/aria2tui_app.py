@@ -16,9 +16,6 @@ import toml
 import json
 import curses
 
-# os.chdir("../..")
-# sys.path.append(os.path.expanduser("../../"))
-
 from listpick.listpick_app import *
 from listpick.listpick_app import Picker, start_curses, close_curses, restrict_curses, unrestrict_curses
 
@@ -27,15 +24,15 @@ from aria2tui.utils.aria2c_utils import *
 from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, operations_highlights
 from aria2tui.ui.aria2tui_keys import download_option_keys
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
-from aria2tui.ui.aria2tui_menu_options import menu_options, download_options, Option, menu_data, downloads_data, dl_operations_data
+from aria2tui.ui.aria2tui_menu_options import menu_options, download_options, menu_data, downloads_data, dl_operations_data
 
 
 class Aria2TUI:
     def __init__(
         self,
         stdscr: curses.window,
-        download_options: list[Option],
-        menu_options: list[Option],
+        download_options: list[Operation],
+        menu_options: list[Operation],
         menu_data: dict,
         downloads_data: dict,
         dl_operations_data: dict,
@@ -46,7 +43,6 @@ class Aria2TUI:
         self.menu_data = menu_data
         self.downloads_data = downloads_data
         self.dl_operations_data = dl_operations_data
-        self.add_graph_to_options()
         self.add_require_option_to_dl_operations()
 
 
@@ -54,74 +50,38 @@ class Aria2TUI:
         self.dl_operations_data["require_option"] =  [False if option.name != "Change Position" else True for option in self.download_options]
         self.dl_operations_data["option_functions"] = [None if option.name != "Change Position" else lambda stdscr, refresh_screen_function=None: default_option_selector(stdscr, field_prefix=" Download Position: ", refresh_screen_function=refresh_screen_function) for option in self.download_options]
 
-    def add_graph_to_options(self) -> None:
-        """ Add the transmission speed graphs to the menu options. """
-        self.download_options.append(
-            Option("Transfer Speed Graph", graph_speeds_gid, {
-                "stdscr": self.stdscr,
-                "get_data_function": lambda gid: sendReq(tellStatus(gid)),
-
-                "graph_wh" : lambda: (
-                    9*os.get_terminal_size()[0]//10,
-                    9*os.get_terminal_size()[1]//10,
-                ),
-                "timeout": 1000,
-
-                "xposf" : lambda: os.get_terminal_size()[0]//20,
-                "yposf" : lambda: os.get_terminal_size()[1]//20,
-                "title": "Download Transfer Speeds",
-            }),
-        )
-        options_names = [[option.name] for option in self.download_options]
-        self.dl_operations_data["items"] = options_names
-
-        self.menu_options.append(
-            Option("Transfer Speed Graph (Global)", graph_speeds, {
-                "stdscr": self.stdscr,
-                "get_data_function": lambda: sendReq(getGlobalStat()),
-                "graph_wh" : lambda: (
-                    9*os.get_terminal_size()[0]//10,
-                    9*os.get_terminal_size()[1]//10,
-                ),
-                "xposf" : lambda: os.get_terminal_size()[0]//20,
-                "yposf" : lambda: os.get_terminal_size()[1]//20,
-                "title": "Global Transfer Speeds",
-            }),
-        )
-        # self.menu_data["items"] = [[menu_option.name] for menu_option in self.menu_options],
-        menu_names = [[option.name] for option in self.menu_options]
-        self.menu_data["items"] = menu_names
-        # MenuPicker.set_function_data(self.menu_data)
-
-    def check_and_refresh_terminal_options(self, menu_option: Option, stdscr: curses.window):
+    def check_and_refresh_terminal_options(self, menu_option: Operation, stdscr: curses.window):
         if "refresh_terminal_options" in menu_option.meta_args and menu_option.meta_args["refresh_terminal_options"]:
             restrict_curses(stdscr)
             unrestrict_curses(stdscr)
             
 
     def run(self) -> None:
-        """ Run Aria2TUI app loop. """
+        """ 
+        Run Aria2TUI app loop.
+        """
+
+        # Create the main menu, downloads, and operations Picker objects
         DownloadsPicker = Picker(self.stdscr, **self.downloads_data)
         DownloadsPicker.load_input_history("~/.config/aria2tui/cmdhist.json")
         MenuPicker = Picker(self.stdscr, **self.menu_data)
         DownloadOperationPicker = Picker(self.stdscr, **self.dl_operations_data)
+
+
         while True:
-            ## SELECT DOWNLOADS
+
+            ## DISPLAY DOWNLOADS
             selected_downloads, opts, self.downloads_data = DownloadsPicker.run()
+
             # When going back to the Downloads picker after selecting a download it shouldn't wait to get new data before displaying the picker
             DownloadsPicker.get_data_startup = False
 
             if selected_downloads:
-
+                ## CHOOSE OPERATION TO APPLY TO SELECTED DOWNLOADS
                 items, header = self.downloads_data["items"], self.downloads_data["header"]
                 gid_index, fname_index = header.index("GID"), header.index("Name")
                 gids = [item[gid_index] for i, item in enumerate(items) if i in selected_downloads]
                 fnames = [item[fname_index] for i, item in enumerate(items) if i in selected_downloads]
-
-                # Display the download names in an infobox when selecting which operation to perform
-                # self.dl_operations_data["display_infobox"] = True
-                # self.dl_operations_data["infobox_items"] = [[f] for f in fnames]
-                # self.dl_operations_data["infobox_title"] = f"{len(fnames)} Selected..."
 
                 # Display the download names in a right pane
                 self.dl_operations_data["right_panes"] = [
@@ -136,7 +96,6 @@ class Aria2TUI:
                 ]
                 self.dl_operations_data["split_right"] = True
 
-                ## SELECT OPERATION TO APPLY TO SELECTED DOWNLOADS
                 DownloadOperationPicker.set_function_data(self.dl_operations_data)
                 selected_operation, opts, self.dl_operations_data = DownloadOperationPicker.run()
                 if selected_operation:
@@ -170,8 +129,9 @@ class Aria2TUI:
 
             else: 
 
+                ## If we have not selected any downloads, then we have exited the downloads picker
+                ## DISPLAY MAIN MENU
                 while True:
-                    ## SELECT MENU OPTION
                     selected_menu, opts, self.menu_data = MenuPicker.run()
 
                     # If we exit from the menu then exit altogether
@@ -188,25 +148,37 @@ class Aria2TUI:
                         DownloadsPicker.auto_refresh = True
                         break
 
+                        # response = sendReq(menu_option.function(**menu_option.function_args))
+                    result = menu_option.function(
+                        stdscr=self.stdscr, 
+                        gids=[],
+                        fnames=[],
+                        operation=menu_option,
+                        function_args=menu_option.function_args
+                    )
+                    if menu_option.send_request:
+                        result = sendReq(result)
                     ## if it is a view operation such as "View Global Stats" then send the request and open it with nvim
-                    elif "view" in menu_option.meta_args and menu_option.meta_args["view"]:
+                    if menu_option.view:
                         # Ensure that the screen is cleared after nvim closes, otherwise artifcats remain.
                         DownloadsPicker.clear_on_start = True
                         MenuPicker.clear_on_start = True
-                        response = sendReq(menu_option.function(**menu_option.function_args))
+                        # response = sendReq(menu_option.function(**menu_option.function_args))
                         with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
-                            tmpfile.write(json.dumps(response, indent=4))
+                            tmpfile.write(json.dumps(result, indent=4))
                             tmpfile_path = tmpfile.name
                         # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
                         cmd = f"nvim {tmpfile_path}"
                         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
                         self.check_and_refresh_terminal_options(menu_option, self.stdscr)
-                    elif "picker_view" in menu_option.meta_args and menu_option.meta_args["picker_view"]:
+
+                    ## If it is a picker view operation then send the request and display it in a Picker
+                    elif menu_option.picker_view:
                         DownloadsPicker.clear_on_start = True
                         MenuPicker.clear_on_start = True
-                        response = sendReq(menu_option.function(**menu_option.function_args))
-                        response = flatten_data(response)
-                        resp_list = [[key, val] for key, val in response.items()]
+
+                        result = flatten_data(result)
+                        resp_list = [[key, val] for key, val in result.items()]
                         config = get_config()
                         colour_theme_number=config["appearance"]["theme"]
                         x = Picker(
@@ -216,26 +188,29 @@ class Aria2TUI:
                             title=menu_option.name,
                             colour_theme_number=colour_theme_number,
                             reset_colours=False,
+                            cell_cursor=False,
                         )
                         x.run()
+
+                    
                     else:
                         if "display_message" in menu_option.meta_args and menu_option.meta_args["display_message"]:
                             display_message(self.stdscr, menu_option.meta_args["display_message"])
-                        return_val = menu_option.function(**menu_option.function_args)
                         self.check_and_refresh_terminal_options(menu_option, self.stdscr)
 
                         # Add notification of success or failure to listpicker
-                        if return_val not in ["", None, []]:
+                        if result not in ["", None, []]:
                             # If we have are returning gids and a status message then set the startup notification to the status message.
-                            if type(return_val) == type((0,0)) and len(return_val) == 2:
-                                if type(return_val[0]) == type([]) and type(return_val[1]) == type(""):
-                                    DownloadsPicker.startup_notification = str(return_val[1])
+                            if type(result) == type((0,0)) and len(result) == 2:
+                                if type(result[0]) == type([]) and type(result[1]) == type(""):
+                                    DownloadsPicker.startup_notification = str(result[1])
 
                         self.stdscr.clear()
                         self.stdscr.refresh()
                         break
 
 def display_message(stdscr: curses.window, msg: str) -> None:
+    """ Display a given message using curses. """
     h, w = stdscr.getmaxyx()
     if (h>8 and w >20):
         stdscr.addstr(h//2, (w-len(msg))//2, msg)
@@ -243,6 +218,15 @@ def display_message(stdscr: curses.window, msg: str) -> None:
 
 
 def handleAriaStartPromt(stdscr):
+    """
+    Handles the aria2c startup prompt when a connection cannot be established. 
+
+    Displays a prompt to the user asking if they want to start aria2c. If "Yes" then we
+    attempt to start aria2c using the startup_commands as defined in the user's config file.
+
+    Args:
+        stdscr: The curses window object used for UI rendering.
+    """
     ## Check if aria is running
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
     stdscr.bkgd(' ', curses.color_pair(2))  # Apply background color
@@ -292,7 +276,25 @@ def handleAriaStartPromt(stdscr):
 
 
 def aria2tui() -> None:
-    """ Main function """
+    """
+    The main entry point for the Aria2TUI application.
+
+    Handles starting the TUI, managing downloads via command-line arguments, and interacting
+    with the user if the aria2c daemon is not running.
+
+    Depending on invocation, this function operates in two modes:
+    1. Download Addition Mode: If run with `--add_download` or `--add_download_bg` and a URI,
+       it attempts to add the download directly. If the aria2c daemon is not running,
+       it may prompt the user to start it, and uses either a GUI prompt (via Tkinter) or
+       a TUI prompt (via curses) depending on the command-line flag.
+       Notifications are sent to the user's desktop regarding success or failure.
+    2. TUI Mode: If run without download-specific arguments, the curses-based
+       Aria2TUI UI is started for interactive use, prompting the user to start
+       aria2c if necessary, and then launching the main application interface.
+
+    Returns:
+        None
+    """
 
     if len(sys.argv) == 3 and sys.argv[1].startswith("--add_download"):
         connection_up = testConnection()

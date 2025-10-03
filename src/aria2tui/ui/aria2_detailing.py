@@ -127,12 +127,12 @@ modes = [
 ]
 operations_highlights = [
     {
-        "match": "^pause",
+        "match": "^Pause",
         "field": 0,
         "color": 22,
     },
     {
-        "match": "^unpause",
+        "match": "^Resume",
         "field": 0,
         "color": 8,
     },
