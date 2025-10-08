@@ -84,8 +84,9 @@ aria2tui
  - See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki), which will cover most questions.
  - Press '?' in aria2tui to see the help page which will list the keys and their functions.
  - If you have problems starting aria2c, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
- - By default aria2tui will track the download that the cursor is on. This is usually what you want. However, sometimes you want to stay at a particular place in the download queue--perhaps you want to remain at the top and watch the currently active downloads.
-    - Press ~ and locate the **pin cursor (pc)** option (`th<Return> will do the same).
+ - By default the cursor in aria2tui will track the highlighted download task--that is, if you are hovering over an active download which finishes and moves to the bottom of the list, then the cursor will remain on that task. This is usually what you want. However, sometimes you want to stay at a particular place in the download list--perhaps you want to remain at the top and watch the currently active downloads. To do this you can activate 'pin cursor' mode which will pin the cursor to an index rather than to a particular row.
+    - Press ` and type pc. This will toggle pin cursor mode.
+    - You can also press ~ to open the settings and then select the pin cursor option.
       - Note: The pin symbol  will be shown in the footer to indicate the cursor tracking mode.
  - If you are performing bulk operations and the downloads are changing state rapidly--e.g., hundreds of images are changing from active/waiting to completed--it is recommended to **toggle the auto-refresh** option to ensure data integrity while selecting which downloads to operate upon.
     - This can be done by either:
@@ -95,11 +96,8 @@ aria2tui
 
 ## Important
 
-Some things that should be mentioned:
-
  - Aria2TUI was made to work on UNIX systems.
- - Changing many download options of an active task will restart the download (!!). 
- - Aria2tui was created for personal use and so some of the code remains quite ugly and/or buggy and simply needs to be re-written.
+ - Changing download options for a task that is in progress--whether active or paused--will most likely restart the download (!!).
 
 ## Aria2TUI makes use of...
 
