@@ -60,11 +60,13 @@ download_options = [
     Operation(
         name="Change Options nvim (for each selected)",
         function=lambda stdscr, gid, fname, operation, function_args: changeOptionDialog(gid),
+        reapply_terminal_settings=True,
     ),
     Operation(
         name="Change Options nvim (for all selected)",
         function=lambda stdscr, gids, fnames, operation, function_args: changeOptionBatchDialog(gids),
         accepts_gids_list=True,
+        reapply_terminal_settings=True,
     ),
     Operation(
         name="Modify torrent files (active/paused/waiting)",
@@ -156,7 +158,7 @@ download_options = [
     Operation(
         name="Open Download Location (terminal)",
         function=lambda stdscr, gid, fname, operation, function_args: openDownloadLocation(gid, new_window=False),
-        meta_args={"refresh_terminal_options": True}
+        reapply_terminal_settings=True,
     ),
     Operation(
         name="Open Download Location (gui, new window)",
@@ -179,13 +181,13 @@ download_options = [
             "get_data_function": lambda gid: sendReq(tellStatus(gid)),
 
             "graph_wh" : lambda: (
-                9*os.get_terminal_size()[0]//10,
-                9*os.get_terminal_size()[1]//10,
+                os.get_terminal_size()[0]-8,
+                os.get_terminal_size()[1]-2,
             ),
             "timeout": 1000,
 
-            "xposf" : lambda: os.get_terminal_size()[0]//20,
-            "yposf" : lambda: os.get_terminal_size()[1]//20,
+            "xposf" : lambda: 4,
+            "yposf" : lambda: 1,
             "title": "Download Transfer Speeds",
         }
     ),
@@ -202,23 +204,24 @@ menu_options = [
         name="View Downloads",
         function=lambda stdscr=None, gid=0, fname="", operation=None, function_args={}: 4,
     ),
-    # Operation( name="Add URIs", addUris, {}, {"refresh_terminal_options": True}),
-    # Operation( name="Add URIs and immediately pause", addUrisAndPause, {}, {"refresh_terminal_options": True}),
+    # Operation( name="Add URIs", addUris, {}, {"reapply_terminal_settings": True}),
+    # Operation( name="Add URIs and immediately pause", addUrisAndPause, {}, {"reapply_terminal_settings": True}),
     Operation(
         name="Add Download Tasks",
         function=lambda stdscr, gids, fnames, operation, function_args: addDownloadsAndTorrents(),
-        meta_args={"refresh_terminal_options": True}),
+        reapply_terminal_settings=True,
+    ),
     Operation(
         name="Add Download Tasks & Pause", 
         function=lambda stdscr, gids, fnames, operation, function_args: addDownloadsAndTorrentsAndPause(),
-        meta_args={"refresh_terminal_options": True}
+        reapply_terminal_settings=True,
     ),
     Operation(
         name="Add Torrents (file picker)",
         function=lambda stdscr, gids, fnames, operation, function_args: addTorrentsFilePicker(),
-        meta_args={"refresh_terminal_options": True},
+        reapply_terminal_settings=True,
     ),
-    # Operation( name="Add Torrents (nvim)", addTorrents, {}, {"refresh_terminal_options": True}),
+    # Operation( name="Add Torrents (nvim)", addTorrents, {}, {"reapply_terminal_settings": True}),
     # Operation( name="Pause All", pauseAll),
     # Operation( name="Force Pause All", forcePauseAll),
     # Operation( name="Remove completed/errored downloads", removeCompleted),
@@ -254,12 +257,11 @@ menu_options = [
     Operation(
         name="Edit Config",
         function=lambda stdscr, gids, fnames, operation, function_args: editConfig(), 
-        meta_args= {"refresh_terminal_options": True}
+        reapply_terminal_settings=True,
     ),
     Operation(
         name="Restart Aria",
         function=lambda stdscr, gids, fnames, operation, function_args: restartAria(),
-        picker_view=True,
         meta_args={"display_message": "Restarting Aria2c..." }
     ),
     Operation(
@@ -269,13 +271,13 @@ menu_options = [
             "get_data_function": lambda: sendReq(getGlobalStat()),
 
             "graph_wh" : lambda: (
-                9*os.get_terminal_size()[0]//10,
-                9*os.get_terminal_size()[1]//10,
+                os.get_terminal_size()[0]-8,
+                os.get_terminal_size()[1]-2,
             ),
             "timeout": 1000,
 
-            "xposf" : lambda: os.get_terminal_size()[0]//20,
-            "yposf" : lambda: os.get_terminal_size()[1]//20,
+            "xposf" : lambda: 4,
+            "yposf" : lambda: 1,
             "title": "Global Transfer Speeds",
         }
     ),
@@ -302,6 +304,7 @@ menu_data = {
     "show_footer": False,
     "number_columns": False,
     "cell_cursor": False,
+    "editable_by_default": False,
 }
 downloads_data = {
     "top_gap": 0,
@@ -369,6 +372,7 @@ downloads_data = {
     ],
     "right_pane_index": right_pane_index,
     "footer_string": "?/s 󰇚 ?/s 󰕒 | ?A ?W ?S",
+    "editable_by_default": False,
     # "split_right_function": right_split_dl_graph,
     # "split_right_refresh_data": get_dl_data,
     # "split_right_proportion": 2/3,
@@ -391,4 +395,5 @@ dl_operations_data = {
     "cancel_is_back": True,
     "number_columns": False,
     "cell_cursor": False,
+    "editable_by_default": False,
 }

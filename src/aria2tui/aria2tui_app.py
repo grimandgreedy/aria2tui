@@ -50,8 +50,8 @@ class Aria2TUI:
         self.dl_operations_data["require_option"] =  [False if option.name != "Change Position" else True for option in self.download_options]
         self.dl_operations_data["option_functions"] = [None if option.name != "Change Position" else lambda stdscr, refresh_screen_function=None: default_option_selector(stdscr, field_prefix=" Download Position: ", refresh_screen_function=refresh_screen_function) for option in self.download_options]
 
-    def check_and_refresh_terminal_options(self, menu_option: Operation, stdscr: curses.window):
-        if "refresh_terminal_options" in menu_option.meta_args and menu_option.meta_args["refresh_terminal_options"]:
+    def check_and_reapply_terminal_settings(self, menu_option: Operation, stdscr: curses.window):
+        if menu_option.reapply_terminal_settings:
             restrict_curses(stdscr)
             unrestrict_curses(stdscr)
             
@@ -124,7 +124,7 @@ class Aria2TUI:
 
                     self.downloads_data["selections"] = {}
                     self.dl_operations_data["user_opts"] = ""
-                    self.check_and_refresh_terminal_options(operation, self.stdscr)
+                    self.check_and_reapply_terminal_settings(operation, self.stdscr)
                 else: continue
 
             else: 
@@ -170,7 +170,7 @@ class Aria2TUI:
                         # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
                         cmd = f"nvim {tmpfile_path}"
                         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-                        self.check_and_refresh_terminal_options(menu_option, self.stdscr)
+                        self.check_and_reapply_terminal_settings(menu_option, self.stdscr)
 
                     ## If it is a picker view operation then send the request and display it in a Picker
                     elif menu_option.picker_view:
@@ -196,7 +196,7 @@ class Aria2TUI:
                     else:
                         if "display_message" in menu_option.meta_args and menu_option.meta_args["display_message"]:
                             display_message(self.stdscr, menu_option.meta_args["display_message"])
-                        self.check_and_refresh_terminal_options(menu_option, self.stdscr)
+                        self.check_and_reapply_terminal_settings(menu_option, self.stdscr)
 
                         # Add notification of success or failure to listpicker
                         if result not in ["", None, []]:

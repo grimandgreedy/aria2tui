@@ -49,7 +49,7 @@ setuptools.setup(
         "Requests",
         "tabulate",
         "toml",
-        "listpick == 0.1.16.10",
+        "listpick == 0.1.16.11",
         "numpy",
     ],
 )

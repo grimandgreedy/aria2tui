@@ -82,7 +82,7 @@ def graph_speeds(
         fig.text([x[0]], [y2[0]], ['Up'], lc=curses.COLOR_GREEN)
 
         width, height = graph_wh()
-        fig.width = width - 7
+        fig.width = width - 20
         fig.height = height - 4
         globh, globw = stdscr.getmaxyx()
         xpos, ypos = xposf(), yposf()
@@ -184,7 +184,7 @@ def graph_speeds_gid(
         fig.text([x[0]], [y2[0]], ['Up'], curses.COLOR_GREEN)
 
         width, height = graph_wh()
-        fig.width = width - 7
+        fig.width = width - 20
         fig.height = height - 4
         globh, globw = stdscr.getmaxyx()
         xpos, ypos = xposf(), yposf()
