@@ -44,6 +44,7 @@ class Operation:
         send_request: bool = False,
         view: bool = False,
         picker_view: bool = False,
+        reapply_terminal_settings = False,
     ):
         self.name = name
         self.function = function
@@ -54,6 +55,7 @@ class Operation:
         self.send_request = send_request
         self.view = view
         self.picker_view = picker_view
+        self.reapply_terminal_settings = reapply_terminal_settings
         """
         Operation.function(
             stdscr: curses.window,
@@ -270,7 +272,7 @@ def changeOptionDialog(gid:str) -> str:
 
         temp_file = f.name
 
-    cmd = f"nvim -i NONE {temp_file}"
+    cmd = f"nvim  -i NONE -c 'set commentstring=#\ %s' {temp_file}"
     subprocess.run(cmd, shell=True)
 
     loaded_options = {}
@@ -354,7 +356,7 @@ def changeOptionBatchDialog(gids:list) -> str:
 
         temp_file = f.name
 
-    cmd = f"nvim -i NONE {temp_file}"
+    cmd = f"nvim -c 'set commentstring=#\ %s' -i NONE {temp_file}"
     subprocess.run(cmd, shell=True)
 
     loaded_options = {}
@@ -400,7 +402,7 @@ def changeOptionPicker(stdscr: curses.window, gid:str) -> str:
         selected_column=1,
         editable_columns=[False, True],
         keys_dict=edit_menu_keys,
-        startup_notification="'e' to edit cell. 'q' to exit. 'Return' to submit changes.",
+        startup_notification="'e' to edit cell. 'E' to edit selected cells in nvim. 'q' to exit. 'Return' to submit changes.",
         reset_colours=False,
     )
     selected_indices, opts, function_data = x.run()
@@ -441,7 +443,7 @@ def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
             selected_column=1,
             editable_columns=[False, True],
             keys_dict=edit_menu_keys,
-            startup_notification="'e' to edit cell. 'q' to exit. 'Return' to submit changes.",
+            startup_notification="'e' to edit cell. 'E' to edit selected cells in nvim. 'q' to exit. 'Return' to submit changes.",
             reset_colours=False,
     )
     selected_indices, opts, function_data = x.run()
@@ -834,7 +836,7 @@ def retryDownloadAndPauseFull(gid: str, url: str ="http://localhost", port: int 
 
 
 
-def getAll(items, header, visible_rows_indices, getting_data):
+def getAll(items, header, visible_rows_indices, getting_data, state):
     """ Retrieves all downloads: active, stopped, and queue. Also returns the header. """
     active, aheader = getActive()
     stopped, sheader = getStopped()
@@ -1081,7 +1083,7 @@ def applyToDownloads(
             tmpfile_path = tmpfile.name
         # cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
         # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
-        cmd = f"nvim {tmpfile_path}"
+        cmd = f"nvim -c 'set commentstring=#\ %s' {tmpfile_path}"
         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
 
@@ -1136,7 +1138,7 @@ def download_selected_files(stdscr, gids):
             editable_columns=[True, False],
             editable_by_default=True,
             keys_dict=picker_keys,
-            startup_notification="Selected files will be downloaded. Non-selected will be skipped. 'e' to edit filename. 'q' to exit. 'Return' to submit changes.",
+            startup_notification="Selected files will be downloaded. Non-selected will be skipped. 'e' to edit filename. 'E' to edit selected cells in nvim. 'q' to exit. 'Return' to submit changes.",
         )
         modified_selections, options, function_data = selectionsPicker.run()
         if selected_indices != modified_selections and function_data["last_key"] != ord("q"):

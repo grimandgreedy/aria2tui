@@ -1,4 +1,10 @@
 # CHANGELOG.md
+## [0.1.11.7] 2025-10-08
+ - Ensured that the terminal settings are reset after opening yazi or neovim.
+ - Fixed graph size function for full-screen graphs.
+ - Ensured that multiple cells can be edited in neovim by pressing "E" in a Picker with editable columns--e.g., when changing options or modifying torrent files.
+ - Ensured that when editing options in nvim the commentstring is set to #\ %s
+
 ## [0.1.11.6] 2025-10-03
  - Added a timeout when testing the connection to the aria daemon to ensure that if aria2c crashes (but is still running) the pplication does not simply hang.
  - Improved the Operation class so that it accounts for all of the relevant menu options without requiring special cases in the logic of the applyToDownloads() function.
@@ -6,8 +12,6 @@
  - Improved documentation for a few key functions (applyToDownloads, main app loop)
  - Enabled colours for up/download graphs in the full-screen graphs.
  - Made the full-screen graphs the same style as the pane graphs.
-
- Added timeout when testing connection. Cleaned up applyToDownloads() function. Improved Operation class.
 
 ## [0.1.11.5] 2025-09-23
  - Improved data display for DL Info: Files.

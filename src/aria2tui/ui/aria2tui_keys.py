@@ -14,23 +14,29 @@ from copy import copy
 from listpick.utils import keycodes
 
 aria2tui_keys = copy(picker_keys)
-if "move_column_left" in aria2tui_keys: del aria2tui_keys["move_column_left"]
-if "move_column_right" in aria2tui_keys: del aria2tui_keys["move_column_right"]
-if "delete" in aria2tui_keys: del aria2tui_keys["delete"]
-if "delete_column" in aria2tui_keys: del aria2tui_keys["delete_column"]
-if "increase_lines_per_page" in aria2tui_keys: del aria2tui_keys["increase_lines_per_page"]
-if "decrease_lines_per_page" in aria2tui_keys: del aria2tui_keys["decrease_lines_per_page"]
-if "edit" in aria2tui_keys: del aria2tui_keys["edit"]
-if "edit_picker" in aria2tui_keys: del aria2tui_keys["edit_picker"]
-# if "save" in aria2tui_keys: del aria2tui_keys["save"]
-if "load" in aria2tui_keys: del aria2tui_keys["load"]
-if "open" in aria2tui_keys: del aria2tui_keys["open"]
-if "notification_toggle" in aria2tui_keys: del aria2tui_keys["notification_toggle"]
-if "undo" in aria2tui_keys: del aria2tui_keys["undo"]
-if "add_column" in aria2tui_keys: del aria2tui_keys["add_column"]
-if "add_row" in aria2tui_keys: del aria2tui_keys["add_row"]
-if "file_next" in aria2tui_keys: del aria2tui_keys["file_prev"]
-if "file_prev" in aria2tui_keys: del aria2tui_keys["file_next"]
+
+remove_keys = [
+    "move_column_left",
+    "move_column_right",
+    "delete",
+    "delete_column",
+    "increase_lines_per_page",
+    "decrease_lines_per_page",
+    "edit",
+    "edit_nvim",
+    "edit_picker",
+    "load",
+    "open",
+    "notification_toggle",
+    "undo",
+    "add_column",
+    "add_row",
+    "file_next",
+    "file_prev",
+]
+
+for key in remove_keys:
+    if key in aria2tui_keys: del aria2tui_keys[key]
 
 download_option_keys = {
     "refresh":                          [curses.KEY_F5],
