@@ -1,7 +1,7 @@
 # CHANGELOG.md
-## [0.1.11.7] 2025-10-08
+## [0.1.11.7] 2025-10-14
  - Ensured that the terminal settings are reset after opening yazi or neovim.
- - Fixed graph size function for full-screen graphs.
+ - Improved graph size function for full-screen graphs.
  - Ensured that multiple cells can be edited in neovim by pressing "E" in a Picker with editable columns--e.g., when changing options or modifying torrent files.
  - Ensured that when editing options in nvim the commentstring is set to #\ %s
 

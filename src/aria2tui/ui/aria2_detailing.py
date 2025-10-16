@@ -106,11 +106,11 @@ modes = [
     },
     {
         'filter': '--1 waiting',
-        'name': 'Queue',
+        'name': 'Queued',
     },
     {
         'filter': '--1 waiting|active',
-        'name': 'Active+Queue',
+        'name': 'Active+Queued',
     },
     {
         'filter': '--1 paused',
@@ -122,7 +122,7 @@ modes = [
     },
     {
         'filter': '--1 error',
-        'name': 'Error',
+        'name': 'Errored',
     },
 ]
 operations_highlights = [
