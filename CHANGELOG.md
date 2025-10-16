@@ -1,4 +1,7 @@
 # CHANGELOG.md
+## [0.1.11.8] 2025-10-14
+ - Updated listpick version requirement. 
+
 ## [0.1.11.7] 2025-10-14
  - Ensured that the terminal settings are reset after opening yazi or neovim.
  - Improved graph size function for full-screen graphs.
