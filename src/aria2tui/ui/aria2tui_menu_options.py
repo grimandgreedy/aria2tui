@@ -74,7 +74,7 @@ download_options = [
         accepts_gids_list=True,
     ),
     Operation(
-        name="Change Position",
+        name="Change Position in Queue",
         function=lambda stdscr, gid, fname, operation, function_args: changePosition(gid),
         send_request=True,
     ),
@@ -169,11 +169,11 @@ download_options = [
         function=lambda stdscr, gids, fnames, operation, function_args: openGidFiles(gids),
         accepts_gids_list=True,
     ),
-    Operation(
-        name="Open File(s) (do not group)",
-        function=lambda stdscr, gids, fnames, operation, function_args: openGidFiles(gids, group=False),
-        accepts_gids_list=True,
-    ),
+    # Operation(
+    #     name="Open File(s) (do not group)",
+    #     function=lambda stdscr, gids, fnames, operation, function_args: openGidFiles(gids, group=False),
+    #     accepts_gids_list=True,
+    # ),
     Operation(
         name="Transfer Speed Graph", 
         function=lambda stdscr, gid, fname, operation, function_args: graph_speeds_gid(stdscr, gid=gid, **function_args), 
@@ -380,6 +380,7 @@ downloads_data = {
     # "split_right_refresh_data_timer": 1.0,
     # "split_right_function": right_split_dl_progress_graph,
     # "split_right_refresh_data": get_dl_progress,
+    "macros": aria2tui_macros,
 }
 dl_operations_data = {
     "items": [[download_option.name] for download_option in download_options],
