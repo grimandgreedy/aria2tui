@@ -1,4 +1,19 @@
 # CHANGELOG.md
+
+## [0.1.11.9] 2025-10-26
+ - Changed inherited from listpick:
+   - Fixed problems when there are no downloads
+     - Bug accessing settings when there are no downloads
+     - Bug displaying footer when there are no downloads
+ - Improved file-opening.
+   - Groups files and attempts to open them in a single instance of the default application.
+   - Now detects system type in use and attempts to use the appropriate opener
+     - linux: xdg-open
+     - macos: open
+     - android: termux-open
+ - File opening now works on MacOS without needing to set the appropriate opener in config.
+ - Added macro ('o' key) to open files from the main menu.
+
 ## [0.1.11.8] 2025-10-14
  - Updated listpick version requirement. 
 

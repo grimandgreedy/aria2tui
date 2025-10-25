@@ -21,7 +21,9 @@ import tempfile
 import tabulate
 from typing import Callable, Tuple
 import re
-
+import shlex
+import mimetypes
+from collections import defaultdict
 
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria_adduri import addDownloadFull
@@ -937,59 +939,110 @@ def openGidFiles(gids: list[str], group: bool = True) -> None:
     if group:
         openFiles(files_list)
 
+
+import subprocess
+import shlex
+import sys
+import os
+import mimetypes
+from collections import defaultdict
+
 def openFiles(files: list[str]) -> None:
     """
     Opens multiple files using their associated applications.
-        Get mime types
-        Get default application for each mime type
-        Open all files; files with the same default application will be opened in one instance
+    Works on Linux, macOS, and other UNIX-like systems.
 
     Args:
         files (list[str]): A list of file paths.
-
-    Returns:
-        None
     """
+
+    def command_exists(cmd):
+        return subprocess.call(f"type {shlex.quote(cmd)} > /dev/null 2>&1", shell=True) == 0
+
+    # Determine available open command for this system
+    if sys.platform == "darwin":
+        open_cmd = "open"  # macOS
+    elif command_exists("gio"):
+        open_cmd = "gio open"  # Modern GNOME systems
+    elif command_exists("xdg-open"):
+        open_cmd = "xdg-open"  # Most other Linux/Unix
+    else:
+        raise EnvironmentError("No suitable 'open' command found (gio, xdg-open, or open)")
+
     def get_mime_types(files):
-        types = {}
+        """
+        Return a dict: mime_type -> [files]
+        """
+        types = defaultdict(list)
 
         for file in files:
-            resp = subprocess.run(f"xdg-mime query filetype {file}", stdout=subprocess.PIPE, shell=True)
-            ftype = resp.stdout.decode("utf-8").strip()
-            if ftype in types:
-                types[ftype] += [file]
-            else:
-                types[ftype] = [file]
+            mime_type = None
+            # Try xdg-mime first (Linux)
+            if command_exists("xdg-mime"):
+                try:
+                    resp = subprocess.run(
+                        f"xdg-mime query filetype {shlex.quote(file)}",
+                        shell=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    out = resp.stdout.decode().strip()
+                    if out:
+                        mime_type = out
+                except Exception:
+                    pass
+
+            # Fallback to Python mimetypes
+            if not mime_type:
+                mime_type, _ = mimetypes.guess_type(file)
+                if mime_type is None:
+                    mime_type = "application/octet-stream"
+
+            types[mime_type].append(file)
 
         return types
 
-    def get_applications(types):
-        apps = {}
-
-        for t in types:
-            resp = subprocess.run(f"xdg-mime query default {t}", stdout=subprocess.PIPE, shell=True)
-            app = resp.stdout.decode("utf-8").strip()
-            if app in apps:
-                apps[app] += [t]
-            else:
-                apps[app] = [t]
-
-        return apps
+    def get_default_app_for_type(mime_type):
+        """
+        Return the default app command for a given mime type if available.
+        On Linux, tries xdg-mime; on macOS, uses 'open'.
+        """
+        if sys.platform == "darwin":
+            return "open"
+        elif command_exists("xdg-mime"):
+            resp = subprocess.run(
+                f"xdg-mime query default {shlex.quote(mime_type)}",
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+            )
+            app = resp.stdout.decode().strip()
+            return app or open_cmd
+        else:
+            return open_cmd
 
     types = get_mime_types(files)
-    apps = get_applications(types.keys())
+    apps_files = defaultdict(list)
 
-    apps_files = {}
-    for app, filetypes in apps.items():
-        flist = []
-        for filetype in filetypes:
-            flist += types[filetype]
-        apps_files[app] = flist
+    # Map apps -> list of files
+    for mime, flist in types.items():
+        app = get_default_app_for_type(mime)
+        apps_files[app].extend(flist)
 
-    for app, files in apps_files.items():
-        files_str = ' '.join(files)
-        subprocess.Popen(f"gio launch /usr/share/applications/{app} {files_str}", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-
+    # Launch all grouped files
+    for app, flist in apps_files.items():
+        quoted_files = " ".join(shlex.quote(f) for f in flist)
+        if app.endswith(".desktop") and command_exists("gio"):
+            # Linux desktop file — use gio
+            subprocess.Popen(f"gio launch /usr/share/applications/{shlex.quote(app)} {quoted_files}", shell=True)
+        elif app == "open" or open_cmd == "open":
+            # macOS
+            subprocess.Popen(f"open {quoted_files}", shell=True)
+        elif "xdg-open" in open_cmd:
+            subprocess.Popen(f"xdg-open {quoted_files}", shell=True)
+        else:
+            # Fallback generic
+            subprocess.Popen(f"{open_cmd} {quoted_files}", shell=True)
 
 def applyToDownloads(
     stdscr: curses.window,
@@ -1289,7 +1342,190 @@ def classify_download_string(input_string: str) -> str:
 
     return ""
 
+def openFiles(files: list[str]) -> None:
+    """
+    Opens multiple files using their associated applications.
 
+    Platforms:
+      • macOS — uses `open`, groups by bundle id when possible.
+      • Linux/BSD — uses `gio launch` or falls back to `xdg-open`.
+      • Android (Termux) — uses `termux-open`, else `am start`.
+
+    Files sharing the same default app are opened together where possible.
+
+    Args:
+        files (list[str]): A list of file paths.
+    """
+
+    def command_exists(cmd: str) -> bool:
+        """Return True if command exists in PATH."""
+        return subprocess.call(f"type {shlex.quote(cmd)} > /dev/null 2>&1", shell=True) == 0
+
+    def is_android() -> bool:
+        """Rudimentary Android/Termux detection."""
+        return (
+            os.path.exists("/system/bin/am")
+            or "com.termux" in os.environ.get("PREFIX", "")
+            or "ANDROID_ROOT" in os.environ
+        )
+
+    # pick main open command
+    if sys.platform == "darwin":
+        open_cmd = "open"
+    elif is_android():
+        open_cmd = "termux-open" if command_exists("termux-open") else "am start"
+    elif command_exists("gio"):
+        open_cmd = "gio open"
+    elif command_exists("xdg-open"):
+        open_cmd = "xdg-open"
+    else:
+        raise EnvironmentError("No open command found (termux-open, am, gio, or xdg-open)")
+
+    def get_mime_types(file_list: list[str]) -> dict[str, list[str]]:
+        """Map MIME types to lists of files."""
+        types = defaultdict(list)
+        for f in file_list:
+            mime = None
+            if command_exists("xdg-mime"):
+                try:
+                    out = subprocess.run(
+                        f"xdg-mime query filetype {shlex.quote(f)}",
+                        shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+                    ).stdout.decode().strip()
+                    if out:
+                        mime = out
+                except Exception:
+                    pass
+            if not mime:
+                mime, _ = mimetypes.guess_type(f)
+                if not mime:
+                    mime = "application/octet-stream"
+            types[mime].append(f)
+        return types
+
+    def get_default_app(mime: str) -> str:
+        """Return default app id or command for a MIME type."""
+        if sys.platform == "darwin":
+            return None
+        if is_android():
+            return open_cmd
+        if command_exists("xdg-mime"):
+            out = subprocess.run(
+                f"xdg-mime query default {shlex.quote(mime)}",
+                shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+            ).stdout.decode().strip()
+            return out or open_cmd
+        return open_cmd
+
+    types_map = get_mime_types(files)
+    apps_files = defaultdict(list)
+
+    # group files by app
+    if sys.platform == "darwin":
+        for f in files:
+            try:
+                out = subprocess.run(
+                    f"mdls -name kMDItemCFBundleIdentifier -raw {shlex.quote(f)}",
+                    shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+                ).stdout.decode().strip()
+                bundle = out if out and out != "(null)" else os.path.splitext(f)[1] or "unknown"
+            except Exception:
+                bundle = os.path.splitext(f)[1] or "unknown"
+            apps_files[bundle].append(f)
+    else:
+        for mime, flist in types_map.items():
+            app = get_default_app(mime)
+            apps_files[app].extend(flist)
+
+    # launch groups
+    for app, flist in apps_files.items():
+        if is_android() and open_cmd == "termux-open" and command_exists("termux-open"):
+            for f in flist:
+                subprocess.Popen(f"termux-open {shlex.quote(os.path.abspath(f))}", shell=True)
+            continue
+
+        quoted = " ".join(shlex.quote(f) for f in flist)
+
+        if sys.platform == "darwin":
+            if app and app.startswith("com."):
+                subprocess.Popen(f"open -b {shlex.quote(app)} {quoted}", shell=True)
+            else:
+                subprocess.Popen(f"open {quoted}", shell=True)
+
+        elif is_android():
+            for f in flist:
+                uri = f"file://{os.path.abspath(f)}"
+                subprocess.Popen(f"am start -a android.intent.action.VIEW -d {shlex.quote(uri)}", shell=True)
+
+        elif isinstance(app, str) and app.endswith(".desktop") and command_exists("gio"):
+            app_path = None
+            for base in ("/usr/share/applications", os.path.expanduser("~/.local/share/applications")):
+                path = os.path.join(base, app)
+                if os.path.exists(path):
+                    app_path = path
+                    break
+            if app_path:
+                subprocess.Popen(f"gio launch {shlex.quote(app_path)} {quoted}", shell=True)
+            else:
+                subprocess.Popen(f"xdg-open {quoted}", shell=True)
+
+        elif "xdg-open" in open_cmd:
+            subprocess.Popen(f"xdg-open {quoted}", shell=True)
+        else:
+            subprocess.Popen(f"{open_cmd} {quoted}", shell=True)
+
+def open_files_macro(picker: Picker) -> None:
+    # Get files to open
+    selections = [i for i, selected in picker.selections.items() if selected]
+    if not selections:
+        if not picker.indexed_items:
+            return None
+        selections = [picker.indexed_items[picker.cursor_pos][0]]
+        
+
+    dl_types = [picker.items[selected_index][10] for selected_index in selections]
+    dl_names = [picker.items[selected_index][2] for selected_index in selections]
+    dl_paths = [picker.items[selected_index][9] for selected_index in selections]
+
+    files_to_open = []
+
+    for i in range(len(selections)):
+        # if dl_types[i] == "torrent":
+        #     continue
+        file_full_path = os.path.expanduser(os.path.join(dl_paths[i], dl_names[i]))
+        if os.path.exists(file_full_path):
+            files_to_open.append(file_full_path)
+        
+    # if not selections:
+    #     if not picker.selected_items:
+    #         return None
+    #     index = picker.indexed_items[picker.cursor_pos][0]
+    #     dl_types = [picker.items[index][10]]
+    #     dl_names = [picker.items[index][2]]
+    #     dl_paths = [picker.items[index][9]]
+    #     i=0
+    #     file_full_path = os.path.expanduser(os.path.join(dl_paths[i], dl_names[i]))
+    #     if os.path.exists(file_full_path):
+    #         files_to_open.append(file_full_path)
+
+
+
+    openFiles(files_to_open)
+        # os.system(f"notify-send '{dl_paths[i]}'")
+        # import pyperclip
+        # pyperclip.copy(f"{selections}")
+        # os.system(f"xdg-open {shlex.quote(file_full_path)}")
+
+    # Open them
+
+aria2tui_macros = [
+    {
+        "keys": [ord("o")],
+        "description": "Open selected files.",
+        "function": open_files_macro,
+    }
+
+]
 
 
 
