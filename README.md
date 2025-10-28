@@ -47,10 +47,6 @@ aria2_config_path = "~/.config/aria2/aria2.conf"
 terminal_file_manager = "yazi"
 gui_file_manager = "kitty yazi"
 
-# Launchers
-## Note that the "open file(s) (grouped)" option still requires gio and xdg-mime.
-launch_command = "xdg-open"
-# launch_command = "termux-open"
 
 # Data refresh time (in seconds) for the global stats and for the download data.
 global_stats_timer = 1
@@ -103,7 +99,6 @@ aria2tui
 
  - `yazi` for selecting torrent files.
  - `nvim` for viewing/editing download options as well as adding URIs, magnet links and torrent files
- - `xdg-open` and `gio` for determining default applications and opening files.
  - `curses` for controlling the terminal display
  - [listpick](https://github.com/grimandgreedy/listpick) for the terminal user-interface
  - [plotille](https://github.com/tammoippen/plotille) for graphs
