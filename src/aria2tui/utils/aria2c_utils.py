@@ -927,7 +927,7 @@ def openGidFiles(gids: list[str], group: bool = True) -> None:
                 val = json.loads(json.dumps(response))
                 loc = val["dir"]
 
-            files_list.append(repr(loc))
+            files_list.append(loc)
 
             if not group:
                 config = get_config()
@@ -1439,12 +1439,15 @@ def openFiles(files: list[str]) -> None:
 
     # launch groups
     for app, flist in apps_files.items():
+        # Ensure all file paths are absolute
+        abs_flist = [os.path.abspath(os.path.expanduser(f)) for f in flist]
+
         if is_android() and open_cmd == "termux-open" and command_exists("termux-open"):
-            for f in flist:
-                subprocess.Popen(f"termux-open {shlex.quote(os.path.abspath(f))}", shell=True)
+            for f in abs_flist:
+                subprocess.Popen(f"termux-open {shlex.quote(f)}", shell=True)
             continue
 
-        quoted = " ".join(shlex.quote(f) for f in flist)
+        quoted = " ".join(shlex.quote(f) for f in abs_flist)
 
         if sys.platform == "darwin":
             if app and app.startswith("com."):
@@ -1453,8 +1456,8 @@ def openFiles(files: list[str]) -> None:
                 subprocess.Popen(f"open {quoted}", shell=True)
 
         elif is_android():
-            for f in flist:
-                uri = f"file://{os.path.abspath(f)}"
+            for f in abs_flist:
+                uri = f"file://{f}"
                 subprocess.Popen(f"am start -a android.intent.action.VIEW -d {shlex.quote(uri)}", shell=True)
 
         elif isinstance(app, str) and app.endswith(".desktop") and command_exists("gio"):
@@ -1521,7 +1524,7 @@ def open_files_macro(picker: Picker) -> None:
 aria2tui_macros = [
     {
         "keys": [ord("o")],
-        "description": "Open selected files.",
+        "description": "Open files of selected downloads.",
         "function": open_files_macro,
     }
 
