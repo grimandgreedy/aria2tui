@@ -49,31 +49,6 @@ download_options = [
         send_request=True,
     ),
     Operation(
-        name="Change Options Picker (for each selected)",
-        function=lambda stdscr, gid, fname, operation, function_args: changeOptionPicker(stdscr, gid),
-    ),
-    Operation(
-        name="Change Options Picker (for all selected)",
-        function=lambda stdscr, gids, fnames, operation, function_args: changeOptionsBatchPicker(stdscr, gids),
-        accepts_gids_list=True,
-    ),
-    Operation(
-        name="Change Options nvim (for each selected)",
-        function=lambda stdscr, gid, fname, operation, function_args: changeOptionDialog(gid),
-        reapply_terminal_settings=True,
-    ),
-    Operation(
-        name="Change Options nvim (for all selected)",
-        function=lambda stdscr, gids, fnames, operation, function_args: changeOptionBatchDialog(gids),
-        accepts_gids_list=True,
-        reapply_terminal_settings=True,
-    ),
-    Operation(
-        name="Modify torrent files (active/paused/waiting)",
-        function=lambda stdscr, gids, fnames, operation, function_args: download_selected_files(stdscr, gids),
-        accepts_gids_list=True,
-    ),
-    Operation(
         name="Change Position in Queue",
         function=lambda stdscr, gid, fname, operation, function_args: changePosition(gid),
         send_request=True,
@@ -108,53 +83,58 @@ download_options = [
         function=lambda stdscr, gid, fname, operation, function_args: removeDownloadResult(gid),
         send_request=True,
     ),
-
     Operation(
-        name="DL Info: Files",
-        function=lambda stdscr, gids, fnames, operation, function_args: display_files(stdscr, gids, fnames, operation),
+        name="DL Info",
+        function=lambda stdscr, gids, fnames, operation, function_args: display_info_menu(stdscr, gids, fnames, operation),
         accepts_gids_list=True,
     ),
-    Operation(
-        name="DL Info: Servers",
-        function=lambda stdscr, gid, fname, operation, function_args: getServers(gid),
-        meta_args={"picker_view":True},
-        send_request=True,
-        picker_view=True,
-    ),
-    Operation(
-        name="DL Info: Peers",
-        function=lambda stdscr, gid, fname, operation, function_args: getPeers(gid),
-        meta_args={"picker_view":True},
-        send_request=True,
-        picker_view=True,
-    ),
-    Operation(
-        name="DL Info: URIs",
-        function=lambda stdscr, gid, fname, operation, function_args: getUris(gid),
-        meta_args={"picker_view":True},
-        send_request=True,
-        picker_view=True,
-    ),
-    Operation(
-        name="DL Info: Status Info",
-        function=lambda stdscr, gid, fname, operation, function_args: tellStatus(gid),
-        meta_args={"picker_view":True},
-        send_request=True,
-        picker_view=True,
-    ),
-    Operation(
-        name="DL Info: Aria2c Options",
-        function=lambda stdscr, gid, fname, operation, function_args: getOption(gid),
-        meta_args={"picker_view":True},
-        send_request=True,
-        picker_view=True,
-    ),
-    Operation(
-        name="DL Info: Get All Info",
-        function=lambda stdscr, gid, fname, operation, function_args: getAllInfo(gid),
-        meta_args={"picker_view":True},
-        picker_view=True,
-    ),
+
+    # Operation(
+    #     name="DL Info: Files",
+    #     function=lambda stdscr, gids, fnames, operation, function_args: display_files(stdscr, gids, fnames, operation),
+    #     accepts_gids_list=True,
+    # ),
+    # Operation(
+    #     name="DL Info: Servers",
+    #     function=lambda stdscr, gid, fname, operation, function_args: getServers(gid),
+    #     meta_args={"picker_view":True},
+    #     send_request=True,
+    #     picker_view=True,
+    # ),
+    # Operation(
+    #     name="DL Info: Peers",
+    #     function=lambda stdscr, gid, fname, operation, function_args: getPeers(gid),
+    #     meta_args={"picker_view":True},
+    #     send_request=True,
+    #     picker_view=True,
+    # ),
+    # Operation(
+    #     name="DL Info: URIs",
+    #     function=lambda stdscr, gid, fname, operation, function_args: getUris(gid),
+    #     meta_args={"picker_view":True},
+    #     send_request=True,
+    #     picker_view=True,
+    # ),
+    # Operation(
+    #     name="DL Info: Status Info",
+    #     function=lambda stdscr, gid, fname, operation, function_args: tellStatus(gid),
+    #     meta_args={"picker_view":True},
+    #     send_request=True,
+    #     picker_view=True,
+    # ),
+    # Operation(
+    #     name="DL Info: Aria2c Options",
+    #     function=lambda stdscr, gid, fname, operation, function_args: getOption(gid),
+    #     meta_args={"picker_view":True},
+    #     send_request=True,
+    #     picker_view=True,
+    # ),
+    # Operation(
+    #     name="DL Info: Get All Info",
+    #     function=lambda stdscr, gid, fname, operation, function_args: getAllInfo(gid),
+    #     meta_args={"picker_view":True},
+    #     picker_view=True,
+    # ),
     Operation(
         name="Open Download Location (terminal)",
         function=lambda stdscr, gid, fname, operation, function_args: openDownloadLocation(gid, new_window=False),
@@ -167,6 +147,31 @@ download_options = [
     Operation(
         name="Open File(s)",
         function=lambda stdscr, gids, fnames, operation, function_args: openGidFiles(gids),
+        accepts_gids_list=True,
+    ),
+    Operation(
+        name="Change Options Picker (for each selected)",
+        function=lambda stdscr, gid, fname, operation, function_args: changeOptionPicker(stdscr, gid),
+    ),
+    Operation(
+        name="Change Options Picker (for all selected)",
+        function=lambda stdscr, gids, fnames, operation, function_args: changeOptionsBatchPicker(stdscr, gids),
+        accepts_gids_list=True,
+    ),
+    Operation(
+        name="Change Options nvim (for each selected)",
+        function=lambda stdscr, gid, fname, operation, function_args: changeOptionDialog(gid),
+        reapply_terminal_settings=True,
+    ),
+    Operation(
+        name="Change Options nvim (for all selected)",
+        function=lambda stdscr, gids, fnames, operation, function_args: changeOptionBatchDialog(gids),
+        accepts_gids_list=True,
+        reapply_terminal_settings=True,
+    ),
+    Operation(
+        name="Modify torrent files (active/paused/waiting)",
+        function=lambda stdscr, gids, fnames, operation, function_args: download_selected_files(stdscr, gids),
         accepts_gids_list=True,
     ),
     # Operation(
@@ -280,6 +285,55 @@ menu_options = [
             "yposf" : lambda: 1,
             "title": "Global Transfer Speeds",
         }
+    ),
+]
+
+download_info_menu = [
+    Operation(
+        name="DL Info: Get All Info",
+        function=lambda stdscr, gid, fname, operation, function_args: getAllInfo(gid),
+        meta_args={"picker_view":True},
+        picker_view=True,
+    ),
+    Operation(
+        name="DL Info: Files",
+        function=lambda stdscr, gids, fnames, operation, function_args: display_files(stdscr, gids, fnames, operation),
+        accepts_gids_list=True,
+    ),
+    Operation(
+        name="DL Info: Servers",
+        function=lambda stdscr, gid, fname, operation, function_args: getServers(gid),
+        meta_args={"picker_view":True},
+        send_request=True,
+        picker_view=True,
+    ),
+    Operation(
+        name="DL Info: Peers",
+        function=lambda stdscr, gid, fname, operation, function_args: getPeers(gid),
+        meta_args={"picker_view":True},
+        send_request=True,
+        picker_view=True,
+    ),
+    Operation(
+        name="DL Info: URIs",
+        function=lambda stdscr, gid, fname, operation, function_args: getUris(gid),
+        meta_args={"picker_view":True},
+        send_request=True,
+        picker_view=True,
+    ),
+    Operation(
+        name="DL Info: Status Info",
+        function=lambda stdscr, gid, fname, operation, function_args: tellStatus(gid),
+        meta_args={"picker_view":True},
+        send_request=True,
+        picker_view=True,
+    ),
+    Operation(
+        name="DL Info: Aria2c Options",
+        function=lambda stdscr, gid, fname, operation, function_args: getOption(gid),
+        meta_args={"picker_view":True},
+        send_request=True,
+        picker_view=True,
     ),
 ]
 

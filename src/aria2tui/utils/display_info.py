@@ -1,7 +1,59 @@
 import os
 from aria2tui.utils.aria2c_utils import *
 from listpick.listpick_app import Picker
-import pyperclip
+
+
+def display_info_menu(stdscr, gids, fnames, operation):
+    from aria2tui.ui.aria2tui_menu_options import download_info_menu
+
+    items = [opt.name for opt in download_info_menu]
+    highlights = [
+        {
+            "match": "^DL INFO",
+            "field": 0,
+            "color": 9,
+        },
+    ]
+
+    info_data = {
+        "items": items,
+        "highlights": highlights,
+        "max_selected": 1,
+    }
+    info_menu = Picker(stdscr, **info_data)
+    s, o, f = info_menu.run()
+    if s:
+        operation = download_info_menu[s[0]]
+        applyToDownloads(
+            stdscr = stdscr,
+            operation = operation,
+            gids = gids,
+            operation_name = operation.name,
+            operation_function = operation.function,
+            operation_function_args = operation.function_args,
+            user_opts = "",
+            view = operation.view,
+            fnames = fnames,
+            picker_view = operation.picker_view,
+        )
+
+
+    #     result = operation.function(
+    #         stdscr=stdscr,
+    #         gids=gids,
+    #         fnames=fnames,
+    #         operation=operation,
+    #         function_args=operation.function_args
+    #     )
+    
+
+
+
+    
+
+
+
+
 
 def display_files(stdscr, gids, fnames, operation):
     """

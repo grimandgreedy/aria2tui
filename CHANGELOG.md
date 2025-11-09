@@ -1,5 +1,16 @@
 # CHANGELOG.md
 
+## [0.1.11.12] 2025-11-10
+ - Streamlined download options menu
+  - Reordered menu in a more intuitive way.
+  - Created "DL Info" submenu--reducing the sie of the main options menu.
+ - Fixed invalid escape strings warning in nvim commands.
+ - Added macro ('O' key) to open file location of hovered download.
+
+## [0.1.11.10-11] 2025-11-04
+ - Updated listpick version fixing major bug OSX.
+    - Fixed instacrashes due to tmpfile paths being too long when multiprocessing.manager was created.
+
 ## [0.1.11.9] 2025-10-26
  - Changed inherited from listpick:
    - Fixed problems when there are no downloads

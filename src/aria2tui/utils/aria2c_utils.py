@@ -274,7 +274,7 @@ def changeOptionDialog(gid:str) -> str:
 
         temp_file = f.name
 
-    cmd = f"nvim  -i NONE -c 'set commentstring=#\ %s' {temp_file}"
+    cmd = rf"nvim  -i NONE -c 'set commentstring=#\ %s' {temp_file}"
     subprocess.run(cmd, shell=True)
 
     loaded_options = {}
@@ -358,7 +358,7 @@ def changeOptionBatchDialog(gids:list) -> str:
 
         temp_file = f.name
 
-    cmd = f"nvim -c 'set commentstring=#\ %s' -i NONE {temp_file}"
+    cmd = rf"nvim -c 'set commentstring=#\ %s' -i NONE {temp_file}"
     subprocess.run(cmd, shell=True)
 
     loaded_options = {}
@@ -1136,7 +1136,7 @@ def applyToDownloads(
             tmpfile_path = tmpfile.name
         # cmd = r"nvim -i NONE -c '/^\s*\"function\"'" + f" {tmpfile_path}"
         # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
-        cmd = f"nvim -c 'set commentstring=#\ %s' {tmpfile_path}"
+        cmd = rf"nvim -c 'set commentstring=#\ %s' {tmpfile_path}"
         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
 
@@ -1498,34 +1498,28 @@ def open_files_macro(picker: Picker) -> None:
         file_full_path = os.path.expanduser(os.path.join(dl_paths[i], dl_names[i]))
         if os.path.exists(file_full_path):
             files_to_open.append(file_full_path)
-        
-    # if not selections:
-    #     if not picker.selected_items:
-    #         return None
-    #     index = picker.indexed_items[picker.cursor_pos][0]
-    #     dl_types = [picker.items[index][10]]
-    #     dl_names = [picker.items[index][2]]
-    #     dl_paths = [picker.items[index][9]]
-    #     i=0
-    #     file_full_path = os.path.expanduser(os.path.join(dl_paths[i], dl_names[i]))
-    #     if os.path.exists(file_full_path):
-    #         files_to_open.append(file_full_path)
-
-
 
     openFiles(files_to_open)
-        # os.system(f"notify-send '{dl_paths[i]}'")
-        # import pyperclip
-        # pyperclip.copy(f"{selections}")
-        # os.system(f"xdg-open {shlex.quote(file_full_path)}")
 
-    # Open them
+def open_hovered_location(picker) -> None:
+    if not picker.indexed_items: 
+        return None
+    gid = picker.indexed_items[picker.cursor_pos][1][-1]
+    openDownloadLocation(gid, new_window=True)
+    import time
+
+    # picker.refresh_and_redraw_screen()
 
 aria2tui_macros = [
     {
         "keys": [ord("o")],
         "description": "Open files of selected downloads.",
         "function": open_files_macro,
+    },
+    {
+        "keys": [ord("O")],
+        "description": "Open location of hovered download in a new (gui) window.",
+        "function": open_hovered_location,
     }
 
 ]
