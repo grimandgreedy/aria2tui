@@ -1048,13 +1048,8 @@ def applyToDownloads(
     stdscr: curses.window,
     operation: Operation,
     gids: list = [],
-    operation_name: str = "",
-    operation_function: Callable = lambda:None,
-    operation_function_args: dict = {},
     user_opts: str = "",
-    view: bool =False,
     fnames:list=[],
-    picker_view: bool = False
 ) -> None:
     """
     Applies a given operation to a list of aria2c GIDs.

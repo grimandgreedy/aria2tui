@@ -28,32 +28,9 @@ def display_info_menu(stdscr, gids, fnames, operation):
             stdscr = stdscr,
             operation = operation,
             gids = gids,
-            operation_name = operation.name,
-            operation_function = operation.function,
-            operation_function_args = operation.function_args,
             user_opts = "",
-            view = operation.view,
             fnames = fnames,
-            picker_view = operation.picker_view,
         )
-
-
-    #     result = operation.function(
-    #         stdscr=stdscr,
-    #         gids=gids,
-    #         fnames=fnames,
-    #         operation=operation,
-    #         function_args=operation.function_args
-    #     )
-    
-
-
-
-    
-
-
-
-
 
 def display_files(stdscr, gids, fnames, operation):
     """

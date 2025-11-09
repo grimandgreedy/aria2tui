@@ -102,24 +102,15 @@ class Aria2TUI:
                     operation = download_options[selected_operation[0]]
 
                     user_opts = self.dl_operations_data["user_opts"]
-                    view = False
-                    if operation.meta_args and "view" in operation.meta_args and operation.meta_args["view"]: view=True
-                    picker_view = False
-                    if operation.meta_args and "picker_view" in operation.meta_args and operation.meta_args["picker_view"]: picker_view=True
 
 
                     ## APPLY THE SELECTED OPERATION TO THE SELECTED DOWNLOADS
                     applyToDownloads(
-                        self.stdscr,
-                        operation,
-                        gids,
-                        operation.name,
-                        operation.function,
-                        operation.function_args,
-                        user_opts,
-                        view,
+                        stdscr=self.stdscr,
+                        operation=operation,
+                        gids=gids,
+                        user_opts=user_opts,
                         fnames=fnames,
-                        picker_view=picker_view
                     )
 
                     self.downloads_data["selections"] = {}
