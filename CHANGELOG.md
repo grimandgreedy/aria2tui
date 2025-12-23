@@ -1,6 +1,6 @@
 # CHANGELOG.md
 
-## [0.1.11.13] 2025-12-24
+## [0.1.11.13-14] 2025-12-24
  - Fixed "Change Position in Queue" download operation
  - Added change filename download operation option
  - Reordered download operations
