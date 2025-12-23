@@ -466,6 +466,47 @@ def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
 
     return f"{len(keys_with_diff_values)} option(s) changed."
 
+def changeFilenamePicker(stdscr: curses.window, gid:str) -> str:
+    """ Change the filename """ 
+    if not gid: return "0 options changed"
+    try:
+        req = getOption(str(gid))
+        response = sendReq(req)["result"]
+        current_options = json.loads(json.dumps(response))
+    except Exception as e:
+        return str(e)
+
+    flattened_json = flatten_data(response)
+    flattened_json = [[key,val] for key, val in flattened_json.items() if key == "out"]
+    x = Picker(
+        stdscr, 
+        items=flattened_json, 
+        header=["Key", "Value"],
+        title=f"Change Options for gid={gid}",
+        selected_column=1,
+        editable_columns=[False, True],
+        keys_dict=edit_menu_keys,
+        startup_notification="'e' to edit cell. 'E' to edit selected cells in nvim. 'q' to exit. 'Return' to submit changes.",
+        reset_colours=False,
+    )
+    selected_indices, opts, function_data = x.run()
+    if not selected_indices: return "0 options changed"
+    flattened_json = function_data["items"]
+    unflattened_json = unflatten_data({row[0]: row[1] for row in flattened_json})
+    loaded_options = unflattened_json
+
+    # Get difference between dicts
+    keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
+
+    reqs = []
+    for key in keys_with_diff_values:
+        reqs.append(json.loads(changeOption(gid, key, loaded_options[key])))
+
+    batch = sendReq(json.dumps(reqs).encode('utf-8'))
+
+    return f"{len(keys_with_diff_values)} option(s) changed."
+
+
 def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> Tuple[list[str], str]:
     """
     Add URIs to aria server.
@@ -1087,7 +1128,7 @@ def applyToDownloads(
         for i, gid in enumerate(gids):
             try:
                 jsonreq = {}
-                if operation.name == "Change Position":
+                if operation.name == "Change Position in Queue":
                     position = int(user_opts) if user_opts.strip().isdigit() else 0
                     result_part = changePosition(gid, pos=position)
                 else:

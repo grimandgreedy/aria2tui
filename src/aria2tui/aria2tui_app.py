@@ -47,8 +47,8 @@ class Aria2TUI:
 
 
     def add_require_option_to_dl_operations(self) -> None:
-        self.dl_operations_data["require_option"] =  [False if option.name != "Change Position" else True for option in self.download_options]
-        self.dl_operations_data["option_functions"] = [None if option.name != "Change Position" else lambda stdscr, refresh_screen_function=None: default_option_selector(stdscr, field_prefix=" Download Position: ", refresh_screen_function=refresh_screen_function) for option in self.download_options]
+        self.dl_operations_data["require_option"] =  [False if option.name not in "Change Position in Queue" else True for option in self.download_options]
+        self.dl_operations_data["option_functions"] = [None if option.name != "Change Position in Queue" else lambda stdscr, refresh_screen_function=None: default_option_selector(stdscr, field_prefix=" Download Position: ", refresh_screen_function=refresh_screen_function) for option in self.download_options]
 
     def check_and_reapply_terminal_settings(self, menu_option: Operation, stdscr: curses.window):
         if menu_option.reapply_terminal_settings:

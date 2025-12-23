@@ -63,31 +63,6 @@ download_options = [
         function=lambda stdscr, gid, fname, operation, function_args: changePosition(gid, pos=100000),
         send_request=True,
     ),
-    Operation(
-        name="Retry Download",
-        function=lambda stdscr, gid, fname, operation, function_args: retryDownload(gid),
-    ),
-    Operation(
-        name="Retry Download and Pause",
-        function=lambda stdscr, gid, fname, operation, function_args: retryDownloadAndPause(gid),
-    ),
-    Operation(
-        name="Remove (paused/waiting)",
-        function=lambda stdscr, gid, fname, operation, function_args: remove(gid),
-        send_request=True,
-    ),
-    # Operation("forceRemove", forceRemove),
-    # Operation("removeStopped", removeDownloadResult),
-    Operation(
-        name="Remove (errored/completed)",
-        function=lambda stdscr, gid, fname, operation, function_args: removeDownloadResult(gid),
-        send_request=True,
-    ),
-    Operation(
-        name="DL Info",
-        function=lambda stdscr, gids, fnames, operation, function_args: display_info_menu(stdscr, gids, fnames, operation),
-        accepts_gids_list=True,
-    ),
 
     # Operation(
     #     name="DL Info: Files",
@@ -150,8 +125,13 @@ download_options = [
         accepts_gids_list=True,
     ),
     Operation(
+        name="Change Filename",
+        function=lambda stdscr, gid, fname, operation, function_args: changeFilenamePicker(stdscr, gid),
+        send_request=True,
+    ),
+    Operation(
         name="Change Options Picker (for each selected)",
-        function=lambda stdscr, gid, fname, operation, function_args: changeOptionPicker(stdscr, gid),
+        function=lambda stdscr, gid, fname, operation, function_args: changeFilenamePicker(stdscr, gid),
     ),
     Operation(
         name="Change Options Picker (for all selected)",
@@ -172,6 +152,31 @@ download_options = [
     Operation(
         name="Modify torrent files (active/paused/waiting)",
         function=lambda stdscr, gids, fnames, operation, function_args: download_selected_files(stdscr, gids),
+        accepts_gids_list=True,
+    ),
+    Operation(
+        name="Retry Download",
+        function=lambda stdscr, gid, fname, operation, function_args: retryDownload(gid),
+    ),
+    Operation(
+        name="Retry Download and Pause",
+        function=lambda stdscr, gid, fname, operation, function_args: retryDownloadAndPause(gid),
+    ),
+    Operation(
+        name="Remove (paused/waiting)",
+        function=lambda stdscr, gid, fname, operation, function_args: remove(gid),
+        send_request=True,
+    ),
+    # Operation("forceRemove", forceRemove),
+    # Operation("removeStopped", removeDownloadResult),
+    Operation(
+        name="Remove (errored/completed)",
+        function=lambda stdscr, gid, fname, operation, function_args: removeDownloadResult(gid),
+        send_request=True,
+    ),
+    Operation(
+        name="DL Info",
+        function=lambda stdscr, gids, fnames, operation, function_args: display_info_menu(stdscr, gids, fnames, operation),
         accepts_gids_list=True,
     ),
     # Operation(
