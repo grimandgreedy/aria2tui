@@ -152,7 +152,7 @@ operations_highlights = [
         "color": 11,
     },
     {
-        "match": r"^change options",
+        "match": r"^change options|^change filename",
         "field": 0,
         "color": 13,
     },

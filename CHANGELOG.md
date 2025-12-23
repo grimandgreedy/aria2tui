@@ -1,5 +1,10 @@
 # CHANGELOG.md
 
+## [0.1.11.13] 2025-12-24
+ - Fixed "Change Position in Queue" download operation
+ - Added change filename download operation option
+ - Reordered download operations
+
 ## [0.1.11.12] 2025-11-10
  - Streamlined download options menu
   - Reordered menu in a more intuitive way.

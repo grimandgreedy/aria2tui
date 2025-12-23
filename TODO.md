@@ -6,6 +6,9 @@
 > - [x] Change the Change options nvim so that it uses key-value pairs rather than json.
 > - [ ] Retry bittorent downloads
 > - [ ] Add OS-specific configs.
+> - [ ] Make dl options menu work with different download types. 
+>   - [ ] Don't show pause for paused downloads
+>   - [ ] Don't show resume for paused/stopped downloads
 
 
 > [!IMPORTANT] Features
