@@ -29,8 +29,10 @@ remove_keys = [
     "open",
     "notification_toggle",
     "undo",
-    "add_column",
-    "add_row",
+    "add_column_after",
+    "add_column_before",
+    "add_row_before",
+    "add_row_after",
     "file_next",
     "file_prev",
 ]
