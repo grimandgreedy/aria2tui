@@ -66,9 +66,9 @@ show_right_pane_default = false
 right_pane_default_index = 0
 ```
 
-**Note**: If you have not used aria2c before then download [this file](https://gist.github.com/qzm/a54559726896d5e6bf21adf2363ad334) and put it in ~/.config/aria2/.
+**Note**: If you have not used aria2c before then download [this file](https://gist.github.com/qzm/a54559726896d5e6bf21adf2363ad334) and put it in ~/.config/aria2/. In any case, since we are using RPC to communicate with aria2c, make sure that you have the following set in your config: `enable-rpc` `rpc-listen-all` `rpc-allow-origin-all`.
 
-After editing ~/.config/aria2tui/config.toml and ensuring that your url, port, and secret token are correct, you are all set to go:
+After creating ~/.config/aria2tui/config.toml and ensuring that your url, port, and secret token are correct, you are all set to go:
 
 ```bash
 aria2tui
@@ -77,9 +77,11 @@ aria2tui
 
 ## Tips
 
- - See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki), which will cover most questions.
- - Press '?' in aria2tui to see the help page which will list the keys and their functions.
+ - See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki), which covers basic usage.
+ - Press '?' in aria2tui to see the help page which will list the available keybinds.
  - If you have problems starting aria2c, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
+ - `Ctrl-l` will redraw the screen; useful if there are stray artifacts after dropping to the shell
+ - Toggle the right-pane with `'` and cycle between right-pane views with `"`.
  - By default the cursor in aria2tui will track the highlighted download task--that is, if you are hovering over an active download which finishes and moves to the bottom of the list, then the cursor will remain on that task. This is usually what you want. However, sometimes you want to stay at a particular place in the download list--perhaps you want to remain at the top and watch the currently active downloads. To do this you can activate 'pin cursor' mode which will pin the cursor to an index rather than to a particular row.
     - Press ` and type pc. This will toggle pin cursor mode.
     - You can also press ~ to open the settings and then select the pin cursor option.

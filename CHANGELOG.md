@@ -1,6 +1,15 @@
 # CHANGELOG.md
-## [0.1.11.15] ?
- - Remove add col/row keys from aria2tui_keys
+## [0.1.12.0] 2026-01-04
+ - Download operation menu options now auto-filter based on download selections.
+  - So, e.g., "Modify torrent files" will not appear in the menu when direct downloads are selected.
+ - Improvement: Retry Downloadi now ensures that all aria2c download options from target download are preserved in new download.
+ - Fix change filename menu option
+ - Improve help descriptions and ordering
+ - Disable modification checks for change options menu and also for change torrent filenames menu.
+ - Disable listpick keys that should not work with aria2tui
+    - Add col/row keys from aria2tui_keys
+    - Remove left_pane keys (toggle and cycle)
+    - Disable paste functionality
  - Add pytest skeleton and outline future tests
 
 ## [0.1.11.13-14] 2025-12-24

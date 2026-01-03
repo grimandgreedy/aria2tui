@@ -12,6 +12,9 @@
 > - [x] Add quick option for changing filenames
 > - [ ] When we try to open a file that has moved there is an error that is printed to sdterr but no notification
 > - [ ] When we open a directory with 'O' macro the curses display is not refreshed. May have to add an option to the macro dict in listpick
+> - [ ] Change Filename:
+>  - [ ] Refactor and simplify. Currently is a copy of change options and is unnecessarily bloated.
+>  - [ ] This doesn't apply to torrents. Can we unify the modify torrent file menu option with this?
 
 
 > [!IMPORTANT] Features
