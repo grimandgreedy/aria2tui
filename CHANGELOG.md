@@ -1,4 +1,8 @@
 # CHANGELOG.md
+
+## [0.1.12.1] ?
+ - Fix bitstring to download pieces display in right pane.
+
 ## [0.1.12.0] 2026-01-04
  - Download operation menu options now auto-filter based on download selections.
   - So, e.g., "Modify torrent files" will not appear in the menu when direct downloads are selected.
