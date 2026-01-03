@@ -208,7 +208,7 @@ menu_options = [
         reapply_terminal_settings=True,
     ),
     Operation(
-        name="Add Torrents (file picker)",
+        name="Add Torrent Files (file picker)",
         function=lambda stdscr, gids, fnames, operation, function_args: addTorrentsFilePicker(),
         reapply_terminal_settings=True,
     ),
