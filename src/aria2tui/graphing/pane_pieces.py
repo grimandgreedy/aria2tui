@@ -95,13 +95,15 @@ def get_dl_pieces(data, state) -> str:
 
         s = ""
         if status == "complete":
-            return "■"*len(bitfield)
+            # Each hex char represents 4 pieces
+            return "■"*len(bitfield)*4  
 
+        # Convert hexadecimal bitfield to visual representation
         for c in bitfield:
-            if c == "f": s+= "■"
-            elif c == "0": s+= "□"
-            else: s += "◩"
-
+            # Convert hex char to 4-bit binary
+            binary = format(int(c, 16), '04b')
+            for bit in binary:
+                s += "■" if bit == '1' else "□"
         return s
     except:
 
