@@ -78,6 +78,33 @@ class Aria2TUI:
 
             if selected_downloads:
                 ## CHOOSE OPERATION TO APPLY TO SELECTED DOWNLOADS
+
+                # Filter download operations menu based on selections
+                status_index = DownloadsPicker.header.index("Status")
+                type_index = DownloadsPicker.header.index("Type")
+                selected_download_statuses = [DownloadsPicker.items[selected_index][status_index] for selected_index in selected_downloads]
+                selected_download_types = [DownloadsPicker.items[selected_index][type_index] for selected_index in selected_downloads]
+
+                if len(set(selected_download_statuses)) == 1:
+                    status = selected_download_statuses[0]
+                    applicable_download_operations = [dl_opt for dl_opt in download_options if status in dl_opt.applicable_statuses]
+                else:
+                    applicable_download_operations = download_options
+
+
+                
+                # If selected downloads are not all torrents remove menu options only applicable to torrents
+                if not set(selected_download_types) == set(["torrent"]):
+                    applicable_download_operations = [dl_opt for dl_opt in applicable_download_operations if not dl_opt.torrent_operation]
+
+                self.dl_operations_data["items"] = [[download_option.name] for download_option in applicable_download_operations]
+
+
+                # Ensure that change position in queue
+                self.dl_operations_data["require_option"] =  [False if option.name not in "Change Position in Queue" else True for option in applicable_download_operations]
+                self.dl_operations_data["option_functions"] = [None if option.name != "Change Position in Queue" else lambda stdscr, refresh_screen_function=None: default_option_selector(stdscr, field_prefix=" Download Position: ", refresh_screen_function=refresh_screen_function) for option in applicable_download_operations]
+
+                # Get filenames to display in right pane
                 items, header = self.downloads_data["items"], self.downloads_data["header"]
                 gid_index, fname_index = header.index("GID"), header.index("Name")
                 gids = [item[gid_index] for i, item in enumerate(items) if i in selected_downloads]
@@ -99,7 +126,7 @@ class Aria2TUI:
                 DownloadOperationPicker.set_function_data(self.dl_operations_data)
                 selected_operation, opts, self.dl_operations_data = DownloadOperationPicker.run()
                 if selected_operation:
-                    operation = download_options[selected_operation[0]]
+                    operation = applicable_download_operations[selected_operation[0]]
 
                     user_opts = self.dl_operations_data["user_opts"]
 
