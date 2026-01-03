@@ -35,6 +35,9 @@ remove_keys = [
     "add_row_after",
     "file_next",
     "file_prev",
+    "toggle_left_pane",
+    "cycle_left_pane",
+    "paste",
 ]
 
 for key in remove_keys:
