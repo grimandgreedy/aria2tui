@@ -38,7 +38,6 @@ class Operation:
         self,
         name: str,
         function: Callable,
-        # function: Callable[curses.window, list[str], list[str]],
         function_args:dict = {},
         meta_args: dict = {},
         exec_only: bool = False,
@@ -47,6 +46,8 @@ class Operation:
         view: bool = False,
         picker_view: bool = False,
         reapply_terminal_settings = False,
+        applicable_statuses = [],
+        torrent_operation = False
     ):
         self.name = name
         self.function = function
@@ -58,6 +59,8 @@ class Operation:
         self.view = view
         self.picker_view = picker_view
         self.reapply_terminal_settings = reapply_terminal_settings
+        self.applicable_statuses = applicable_statuses
+        self.torrent_operation = torrent_operation
         """
         Operation.function(
             stdscr: curses.window,
@@ -66,6 +69,7 @@ class Operation:
 
         )
         """
+    
 
 def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests if we can connect to the url and port. """
@@ -447,6 +451,7 @@ def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
             keys_dict=edit_menu_keys,
             startup_notification="'e' to edit cell. 'E' to edit selected cells in nvim. 'q' to exit. 'Return' to submit changes.",
             reset_colours=False,
+            disable_file_close_warning=True,
     )
     selected_indices, opts, function_data = x.run()
     if not selected_indices: return "0 options changed"
@@ -487,6 +492,7 @@ def changeFilenamePicker(stdscr: curses.window, gid:str) -> str:
         editable_columns=[False, True],
         keys_dict=edit_menu_keys,
         startup_notification="'e' to edit cell. 'E' to edit selected cells in nvim. 'q' to exit. 'Return' to submit changes.",
+        disable_file_close_warning=True,
         reset_colours=False,
     )
     selected_indices, opts, function_data = x.run()
@@ -496,8 +502,10 @@ def changeFilenamePicker(stdscr: curses.window, gid:str) -> str:
     loaded_options = unflattened_json
 
     # Get difference between dicts
-    keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
+    keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None) and key == "out")
 
+    import pyperclip
+    pyperclip.copy(repr(keys_with_diff_values))
     reqs = []
     for key in keys_with_diff_values:
         reqs.append(json.loads(changeOption(gid, key, loaded_options[key])))
@@ -849,7 +857,7 @@ def getAllInfo(gid: str) -> list[dict]:
     return responses
 
 
-def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str =None) -> str:
+def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str ="") -> str:
     """ Retries a download. By getting the key information and using it to add a new download. Does not remove the old download. Returns the gid of the new download or an empty string if there is an error. """
 
     status = sendReq(tellStatus(gid))
@@ -858,24 +866,43 @@ def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, 
     if "bittorrent" not in status["result"]:
 
         uri = status["result"]["files"][0]["uris"][0]["uri"]
-        dl = {
-            "dir": status["result"]["dir"],
-        }
-        dl["out"] = options["result"]["out"] if "out" in options["result"] else ""
+        # Preserve all options from the original download
+        dl = options["result"].copy()
+        # Ensure dir is set from status (it may not be in options)
+        if "dir" in status["result"]:
+            dl["dir"] = status["result"]["dir"]
+
         return_val, gid = addDownload(uri=uri, download_options_dict=dl)
         if return_val: return gid
         else: return ""
     else:
         pass
 
-
-
     return ""
 
-def retryDownloadAndPauseFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str ="") -> None:
+def retryDownloadAndPauseFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str ="") -> str:
     """ Retries a download by getting the options of the existing download and using it to add a new download and then pauses the download. Does not remove the old download. Returns the gid of the new download or an empty string if there is an error. """
-    gid = retryDownloadFull(gid, url=url, port=port, token=token)
-    if gid: sendReq(pause(gid))
+
+    status = sendReq(tellStatus(gid))
+    options = sendReq(getOption(gid))
+
+    if "bittorrent" not in status["result"]:
+
+        uri = status["result"]["files"][0]["uris"][0]["uri"]
+        # Preserve all options from the original download
+        dl = options["result"].copy()
+        # Ensure dir is set from status (it may not be in options)
+        if "dir" in status["result"]:
+            dl["dir"] = status["result"]["dir"]
+
+        dl["pause"] = "true"
+        return_val, gid = addDownload(uri=uri, download_options_dict=dl)
+        if return_val: return gid
+        else: return ""
+    else:
+        pass
+
+    return ""
 
 
 
@@ -980,110 +1007,6 @@ def openGidFiles(gids: list[str], group: bool = True) -> None:
     if group:
         openFiles(files_list)
 
-
-import subprocess
-import shlex
-import sys
-import os
-import mimetypes
-from collections import defaultdict
-
-def openFiles(files: list[str]) -> None:
-    """
-    Opens multiple files using their associated applications.
-    Works on Linux, macOS, and other UNIX-like systems.
-
-    Args:
-        files (list[str]): A list of file paths.
-    """
-
-    def command_exists(cmd):
-        return subprocess.call(f"type {shlex.quote(cmd)} > /dev/null 2>&1", shell=True) == 0
-
-    # Determine available open command for this system
-    if sys.platform == "darwin":
-        open_cmd = "open"  # macOS
-    elif command_exists("gio"):
-        open_cmd = "gio open"  # Modern GNOME systems
-    elif command_exists("xdg-open"):
-        open_cmd = "xdg-open"  # Most other Linux/Unix
-    else:
-        raise EnvironmentError("No suitable 'open' command found (gio, xdg-open, or open)")
-
-    def get_mime_types(files):
-        """
-        Return a dict: mime_type -> [files]
-        """
-        types = defaultdict(list)
-
-        for file in files:
-            mime_type = None
-            # Try xdg-mime first (Linux)
-            if command_exists("xdg-mime"):
-                try:
-                    resp = subprocess.run(
-                        f"xdg-mime query filetype {shlex.quote(file)}",
-                        shell=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.DEVNULL,
-                    )
-                    out = resp.stdout.decode().strip()
-                    if out:
-                        mime_type = out
-                except Exception:
-                    pass
-
-            # Fallback to Python mimetypes
-            if not mime_type:
-                mime_type, _ = mimetypes.guess_type(file)
-                if mime_type is None:
-                    mime_type = "application/octet-stream"
-
-            types[mime_type].append(file)
-
-        return types
-
-    def get_default_app_for_type(mime_type):
-        """
-        Return the default app command for a given mime type if available.
-        On Linux, tries xdg-mime; on macOS, uses 'open'.
-        """
-        if sys.platform == "darwin":
-            return "open"
-        elif command_exists("xdg-mime"):
-            resp = subprocess.run(
-                f"xdg-mime query default {shlex.quote(mime_type)}",
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-            )
-            app = resp.stdout.decode().strip()
-            return app or open_cmd
-        else:
-            return open_cmd
-
-    types = get_mime_types(files)
-    apps_files = defaultdict(list)
-
-    # Map apps -> list of files
-    for mime, flist in types.items():
-        app = get_default_app_for_type(mime)
-        apps_files[app].extend(flist)
-
-    # Launch all grouped files
-    for app, flist in apps_files.items():
-        quoted_files = " ".join(shlex.quote(f) for f in flist)
-        if app.endswith(".desktop") and command_exists("gio"):
-            # Linux desktop file — use gio
-            subprocess.Popen(f"gio launch /usr/share/applications/{shlex.quote(app)} {quoted_files}", shell=True)
-        elif app == "open" or open_cmd == "open":
-            # macOS
-            subprocess.Popen(f"open {quoted_files}", shell=True)
-        elif "xdg-open" in open_cmd:
-            subprocess.Popen(f"xdg-open {quoted_files}", shell=True)
-        else:
-            # Fallback generic
-            subprocess.Popen(f"{open_cmd} {quoted_files}", shell=True)
 
 def applyToDownloads(
     stdscr: curses.window,
@@ -1228,6 +1151,7 @@ def download_selected_files(stdscr, gids):
             editable_by_default=True,
             keys_dict=picker_keys,
             startup_notification="Selected files will be downloaded. Non-selected will be skipped. 'e' to edit filename. 'E' to edit selected cells in nvim. 'q' to exit. 'Return' to submit changes.",
+            disable_file_close_warning=True,
         )
         modified_selections, options, function_data = selectionsPicker.run()
         if selected_indices != modified_selections and function_data["last_key"] != ord("q"):
@@ -1545,6 +1469,28 @@ def open_hovered_location(picker) -> None:
     import time
 
     # picker.refresh_and_redraw_screen()
+def remove_downloads(gids):
+    # Loop through downloads, determine their status and apply then run the appropriate remove operation
+    for gid in gids:
+        try:
+            # Get the current status of the download
+            status_resp = sendReq(tellStatus(gid))
+            status = status_resp["result"]["status"]
+
+            # Use appropriate remove operation based on status
+            if status in ["active", "waiting", "paused"]:
+                # For active/waiting/paused downloads, use remove to stop and remove
+                sendReq(remove(gid))
+            elif status in ["complete", "error", "removed"]:
+                # For completed/error/removed downloads, remove from memory
+                sendReq(removeDownloadResult(gid))
+        except Exception:
+            # If tellStatus fails, the download might already be removed or invalid GID
+            # Try removeDownloadResult as a fallback
+            try:
+                sendReq(removeDownloadResult(gid))
+            except:
+                pass
 
 aria2tui_macros = [
     {
