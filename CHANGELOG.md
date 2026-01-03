@@ -1,4 +1,7 @@
 # CHANGELOG.md
+## [0.1.11.15] ?
+ - Remove add col/row keys from aria2tui_keys
+ - Add pytest skeleton and outline future tests
 
 ## [0.1.11.13-14] 2025-12-24
  - Fixed "Change Position in Queue" download operation
