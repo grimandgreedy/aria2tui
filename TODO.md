@@ -1,14 +1,17 @@
 # aria2tui
 
-> - [ ] Torrents:
->   - [ ] Allow changing torrent file names.
+> - [x] Torrents:
+>   - [x] Allow changing torrent file names.
 >   - [x] Allow files to be skipped.
 > - [x] Change the Change options nvim so that it uses key-value pairs rather than json.
 > - [ ] Retry bittorent downloads
 > - [ ] Add OS-specific configs.
-> - [ ] Make dl options menu work with different download types. 
->   - [ ] Don't show pause for paused downloads
->   - [ ] Don't show resume for paused/stopped downloads
+> - [x] Make dl options menu work with different download types. 
+>   - [x] Don't show pause for paused downloads
+>   - [x] Don't show resume for paused/stopped downloads
+> - [x] Add quick option for changing filenames
+> - [ ] When we try to open a file that has moved there is an error that is printed to sdterr but no notification
+> - [ ] When we open a directory with 'O' macro the curses display is not refreshed. May have to add an option to the macro dict in listpick
 
 
 > [!IMPORTANT] Features
@@ -22,18 +25,18 @@
 >   - [x] Total DL speed, # active, 
 > - [ ] monitor log file
 > - [ ] setup https connection
-> - [ ] add source column, showing site from which it is being downloaded
+> - [x] add source column, showing site from which it is being downloaded
 > - [ ] Create passive notification
 >   - [ ]  use infobox?
-> - [ ] Add notifications to the following:
+> - [x] Add notifications to the following:
 >    - adding downloads (# succeeeded or failed)
-> - [ ] implement changeOption for downloads
-> - [ ] add key to open download location using 'o'
-> - [ ] (!!!) make operations upon downloads work only with certain download types:
+> - [x] implement changeOption for downloads
+> - [x] add key to open download location using 'o'
+> - [x] (!!!) make operations upon downloads work only with certain download types:
 >    - [x] make remove work with all
->    - [ ] queue operations only on those in the queue
->    - [ ] retry only on errored
-> - [ ] add column to show download type (e.g., torrent)
+>    - [x] queue operations only on those in the queue
+>    - [x] retry only on errored
+> - [x] add column to show download type (e.g., torrent)
 > - [x] add support for multiple aria servers
 >   - [x] Config file can be specified.
 >   - [ ] Change on the fly
@@ -45,7 +48,7 @@
 >     - Change dir for batch of downloads
 > - [ ] Integrate bulk downloaders
 > - [x] Add watch download speed graph
->   - [ ] Integrate the graphs into the main list_picker so that they can be watched as a pane while list_picker runs.
+>   - [x] Integrate the graphs into the main list_picker so that they can be watched as a pane while list_picker runs.
 > - [x] Make data requests asynchronous so that the data is still refreshed with a spotty connection.
 >   - [x] Use threading.
 >   - [ ] Will Asyncio improve performance at all? 
@@ -79,14 +82,14 @@
 > - [x] make remove work with errored download
 >    - [x] remove all errored/completed downloads works
 > - [ ] fix operation loop to ensure that specific if/else can be removed; e.g., changePosition
-> - [ ] redo handle_visual_selection()
-> - [ ] redo cursor_up, cursor_down
-> - [ ] Filter and search use the same tokenize and apply_filter function. Put them in utils.
-> - [ ] Add option to change options and readd download. 
->   - [ ] Note that changing options for errored downloads doesn't work
-> - [ ] Add retry and puase option
-> - [ ] Finish implementation of batch changeOptions (!!!)
->    - [ ] Fix changing out dir
+> - [x] redo handle_visual_selection()
+> - [x] redo cursor_up, cursor_down
+> - [x] Filter and search use the same tokenize and apply_filter function. Put them in utils.
+> - [x] Add option to change options and readd download. 
+>   - [x] Note that changing options for errored downloads doesn't work
+> - [x] Add retry and puase option
+> - [x] Finish implementation of batch changeOptions (!!!)
+>    - [x] Fix changing out dir
 > - [x] Restructure repo directory.
 > - [ ] If the token is incorrect then we are asked if we want to start aria2c...
 > - [ ] Add tooltips to certain menu options
@@ -96,34 +99,34 @@
 >     - [x] Make a class for the option with the name, function, args, etc.
 >   - [x] Add an Aria2TUi class
 > - [x] Add default file manager option in config; or make yazi optional
-> - [ ] Ensure that add torrent returns the gids.
-> - [ ] Fix the startup notification when downloads are added.
+> - [x] Ensure that add torrent returns the gids.
+> - [x] Fix the startup notification when downloads are added.
 > - [ ] Add an editor command to the config so that the preferred editor can be changed.
-> - [ ] Implement "undo" for edits
 > - [ ] Add row-wise highlighting
 >   - [ ] E.g., Edited rows highlighted red
 > - [ ] pass Option object to applytodownloads rather than individual variables.
 > - [ ] Add picker_view variable to Option object.
 > - [ ] Add --dump-config flag
-> - [ ] Unify remove download  operations (paused and errored)
->   - [ ] We will have to check the status of downloads and make sure we send the right operation over IPC. If they are:
->     - [ ] Errored: removeDownloadResult
->     - [ ] Completed: removeDownloadResult
->     - [ ] Paused: remove
->     - [ ] Active: pause and then remove
+> - [x] Unify remove download  operations (paused and errored)
+>   - [x] We will have to check the status of downloads and make sure we send the right operation over IPC. If they are:
+>     - [x] Errored: removeDownloadResult
+>     - [x] Completed: removeDownloadResult
+>     - [x] Paused: remove
+>     - [x] Active: pause and then remove
 > - [ ] We should get only the properties we want from aria2c when getting the queue, stopped, etc. We are getting quite a lot of information when we have thousands of downloads.
-> - [ ] Create wiki
->   - [ ] xdg-mime default aria2tui-link-handler.desktop x-scheme-handler/magnet
-> - [ ] Improve display of downloads info:
+> - [x] Create wiki
+>   - [x] xdg-mime default aria2tui-link-handler.desktop x-scheme-handler/magnet
+>   - [x] Change download options
+> - [x] Improve display of downloads info:
 >   - [x] DL Info: Files
->   - [ ] DL Info: Servers
->   - [ ] DL Info: Peers
->   - [ ] DL Info: Status
->   - [ ] DL Info: Options
->   - [ ] DL Info: Get all Info
+>   - [x] DL Info: Servers
+>   - [x] DL Info: Peers
+>   - [x] DL Info: Status
+>   - [x] DL Info: Options
+>   - [x] DL Info: Get all Info
 
 > [!error] Errors
-> - [ ] fix adding uris with filename. Data is the same but it is corrupted somehow. This is a problem with aria itself. **
+> - [x] fix adding uris with filename. Data is the same but it is corrupted somehow. Is this a problem with aria itself?
 > ```
 > works vs doesn't work:
 >   https://i.ytimg.com/vi/TaUlBYqGuiE/hq720.jpg
@@ -157,7 +160,7 @@
 >   - [x] Check if selected_indices is empty first.
 > - [ ] Slow navigation when we have a search query and many downloads with 1 second refresh rate
 > - [ ] When we add a torrent path that doesn't exist we get a crash.
-> - [ ] Opening Files:
+> - [x] Opening Files:
 >   - [ ] When we try to open a download that has been moved it prints 'xdg-mimetype argument missing'. 
 >    - Check for file existence, if it doesn't exist then suppress stderr and show a notification.
 
