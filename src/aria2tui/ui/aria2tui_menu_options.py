@@ -41,143 +41,123 @@ download_options = [
     Operation(
         name="Resume Download(s)",
         function=lambda stdscr, gid, fname, operation, function_args: unpause(gid),
-        send_request=True
+        send_request=True,
+        applicable_statuses=["paused"]
     ),
     Operation(
         name="Pause Download(s)",
         function=lambda stdscr, gid, fname, operation, function_args: pause(gid),
         send_request=True,
+        applicable_statuses=["active", "waiting"]
     ),
     Operation(
         name="Change Position in Queue",
-        function=lambda stdscr, gid, fname, operation, function_args: changePosition(gid),
+        # function=lambda stdscr, gid, fname, operation, function_args: changePosition(gid),
+        function=lambda stdscr, gid, fname, operation, function_args: None,
         send_request=True,
+        applicable_statuses=["waiting", "paused", "active"]
     ),
     Operation(
         name="Send to Front of Queue",
         function=lambda stdscr, gid, fname, operation, function_args: changePosition(gid, pos=0),
         send_request=True,
+        applicable_statuses=["waiting", "paused", "active"]
     ),
     Operation(
         name="Send to Back of Queue",
         function=lambda stdscr, gid, fname, operation, function_args: changePosition(gid, pos=100000),
         send_request=True,
+        applicable_statuses=["waiting", "paused", "active"]
     ),
-
-    # Operation(
-    #     name="DL Info: Files",
-    #     function=lambda stdscr, gids, fnames, operation, function_args: display_files(stdscr, gids, fnames, operation),
-    #     accepts_gids_list=True,
-    # ),
-    # Operation(
-    #     name="DL Info: Servers",
-    #     function=lambda stdscr, gid, fname, operation, function_args: getServers(gid),
-    #     meta_args={"picker_view":True},
-    #     send_request=True,
-    #     picker_view=True,
-    # ),
-    # Operation(
-    #     name="DL Info: Peers",
-    #     function=lambda stdscr, gid, fname, operation, function_args: getPeers(gid),
-    #     meta_args={"picker_view":True},
-    #     send_request=True,
-    #     picker_view=True,
-    # ),
-    # Operation(
-    #     name="DL Info: URIs",
-    #     function=lambda stdscr, gid, fname, operation, function_args: getUris(gid),
-    #     meta_args={"picker_view":True},
-    #     send_request=True,
-    #     picker_view=True,
-    # ),
-    # Operation(
-    #     name="DL Info: Status Info",
-    #     function=lambda stdscr, gid, fname, operation, function_args: tellStatus(gid),
-    #     meta_args={"picker_view":True},
-    #     send_request=True,
-    #     picker_view=True,
-    # ),
-    # Operation(
-    #     name="DL Info: Aria2c Options",
-    #     function=lambda stdscr, gid, fname, operation, function_args: getOption(gid),
-    #     meta_args={"picker_view":True},
-    #     send_request=True,
-    #     picker_view=True,
-    # ),
-    # Operation(
-    #     name="DL Info: Get All Info",
-    #     function=lambda stdscr, gid, fname, operation, function_args: getAllInfo(gid),
-    #     meta_args={"picker_view":True},
-    #     picker_view=True,
-    # ),
     Operation(
-        name="Open Download Location (terminal)",
+        name="Open Download Location",
         function=lambda stdscr, gid, fname, operation, function_args: openDownloadLocation(gid, new_window=False),
         reapply_terminal_settings=True,
+        applicable_statuses=["active", "waiting", "paused", "complete", "error", "removed"]
     ),
     Operation(
         name="Open Download Location (gui, new window)",
         function=lambda stdscr, gid, fname, operation, function_args: openDownloadLocation(gid),
+        applicable_statuses=["active", "waiting", "paused", "complete", "error", "removed"]
     ),
     Operation(
         name="Open File(s)",
         function=lambda stdscr, gids, fnames, operation, function_args: openGidFiles(gids),
         accepts_gids_list=True,
+        applicable_statuses=["active", "waiting", "complete"]
     ),
     Operation(
-        name="Change Filename",
+        name="Change Filename(s)",
         function=lambda stdscr, gid, fname, operation, function_args: changeFilenamePicker(stdscr, gid),
         send_request=True,
+        applicable_statuses=["active", "waiting", "paused"]
     ),
+    # Operation(
+    #     name="Change Options Picker (for each selected)",
+    #     function=lambda stdscr, gid, fname, operation, function_args: changeOptionPicker(stdscr, gid),
+    #     applicable_statuses=["active", "waiting", "paused"]
+    # ),
     Operation(
-        name="Change Options Picker (for each selected)",
-        function=lambda stdscr, gid, fname, operation, function_args: changeFilenamePicker(stdscr, gid),
-    ),
-    Operation(
-        name="Change Options Picker (for all selected)",
+        name="Change Options Picker (For All Selected)",
         function=lambda stdscr, gids, fnames, operation, function_args: changeOptionsBatchPicker(stdscr, gids),
         accepts_gids_list=True,
+        applicable_statuses=["active", "waiting", "paused"]
     ),
+    # Operation(
+    #     name="Change Options nvim (for each selected)",
+    #     function=lambda stdscr, gid, fname, operation, function_args: changeOptionDialog(gid),
+    #     reapply_terminal_settings=True,
+    #     applicable_statuses=["active", "waiting", "paused"]
+    # ),
     Operation(
-        name="Change Options nvim (for each selected)",
-        function=lambda stdscr, gid, fname, operation, function_args: changeOptionDialog(gid),
-        reapply_terminal_settings=True,
-    ),
-    Operation(
-        name="Change Options nvim (for all selected)",
+        name="Change Options in NeoVim (For All Selected)",
         function=lambda stdscr, gids, fnames, operation, function_args: changeOptionBatchDialog(gids),
         accepts_gids_list=True,
         reapply_terminal_settings=True,
+        applicable_statuses=["active", "waiting", "paused"]
     ),
     Operation(
-        name="Modify torrent files (active/paused/waiting)",
+        name="Modify Torrent Files",
         function=lambda stdscr, gids, fnames, operation, function_args: download_selected_files(stdscr, gids),
         accepts_gids_list=True,
+        applicable_statuses=["active", "paused", "waiting"],
+        torrent_operation=True
     ),
     Operation(
-        name="Retry Download",
+        name="Retry Download(s)",
         function=lambda stdscr, gid, fname, operation, function_args: retryDownload(gid),
+        applicable_statuses=["error", "removed", "complete"]
     ),
     Operation(
-        name="Retry Download and Pause",
+        name="Retry Download(s) and Pause",
         function=lambda stdscr, gid, fname, operation, function_args: retryDownloadAndPause(gid),
+        applicable_statuses=["error", "removed", "complete"]
     ),
     Operation(
-        name="Remove (paused/waiting)",
-        function=lambda stdscr, gid, fname, operation, function_args: remove(gid),
-        send_request=True,
+        name="Remove Download(s)",
+        function=lambda stdscr, gids, fnames, operation, function_args: remove_downloads(gids),
+        accepts_gids_list=True,
+        applicable_statuses=["active", "waiting", "paused", "complete", "error"]
     ),
+    # Operation(
+    #     name="Remove (paused/waiting)",
+    #     function=lambda stdscr, gid, fname, operation, function_args: remove(gid),
+    #     send_request=True,
+    #     applicable_statuses=["paused", "waiting"]
+    # ),
     # Operation("forceRemove", forceRemove),
     # Operation("removeStopped", removeDownloadResult),
+    # Operation(
+    #     name="Remove (errored/completed)",
+    #     function=lambda stdscr, gid, fname, operation, function_args: removeDownloadResult(gid),
+    #     send_request=True,
+    #     applicable_statuses=["error", "complete"]
+    # ),
     Operation(
-        name="Remove (errored/completed)",
-        function=lambda stdscr, gid, fname, operation, function_args: removeDownloadResult(gid),
-        send_request=True,
-    ),
-    Operation(
-        name="DL Info",
+        name="Show Download Information",
         function=lambda stdscr, gids, fnames, operation, function_args: display_info_menu(stdscr, gids, fnames, operation),
         accepts_gids_list=True,
+        applicable_statuses=["active", "waiting", "paused", "complete", "error", "removed"]
     ),
     # Operation(
     #     name="Open File(s) (do not group)",
@@ -185,8 +165,8 @@ download_options = [
     #     accepts_gids_list=True,
     # ),
     Operation(
-        name="Transfer Speed Graph", 
-        function=lambda stdscr, gid, fname, operation, function_args: graph_speeds_gid(stdscr, gid=gid, **function_args), 
+        name="Transfer Speed Graph",
+        function=lambda stdscr, gid, fname, operation, function_args: graph_speeds_gid(stdscr, gid=gid, **function_args),
         function_args={
             "get_data_function": lambda gid: sendReq(tellStatus(gid)),
 
@@ -199,7 +179,8 @@ download_options = [
             "xposf" : lambda: 4,
             "yposf" : lambda: 1,
             "title": "Download Transfer Speeds",
-        }
+        },
+        applicable_statuses=["active", "waiting", "paused", "complete", "error", "removed"]
     ),
 
 ]
