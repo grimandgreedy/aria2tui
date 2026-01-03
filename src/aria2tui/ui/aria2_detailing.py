@@ -157,7 +157,7 @@ operations_highlights = [
         "color": 13,
     },
     {
-        "match": "^DL INFO",
+        "match": "Download Information",
         "field": 0,
         "color": 9,
     },
