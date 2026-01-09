@@ -27,6 +27,7 @@ from collections import defaultdict
 
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria_adduri import addDownloadFull
+from aria2tui.ui.aria2tui_form import run_form
 
 from listpick import *
 from listpick.listpick_app import *
@@ -428,8 +429,69 @@ def changeOptionPicker(stdscr: curses.window, gid:str) -> str:
 
     return f"{len(keys_with_diff_values)} option(s) changed."
 
+def _organize_options_into_sections(options: dict) -> dict:
+    """
+    Organize aria2 options into logical sections for the form interface.
+
+    Args:
+        options: Flat dictionary of aria2 options
+
+    Returns:
+        Dictionary organized by sections with nested option dictionaries
+    """
+    # Define section categorization
+    basic_options = ["out", "dir", "input-file", "log", "max-concurrent-downloads",
+                     "check-integrity", "continue", "all-proxy", "all-proxy-user",
+                     "all-proxy-passwd"]
+
+    connection_options = ["max-connection-per-server", "min-split-size", "split",
+                          "max-tries", "retry-wait", "timeout", "connect-timeout",
+                          "max-file-not-found", "max-overall-download-limit",
+                          "max-download-limit", "lowest-speed-limit"]
+
+    http_ftp_options = ["http-proxy", "http-proxy-user", "http-proxy-passwd",
+                        "https-proxy", "https-proxy-user", "https-proxy-passwd",
+                        "ftp-proxy", "ftp-proxy-user", "ftp-proxy-passwd",
+                        "http-user", "http-passwd", "ftp-user", "ftp-passwd",
+                        "user-agent", "referer", "load-cookies", "save-cookies",
+                        "header", "use-head", "enable-http-pipelining",
+                        "enable-http-keep-alive"]
+
+    bittorrent_options = ["bt-enable-lpd", "bt-max-peers", "bt-request-peer-speed-limit",
+                          "bt-max-open-files", "bt-seed-unverified", "bt-save-metadata",
+                          "bt-tracker", "bt-exclude-tracker", "enable-dht", "enable-peer-exchange",
+                          "seed-ratio", "seed-time", "max-upload-limit", "max-overall-upload-limit",
+                          "bt-require-crypto", "bt-min-crypto-level", "follow-torrent",
+                          "pause-metadata", "bt-detach-seed-only"]
+
+    form_dict = {
+        "Basic Options": {},
+        "Connection Options": {},
+        "HTTP/FTP Options": {},
+        "BitTorrent Options": {},
+        "Advanced Options": {}
+    }
+
+    # Categorize options
+    for key, value in options.items():
+        if key in basic_options:
+            form_dict["Basic Options"][key] = value
+        elif key in connection_options:
+            form_dict["Connection Options"][key] = value
+        elif key in http_ftp_options:
+            form_dict["HTTP/FTP Options"][key] = value
+        elif key in bittorrent_options:
+            form_dict["BitTorrent Options"][key] = value
+        else:
+            form_dict["Advanced Options"][key] = value
+
+    # Remove empty sections
+    form_dict = {k: v for k, v in form_dict.items() if v}
+
+    return form_dict
+
 def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
-    """ Change the option(s) for the download. """ 
+    """ Change the option(s) for the download using form interface. """
     if len(gids) == 0: return ""
     gid = gids[0]
     try:
@@ -439,25 +501,18 @@ def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
     except Exception as e:
         return str(e)
 
-    flattened_json = flatten_data(response)
-    flattened_json = [[key,val] for key, val in flattened_json.items()]
-    x = Picker(
-            stdscr, 
-            items=flattened_json, 
-            header=["Key", "Value"],
-            title=f"Change Options for {len(gids)} download(s)",
-            selected_column=1,
-            editable_columns=[False, True],
-            keys_dict=edit_menu_keys,
-            startup_notification="'e' to edit cell. 'E' to edit selected cells in nvim. 'q' to exit. 'Return' to submit changes.",
-            reset_colours=False,
-            disable_file_close_warning=True,
-    )
-    selected_indices, opts, function_data = x.run()
-    if not selected_indices: return "0 options changed"
-    flattened_json = function_data["items"]
-    unflattened_json = unflatten_data({row[0]: row[1] for row in flattened_json})
-    loaded_options = unflattened_json
+    # Convert flat options dict to form_dict format with sections
+    # Group options by category for better organization
+    form_dict = _organize_options_into_sections(current_options)
+
+    # Run the form and get results
+    result_dict = run_form(form_dict)
+
+    # Flatten the result back to compare with original
+    loaded_options = {}
+    for section, fields in result_dict.items():
+        for label, value in fields.items():
+            loaded_options[label] = value
 
     # Get difference between dicts
     keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
@@ -735,6 +790,61 @@ def addTorrentsFilePickerFull(url: str ="http://localhost", port: int = 6800, to
 
     return gids, f'{torrent_count}/{len(dls)} torrent file(s) added.'
 
+def addDownloadTasksForm() -> str:
+    """Add a download using form interface."""
+
+    # Create form with basic and advanced options
+    form_dict = {
+        "Basic Download Options": {
+            "URL": "",
+            "out": "",
+            "dir": "",
+            "pause": "false"
+        },
+        "Advanced Options": {
+            "user-agent": "",
+            "load-cookies": "",
+            "all-proxy": ""
+        }
+    }
+
+    # Run the form and get results
+    result_dict = run_form(form_dict)
+
+    # Flatten the result to get all options
+    options = {}
+    for _, fields in result_dict.items():
+        for label, value in fields.items():
+            if value:  # Only include non-empty values
+                options[label] = value
+
+    # Extract URL (required)
+    if "URL" not in options or not options["URL"]:
+        return "Error: URL is required"
+
+    uri = options.pop("URL")
+
+    # Expand dir path if provided
+    if "dir" in options:
+        options["dir"] = os.path.expandvars(os.path.expanduser(options["dir"]))
+
+    # Handle pause option
+    should_pause = options.pop("pause", "false").lower() in ["true", "yes", "1"]
+
+    # Add the download
+    download_options_dict = {key: val for key, val in options.items() if val}
+    return_val, gid = addDownload(uri=uri, download_options_dict=download_options_dict)
+
+    if not return_val:
+        return f"Error: Failed to add download"
+
+    # Pause if requested
+    if should_pause:
+        pause_req = pause(gid)
+        sendReq(pause_req)
+        return f"Download added and paused. GID: {gid}"
+
+    return f"Download added. GID: {gid}"
 
 def addDownloadsAndTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> Tuple[list[str], str]:
     """
