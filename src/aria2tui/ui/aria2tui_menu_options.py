@@ -198,6 +198,11 @@ menu_options = [
     # Operation( name="Add URIs", addUris, {}, {"reapply_terminal_settings": True}),
     # Operation( name="Add URIs and immediately pause", addUrisAndPause, {}, {"reapply_terminal_settings": True}),
     Operation(
+        name="Add Download Task (Form)",
+        function=lambda stdscr, gids, fnames, operation, function_args: addDownloadTasksForm(),
+        reapply_terminal_settings=True,
+    ),
+    Operation(
         name="Add Download Tasks",
         function=lambda stdscr, gids, fnames, operation, function_args: addDownloadsAndTorrents(),
         reapply_terminal_settings=True,
