@@ -37,6 +37,12 @@ class FormApp:
         self.original_values = {}  # Store original values for discard
         self.yazi_path = "yazi"  # Path to yazi executable
 
+        # Search state
+        self.search_query: Optional[str] = None
+        self.search_matches: List[int] = []  # indices into self.fields
+        self.search_input_mode: bool = False
+        self.search_input: str = ""
+
         # Initialize curses settings
         curses.curs_set(1)
         # Color pairs are assumed to be already initialized by the parent application
@@ -304,18 +310,21 @@ class FormApp:
         # Track cursor position for edit mode
         edit_cursor_y = None
         edit_cursor_x = None
+        # Track cursor position for search input mode
+        search_cursor_y = None
+        search_cursor_x = None
 
         # Draw header - show different messages based on current field type
         if self._is_on_field():
             field = self.fields[self.current_field]
             if field.field_type == "cycle":
-                header = " Tab: Next Section | j/k: Navigate | Enter/Space: Cycle | g/G: Top/Bottom | q: Quit "
+                header = " Tab: Next Section | j/k: Navigate | Enter/Space: Cycle | g/G: Top/Bottom | /: Search | n/N: Next/Prev | q: Quit "
             elif field.field_type == "file":
-                header = " Tab: Next Section | j/k: Navigate | Enter: File Picker | e: Edit | q: Quit "
+                header = " Tab: Next Section | j/k: Navigate | Enter: File Picker | e: Edit | /: Search | n/N: Next/Prev | q: Quit "
             else:
-                header = " Tab: Next Section | j/k: Navigate | Enter: Edit | g/G: Top/Bottom | q: Quit "
+                header = " Tab: Next Section | j/k: Navigate | Enter: Edit | g/G: Top/Bottom | /: Search | n/N: Next/Prev | q: Quit "
         else:
-            header = " Tab: Next Section | j/k: Navigate | Enter: Activate | q: Quit "
+            header = " Tab: Next Section | j/k: Navigate | Enter: Activate | /: Search | n/N: Next/Prev | q: Quit "
         try:
             self.stdscr.addstr(0, 0, header[:max_x-1], curses.A_REVERSE)
         except curses.error:
@@ -346,15 +355,18 @@ class FormApp:
                 elif row_type == 'field':
                     field = content
                     is_current = (field_idx == self.current_field)
+                    is_search_match = field_idx in self.search_matches if self.search_matches else False
 
                     # Draw field label
                     label_text = f"  {field.label}:"
                     label_width = 30
 
+                    label_attr = curses.A_NORMAL
                     if is_current and not self.editing:
-                        self.stdscr.addstr(y, 2, label_text[:label_width].ljust(label_width), curses.color_pair(9))
-                    else:
-                        self.stdscr.addstr(y, 2, label_text[:label_width].ljust(label_width))
+                        label_attr = curses.color_pair(9)
+                    if is_search_match and not self.editing:
+                        label_attr |= curses.A_BOLD
+                    self.stdscr.addstr(y, 2, label_text[:label_width].ljust(label_width), label_attr)
 
                     # Draw field value
                     value_x = 2 + label_width + 2
@@ -392,6 +404,8 @@ class FormApp:
                         display_value_with_indicator = display_value + indicator
 
                         attr = curses.color_pair(9) if is_current else curses.A_DIM if not field.value else curses.A_NORMAL
+                        if is_search_match:
+                            attr |= curses.A_BOLD
                         self.stdscr.addstr(y, value_x, display_value_with_indicator[:value_width], attr)
 
                     y += 1
@@ -402,13 +416,25 @@ class FormApp:
         # Draw scrollbar
         self._draw_scrollbar(max_y, max_x)
 
-        # Draw footer with buttons
+        # Draw footer with buttons or search prompt
         if self.editing:
             footer = f" EDITING - Field {self.current_field + 1}/{len(self.fields)} | Esc: Cancel | Enter: Save "
             try:
                 self.stdscr.addstr(max_y - 1, 0, footer[:max_x-1], curses.A_REVERSE)
             except curses.error:
                 pass
+        elif self.search_input_mode:
+            # Draw search prompt
+            prompt = f"/{self.search_input}"
+            helper = "  (Enter: search, Esc: cancel)"
+            footer_text = (prompt + helper)[:max_x-1]
+            try:
+                self.stdscr.addstr(max_y - 1, 0, " " * (max_x - 1), curses.A_REVERSE)
+                self.stdscr.addstr(max_y - 1, 0, footer_text, curses.A_REVERSE)
+            except curses.error:
+                pass
+            search_cursor_y = max_y - 1
+            search_cursor_x = min(len(prompt), max_x - 2)
         else:
             # Draw button bar
             try:
@@ -456,14 +482,22 @@ class FormApp:
                 self.stdscr.move(edit_cursor_y, edit_cursor_x)
             except curses.error:
                 pass
+        elif self.search_input_mode and search_cursor_y is not None and search_cursor_x is not None:
+            # In search input mode - show cursor at end of prompt
+            try:
+                curses.curs_set(2)
+                self.stdscr.move(search_cursor_y, search_cursor_x)
+            except curses.error:
+                pass
         else:
-            # Not in edit mode - hide cursor
+            # Not in edit or search mode - hide cursor
             try:
                 curses.curs_set(0)
             except curses.error:
                 pass
 
         self.stdscr.refresh()
+
 
     def _handle_edit_mode(self, key: int) -> None:
         """Handle keyboard input in edit mode."""
@@ -626,18 +660,94 @@ class FormApp:
                     # Jump to Discard button (wrap around)
                     self.current_field = len(self.fields) + 1
 
+    def _start_search_input(self) -> None:
+        """Enter search input mode for finding settings."""
+        self.search_input_mode = True
+        # Start with empty search text each time
+        self.search_input = ""
+
+    def _perform_search(self, query: str) -> None:
+        """Perform a case-insensitive search over field labels and sections."""
+        normalized = query.lower()
+        matches: List[int] = []
+        for idx, field in enumerate(self.fields):
+            haystack = f"{field.section} {field.label}".lower()
+            if normalized in haystack:
+                matches.append(idx)
+
+        self.search_query = query
+        self.search_matches = matches
+
+        if matches:
+            # Jump to the first match
+            self.current_field = matches[0]
+            self.cursor_pos = len(self.fields[self.current_field].value)
+        else:
+            # No matches found; leave current selection unchanged
+            try:
+                curses.flash()
+            except curses.error:
+                pass
+
+    def _handle_search_input(self, key: int) -> None:
+        """Handle keyboard input while in search prompt mode."""
+        if key == 27:  # Esc - cancel search
+            self.search_input_mode = False
+            self.search_input = ""
+            return
+
+        if key in (curses.KEY_ENTER, 10, 13):  # Enter - run search
+            query = self.search_input.strip()
+            self.search_input_mode = False
+            if query:
+                self._perform_search(query)
+            else:
+                # Empty query clears current search
+                self.search_query = None
+                self.search_matches = []
+            return
+
+        if key in (curses.KEY_BACKSPACE, 127, curses.KEY_DC):
+            if self.search_input:
+                self.search_input = self.search_input[:-1]
+            return
+
+        if 32 <= key <= 126:  # Printable characters
+            self.search_input += chr(key)
+
     def _handle_navigation_mode(self, key: int) -> bool:
-        """
-        Handle keyboard input in navigation mode.
+        """Handle keyboard input in navigation mode.
         Returns True if app should exit, False otherwise.
         """
-        if key == 9:  # Tab - jump to next section
+        if key == ord('/'):
+            # Enter search input mode
+            self._start_search_input()
+
+        elif key in (ord('n'), ord('N')):
+            # Jump between search results if a search is active
+            if self.search_query and self.search_matches:
+                matches = self.search_matches
+                try:
+                    current_index = matches.index(self.current_field)
+                except ValueError:
+                    current_index = -1
+
+                if key == ord('n'):
+                    next_index = (current_index + 1) % len(matches)
+                else:  # 'N' - previous match
+                    next_index = (current_index - 1) % len(matches)
+
+                self.current_field = matches[next_index]
+                self.cursor_pos = len(self.fields[self.current_field].value)
+
+        elif key == 9:  # Tab - jump to next section
             self._jump_to_next_section()
 
         elif key == curses.KEY_BTAB:  # Shift+Tab - jump to previous section
             self._jump_to_prev_section()
 
         elif key in (curses.KEY_ENTER, 10, 13):  # Enter - edit field or activate button
+
             if self._is_on_save_button():
                 return True  # Exit and save
             elif self._is_on_discard_button():
@@ -747,6 +857,9 @@ class FormApp:
 
             if self.editing:
                 self._handle_edit_mode(key)
+            elif self.search_input_mode:
+                # Handle search prompt input
+                self._handle_search_input(key)
             else:
                 # Handle navigation, which returns True if we should exit
                 should_exit = self._handle_navigation_mode(key)
