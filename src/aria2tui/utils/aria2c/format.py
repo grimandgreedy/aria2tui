@@ -1,0 +1,175 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+format.py - Data formatting and conversion utilities
+
+Contains pure functions for formatting data for display, converting
+between formats, and transforming download data for UI presentation.
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
+from typing import Tuple
+
+# Import from listpick for helper functions (format_size, convert_percentage_to_ascii_bar, convert_seconds)
+try:
+    from listpick import format_size, convert_percentage_to_ascii_bar, convert_seconds
+except ImportError:
+    # Fallback if listpick doesn't export these
+    def format_size(size):
+        """Fallback format_size if not available from listpick"""
+        return bytes_to_human_readable(size)
+
+    def convert_percentage_to_ascii_bar(percentage):
+        """Fallback progress bar"""
+        filled = int(percentage / 10)
+        return "[" + "=" * filled + " " * (10 - filled) + "]"
+
+    def convert_seconds(seconds):
+        """Fallback time formatting"""
+        if seconds < 60:
+            return f"{seconds}s"
+        elif seconds < 3600:
+            return f"{seconds//60}m {seconds%60}s"
+        else:
+            return f"{seconds//3600}h {(seconds%3600)//60}m"
+
+
+def bytes_to_human_readable(size: float, sep =" ", round_at=1) -> str:
+    """
+    Convert a number of bytes to a human readable string.
+
+    size (int): the number of bytes
+    sep (str): the string that should separate the size from the units.
+                A single space by default.
+    round_at (int): the unit below which the figure should be rounded
+            round_at=0:  0.0B, 23.1KB, 2.3MB
+            round_at=1:  0B, 23.1KB, 2.3MB
+            round_at=2:  0B, 23KB, 2.3MB
+
+    Examples:
+    1024000 -> 1 MB
+    """
+    suffixes = ['B', 'KB', 'MB', 'GB', 'TB']
+    if isinstance(size, str):
+        size=float(size)
+    i = 0
+    while size >= 1024 and i < len(suffixes)-1:
+        size /= 1024.0
+        i += 1
+    if i < round_at:
+        size_str = f"{int(size)}"
+    else:
+        size_str = f"{size:.1f}"
+    return f"{size_str}{sep}{suffixes[i]}"
+
+
+def flatten_data(y, delim="."):
+    out = {}
+
+    def flatten(x, name='', delim="."):
+        if type(x) is dict:
+            for a in x:
+                flatten(x[a], name + a + delim)
+        elif type(x) is list:
+            i = 0
+            for a in x:
+                flatten(a, name + str(i) + delim)
+                i += 1
+        else:
+            out[name[:-1]] = x
+
+    flatten(y, delim=delim)
+    return out
+
+
+def unflatten_data(y, delim="."):
+    out = {}
+
+    def unflatten(x, parent_key='', delim="."):
+        if type(x) is dict:
+            for k, v in x.items():
+                new_key = f"{parent_key}{delim}{k}" if parent_key else k
+                unflatten(v, new_key, delim)
+        else:
+            keys = parent_key.split(delim)
+            current_dict = out
+            for key in keys[:-1]:
+                if key not in current_dict:
+                    current_dict[key] = {}
+                current_dict = current_dict[key]
+            current_dict[keys[-1]] = x
+
+    unflatten(y)
+    return out
+
+
+def dataToPickerRows(dls, options_batch, files_info_batch, show_pc_bar: bool = True):
+    """ Take list of dl dicts and return list of desired attributes along with a header. """
+    items = []
+    for i, dl in enumerate(dls):
+        try:
+            options = options_batch[i]
+            files_info = files_info_batch[i]
+            gid = dl['gid']
+            pth = options["result"]["dir"]
+            if "out" in options["result"]:
+                fname = options["result"]["out"]
+            else:
+                orig_path = dl['files'][0]['path']
+                fname = orig_path[orig_path.rfind("/")+1:]
+            if fname == "":   # get from url
+                url = dl['files'][0]['uris'][0]["uri"]
+                fname = url[url.rfind("/")+1:]
+            dltype = "direct"
+            try:
+                if "bittorrent" in dl:
+                    dltype = "torrent"
+                    fname = dl["bittorrent"]["info"]["name"]
+            except: pass
+            status = dl['status']
+
+            size = 0
+            for file in files_info['result']:
+                if 'length' in file:
+                    if 'selected' in file and file['selected'] == "true":
+                        size += int(file['length'])
+            # size = int(dl['files'][0]['length'])
+            completed = 0
+            for file in files_info['result']:
+                if 'completedLength' in file:
+                    if 'selected' in file and file['selected'] == "true":
+                        completed += int(file['completedLength'])
+            # completed = int(dl['files'][0]['completedLength'])
+            pc_complete = completed/size if size > 0 else 0
+            pc_bar = convert_percentage_to_ascii_bar(pc_complete*100)
+            dl_speed = int(dl['downloadSpeed'])
+            time_left = int((size-completed)/dl_speed) if dl_speed > 0 else None
+            if time_left: time_left_s = convert_seconds(time_left)
+            else: time_left_s = ""
+
+            try:
+                uri = files_info["result"][0]["uris"][0]["uri"]
+            except:
+                uri = ""
+
+            row = [str(i), status, fname, format_size(size), format_size(completed), f"{pc_complete*100:.1f}%", format_size(dl_speed)+"/s", time_left_s, pth, dltype, uri, gid]
+            if show_pc_bar: row.insert(5, pc_bar)
+            items.append(row)
+        except:
+            pass
+
+    header = ["", "Status", "Name", "Size", "Done", "%", "Speed", "Time", "DIR", "Type", "URI", "GID"]
+    if show_pc_bar: header.insert(5, "%")
+    return items, header
+
+
+def process_dl_dict(dls):
+    if "result" in dls:
+        dls = dls["result"]
+    for dl in dls:
+        for key in dl:
+            if key in ["length", "completedLength"]:
+                dl[key] = bytes_to_human_readable(dl[key])
+    return dls
