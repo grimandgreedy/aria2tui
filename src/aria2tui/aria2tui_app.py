@@ -15,12 +15,14 @@ import time
 import toml
 import json
 import curses
+import subprocess
 
 from listpick.listpick_app import *
-from listpick.listpick_app import Picker, start_curses, close_curses, restrict_curses, unrestrict_curses
+from listpick.listpick_app import Picker, start_curses, close_curses, restrict_curses, unrestrict_curses, default_option_selector, right_split_display_list
 
 from aria2tui.lib.aria2c_wrapper import *
-from aria2tui.utils.aria2c_utils import *
+# from aria2tui.utils.aria2c_utils import *
+from aria2tui.utils.aria2c_utils import Operation, applyToDownloads, sendReq, flatten_data, get_config, testConnection, testAriaConnection, classify_download_string, addDownload, addTorrent
 from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, operations_highlights
 from aria2tui.ui.aria2tui_keys import download_option_keys
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
