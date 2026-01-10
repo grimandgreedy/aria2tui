@@ -18,10 +18,13 @@ import shlex
 import mimetypes
 from collections import defaultdict
 
+from aria2tui.utils.logging_utils import get_logger
 from listpick import *
 from listpick.listpick_app import *
 from listpick.ui.keys import *
 from .core import get_config
+
+logger = get_logger()
 
 
 def openDownloadLocation(gid: str, new_window: bool = True) -> None:

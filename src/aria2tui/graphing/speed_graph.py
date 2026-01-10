@@ -11,6 +11,7 @@ import sys, os
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
 from aria2tui.graphing.graph_utils import display_ansi
+from aria2tui.utils.logging_utils import get_logger
 from listpick import *
 from listpick.listpick_app import *
 import time
@@ -18,7 +19,11 @@ import re
 from typing import Callable
 import curses
 
+logger = get_logger()
+
+
 def escape_ansi(line: str) -> str:
+
     """ Remove ansi characters from string. """
     ansi_escape =re.compile(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]')
     return ansi_escape.sub('', line)

@@ -1,9 +1,18 @@
 import os
 from aria2tui.utils.aria2c_utils import *
 from listpick.listpick_app import Picker
+from aria2tui.utils.logging_utils import get_logger
+
+logger = get_logger()
 
 
 def display_info_menu(stdscr, gids, fnames, operation):
+    logger.info(
+        "display_info_menu called with gids=%s fnames=%s operation=%s",
+        gids,
+        fnames,
+        getattr(operation, "name", None),
+    )
     from aria2tui.ui.aria2tui_menu_options import download_info_menu
 
     items = [opt.name for opt in download_info_menu]
@@ -38,6 +47,12 @@ def display_files(stdscr, gids, fnames, operation):
 
 
     """
+    logger.info(
+        "display_files called with gids=%s fnames=%s operation=%s",
+        gids,
+        fnames,
+        getattr(operation, "name", None),
+    )
     responses = []
     for gid in gids:
         response = sendReq(getFiles(gid))
