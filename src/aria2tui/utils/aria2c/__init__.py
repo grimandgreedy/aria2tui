@@ -55,6 +55,7 @@ from .options import (
     changeOptionPicker,
     changeOptionsBatchPicker,
     changeFilenamePicker,
+    changeFilenameForm,
     download_selected_files,
 )
 
@@ -169,6 +170,7 @@ __all__ = [
     'changeOptionPicker',
     'changeOptionsBatchPicker',
     'changeFilenamePicker',
+    'changeFilenameForm',
     'download_selected_files',
     # Downloads
     'addUrisFull',

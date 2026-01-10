@@ -16,6 +16,8 @@ import toml
 import json
 import curses
 import subprocess
+import logging
+from pathlib import Path
 
 from listpick.listpick_app import *
 from listpick.listpick_app import Picker, start_curses, close_curses, restrict_curses, unrestrict_curses, default_option_selector, right_split_display_list
@@ -27,6 +29,9 @@ from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, oper
 from aria2tui.ui.aria2tui_keys import download_option_keys
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
 from aria2tui.ui.aria2tui_menu_options import menu_options, download_options, menu_data, downloads_data, dl_operations_data
+from aria2tui.utils.logging_utils import configure_logging, get_logger
+
+logger = get_logger()
 
 
 class Aria2TUI:
@@ -39,6 +44,7 @@ class Aria2TUI:
         downloads_data: dict,
         dl_operations_data: dict,
     ):
+        logger.info("Aria2TUI initialized")
         self.stdscr = stdscr
         self.download_options = download_options
         self.menu_options = menu_options
@@ -63,6 +69,8 @@ class Aria2TUI:
         Run Aria2TUI app loop.
         """
 
+        logger.info("Aria2TUI.run() started")
+
         # Create the main menu, downloads, and operations Picker objects
         DownloadsPicker = Picker(self.stdscr, **self.downloads_data)
         DownloadsPicker.load_input_history("~/.config/aria2tui/cmdhist.json")
@@ -74,6 +82,7 @@ class Aria2TUI:
 
             ## DISPLAY DOWNLOADS
             selected_downloads, opts, self.downloads_data = DownloadsPicker.run()
+            logger.info("DownloadsPicker.run() returned selected_downloads=%s", selected_downloads)
 
             # When going back to the Downloads picker after selecting a download it shouldn't wait to get new data before displaying the picker
             DownloadsPicker.get_data_startup = False
@@ -132,6 +141,14 @@ class Aria2TUI:
 
                     user_opts = self.dl_operations_data["user_opts"]
 
+                    logger.info(
+                        "Applying operation '%s' to gids=%s fnames=%s user_opts=%s",
+                        operation.name,
+                        gids,
+                        fnames,
+                        user_opts,
+                    )
+
 
                     ## APPLY THE SELECTED OPERATION TO THE SELECTED DOWNLOADS
                     applyToDownloads(
@@ -151,6 +168,7 @@ class Aria2TUI:
 
                 ## If we have not selected any downloads, then we have exited the downloads picker
                 ## DISPLAY MAIN MENU
+                logger.info("Entering main menu loop")
                 while True:
                     selected_menu, opts, self.menu_data = MenuPicker.run()
 
@@ -158,9 +176,11 @@ class Aria2TUI:
                     if not selected_menu: 
                         DownloadsPicker.save_input_history("~/.config/aria2tui/cmdhist.json")
                         close_curses(self.stdscr)
+                        logger.info("Exiting main menu loop and application")
                         return 
 
                     menu_option = self.menu_options[selected_menu[0]]
+                    logger.info("Menu option selected: %s", menu_option.name)
                     if menu_option.name == "View Downloads":
                         DownloadsPicker.auto_refresh = False
                         break
@@ -247,6 +267,7 @@ def handleAriaStartPromt(stdscr):
     Args:
         stdscr: The curses window object used for UI rendering.
     """
+    logger.info("handleAriaStartPromt() called")
     ## Check if aria is running
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
     stdscr.bkgd(' ', curses.color_pair(2))  # Apply background color
@@ -270,6 +291,7 @@ def handleAriaStartPromt(stdscr):
     while True:
         connection_up = testConnection()
         can_connect = testAriaConnection()
+        logger.info("Connection check: connection_up=%s can_connect=%s", connection_up, can_connect)
         if not can_connect:
             if not connection_up:
 
@@ -277,12 +299,14 @@ def handleAriaStartPromt(stdscr):
 
                 if choice == [1] or choice == []:
                     close_curses(stdscr)
+                    logger.info("User chose not to start aria2c; exiting")
                     exit()
 
                 config = get_config()
                 ConnectionPicker.splash_screen("Starting Aria2c Now...")
 
                 for cmd in config["general"]["startup_commands"]:
+                    logger.info("Starting aria2c with command: %s", cmd)
                     subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
                 time.sleep(0.2)
@@ -290,6 +314,7 @@ def handleAriaStartPromt(stdscr):
                 ConnectionPicker.splash_screen(["The connection is up but unresponsive...", "Is your token correct in your aria2tui.toml?"])
                 stdscr.timeout(5000)
                 stdscr.getch()
+                logger.info("Connection up but unresponsive; exiting")
                 exit()
         else:
             break
@@ -316,6 +341,14 @@ def aria2tui() -> None:
         None
     """
 
+    debug = False
+    if "--debug" in sys.argv:
+        debug = True
+        sys.argv.remove("--debug")
+
+    configure_logging(debug=debug)
+    logger.info("aria2tui() called with argv=%s (debug=%s)", sys.argv, debug)
+
     if len(sys.argv) == 3 and sys.argv[1].startswith("--add_download"):
         connection_up = testConnection()
         if not connection_up and sys.argv[1] == "--add_download_bg":
@@ -340,6 +373,7 @@ def aria2tui() -> None:
                     time.sleep(0.1)
 
             except Exception as e:
+                logger.exception("Error in --add_download_bg flow: %s", e)
                 message = "Problem encountered. Download not added."
                 os.system(f"notify-send '{message}'")
                 sys.exit()
@@ -368,7 +402,8 @@ def aria2tui() -> None:
                 js_req = addTorrent(uri)
                 sendReq(js_req)
                 message = "Torrent added successfully."
-            except:
+            except Exception as e:
+                logger.exception("Error adding torrent file '%s': %s", uri, e)
                 message = "Error adding download."
             finally:
                 os.system(f"notify-send '{message}'")
@@ -377,8 +412,8 @@ def aria2tui() -> None:
             try:
                 message = "Error adding download."
                 os.system(f"notify-send '{message}'")
-            except:
-                pass
+            except Exception as e:
+                logger.exception("Error sending notification for failed download: %s", e)
             finally:
                 sys.exit(1)
 
@@ -396,6 +431,7 @@ def aria2tui() -> None:
         return None
 
     ## Run curses
+    logger.info("Starting curses UI")
     stdscr = start_curses()
 
     ## Check if aria is running and prompt the user to start it if not
@@ -409,10 +445,12 @@ def aria2tui() -> None:
         downloads_data,
         dl_operations_data,
     )
+    logger.info("Starting Aria2TUI.run() loop")
     app.run()
     # begin(stdscr)
 
     ## Clean up curses and clear terminal
+    logger.info("TUI run complete, cleaning up curses")
     stdscr.clear()
     stdscr.refresh()
     close_curses(stdscr)

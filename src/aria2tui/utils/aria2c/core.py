@@ -18,6 +18,10 @@ import toml
 import re
 from typing import Callable
 
+from aria2tui.utils.logging_utils import get_logger
+
+logger = get_logger()
+
 
 class Operation:
     def __init__(
@@ -126,21 +130,23 @@ def get_default_config() -> dict:
 
 def restartAria() -> None:
     """Restart aria2 daemon."""
+    logger.info("restartAria called")
     config = get_config()
     for cmd in config["general"]["restart_commands"]:
+        logger.info("Restarting aria2c with command: %s", cmd)
         subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
-    # cmd = f"systemctl --user restart aria2d.service"
-    # subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     # Wait before trying to reconnect
     subprocess.run("sleep 2", shell=True, stderr=subprocess.PIPE)
 
 
 def editConfig() -> None:
     """ Edit the config file in nvim. """
+    logger.info("editConfig called")
     config =  get_config()
 
     file = config["general"]["aria2_config_path"]
     cmd = f"nvim {file}"
+    logger.info("Opening config file: %s", file)
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
 

@@ -16,6 +16,7 @@ import tabulate
 from urllib import request as rq
 from typing import Tuple
 
+from aria2tui.utils.logging_utils import get_logger
 from aria2tui.lib.aria2c_wrapper import (
     listMethods, getVersionFull, getOptionFull, getFilesFull,
     tellActiveFull, tellWaitingFull, tellStoppedFull,
@@ -23,20 +24,25 @@ from aria2tui.lib.aria2c_wrapper import (
 )
 from .format import dataToPickerRows, bytes_to_human_readable
 
+logger = get_logger()
+
 
 def testConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests if we can connect to the url and port. """
+    logger.info("testConnectionFull called url=%s port=%s", url, port)
     url = f'{url}:{port}/jsonrpc'
     try:
         with rq.urlopen(url, listMethods(), timeout=1) as c:
             response = c.read()
         return True
-    except:
+    except Exception as e:
+        logger.exception("testConnectionFull failed for %s: %s", url, e)
         return False
 
 
 def testAriaConnectionFull(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests the connection to the Aria2 server. In particular we test if our token works to get protected data. """
+    logger.info("testAriaConnectionFull called url=%s port=%s", url, port)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import getVersion
 
@@ -45,18 +51,21 @@ def testAriaConnectionFull(url: str = "http://localhost", port: int = 6800) -> b
         with rq.urlopen(url, getVersion(), timeout=1) as c:
             response = c.read()
         return True
-    except:
+    except Exception as e:
+        logger.exception("testAriaConnectionFull failed for %s: %s", url, e)
         return False
 
 
 def te(url: str = "http://localhost", port: int = 6800) -> bool:
     """ Tests the connection to the Aria2 server. """
+    logger.info("te called url=%s port=%s", url, port)
     url = f'{url}:{port}/jsonrpc'
     try:
         with rq.urlopen(url, listMethods(), timeout=1) as c:
             response = c.read()
         return True
-    except:
+    except Exception as e:
+        logger.exception("te failed for %s: %s", url, e)
         return False
 
 
@@ -65,6 +74,7 @@ def getOptionAndFileInfo(gids: list[str]) -> Tuple[list, list]:
     Get option and file info for each GID. Used for fetching download data for Picker rows.
     We split the gid requests into batches of 2000 to ensure that we get a resposne.
     """
+    logger.info("getOptionAndFileInfo called for %d gids", len(gids))
     options_batch = []
     files_info_batch = []
     for i in range(len(gids)//2000 + 1):
@@ -97,6 +107,7 @@ def getOptionAndFileInfoBatch(gids: list[str]) -> Tuple[list, list]:
 
 def getQueue(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
     """ Retrieves download queue and corresponding header from aria2 over rpc. """
+    logger.info("getQueue called show_pc_bar=%s", show_pc_bar)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import sendReq, tellWaiting
 
@@ -112,6 +123,7 @@ def getQueue(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
 
 def getStopped(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
     """ Retrieves stopped downloads and corresponding header from aria2 over rpc. """
+    logger.info("getStopped called show_pc_bar=%s", show_pc_bar)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import sendReq, tellStopped
 
@@ -130,6 +142,7 @@ def getStopped(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
 
 def getActive(show_pc_bar: bool = True) -> Tuple[list[list[str]], list[str]]:
     """ Retrieves active downloads and corresponding header from aria2 over rpc. """
+    logger.info("getActive called show_pc_bar=%s", show_pc_bar)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import sendReq, tellActive
 
@@ -164,6 +177,7 @@ def getAllInfo(gid: str) -> list[dict]:
     Returns:
         list: A list of key/value dictionaries containing the options and information about the downloads.
     """
+    logger.info("getAllInfo called gid=%s", gid)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import sendReq, getFiles, getServers, getPeers, getUris, getOption, tellStatus
 
@@ -176,13 +190,15 @@ def getAllInfo(gid: str) -> list[dict]:
             info = { "function" : names[i] }
             response = {**info, **response}
             responses.append(response)
-        except:
+        except Exception as e:
+            logger.exception("getAllInfo failed for gid=%s function=%s: %s", gid, names[i], e)
             responses.append(json.loads(f'{{"function": "{names[i]}", "response": "NONE"}}'))
     return responses
 
 
 def getAll(items, header, visible_rows_indices, getting_data, state):
     """ Retrieves all downloads: active, stopped, and queue. Also returns the header. """
+    logger.info("getAll called")
     active, aheader = getActive()
     stopped, sheader = getStopped()
     waiting, wheader = getQueue()
@@ -203,6 +219,7 @@ def getAll(items, header, visible_rows_indices, getting_data, state):
 
 def returnAll() -> Tuple[list[list[str]], list[str]]:
     """ Retrieves all downloads: active, stopped, and queue. Also returns the header. """
+    logger.info("returnAll called")
     active, aheader = getActive()
     stopped, sheader = getStopped()
     waiting, wheader = getQueue()
@@ -220,6 +237,7 @@ def returnAll() -> Tuple[list[list[str]], list[str]]:
 
 def getGlobalSpeed() -> str:
     """ Get global upload/download speeds and download counts. """
+    logger.info("getGlobalSpeed called")
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import sendReq, getGlobalStat
 

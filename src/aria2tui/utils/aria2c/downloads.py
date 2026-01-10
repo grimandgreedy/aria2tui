@@ -20,11 +20,14 @@ from typing import Tuple
 from aria2tui.lib.aria2c_wrapper import input_file_accepted_options
 from aria2tui.ui.aria2tui_form import run_form
 from aria2tui.utils.aria_adduri import addDownloadFull
+from aria2tui.utils.logging_utils import get_logger
 from listpick import *
 from listpick.listpick_app import *
 from listpick.ui.keys import *
 from .core import Operation, classify_download_string
 from .format import flatten_data, process_dl_dict
+
+logger = get_logger()
 
 
 def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[dict], list[str]]:
@@ -86,6 +89,7 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
 
     Returns a list of the gids added along with a string message (e.g., "0 dls added")
     """
+    logger.info("addUrisFull called url=%s port=%s", url, port)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import addDownload
 
@@ -130,6 +134,7 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
 
 
 def addUrisAndPauseFull(url: str ="http://localhost", port: int =6800, token: str = "") -> Tuple[list[str], str]:
+    logger.info("addUrisAndPauseFull called url=%s port=%s", url, port)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import pause, sendReq
 
@@ -144,6 +149,7 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
     """
     Open a prompt to add torrents to Aria2. The file will accept torrent file paths or magnet links.
     """
+    logger.info("addTorrentsFull called url=%s port=%s", url, port)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import addTorrent, sendReq, addDownload
 
@@ -178,11 +184,13 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
             if "result" in resp:
                 gids.append(resp["result"])
             torrent_count += 1
-        except:
+        except Exception as e:
+            logger.exception("Error adding torrent from path '%s': %s", dl.get("path"), e)
             pass
 
     for dl in uris:
         uri = dl["uri"]
+        logger.info("addTorrentsFull adding magnet/URI: %s", uri)
         return_val, gid = addDownload(uri=uri)
         if return_val: gids.append(gid)
 
@@ -191,6 +199,7 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
 
 def addTorrentsFilePickerFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> Tuple[list[str], str]:
     """Open file picker to add torrents to Aria2."""
+    logger.info("addTorrentsFilePickerFull called url=%s port=%s", url, port)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import addTorrent, sendReq
 
@@ -413,6 +422,7 @@ def applyToDownloads(
 
     result = []
     if operation.accepts_gids_list:
+        logger.info("Running dl operation on list of downloads")
         result = operation.function(
             stdscr=stdscr,
             gids=gids,
@@ -424,6 +434,7 @@ def applyToDownloads(
             result = sendReq(result)
     else:
         for i, gid in enumerate(gids):
+            logger.info("Running dl operation on single download")
             try:
                 if operation.name == "Change Position in Queue":
                     position = int(user_opts) if user_opts.strip().isdigit() else 0
@@ -440,8 +451,8 @@ def applyToDownloads(
                 if operation.send_request:
                     result_part = sendReq(result_part)
                 result.append(result_part)
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"Error when applying download operation {e}")
 
     if operation.picker_view:
         l = []

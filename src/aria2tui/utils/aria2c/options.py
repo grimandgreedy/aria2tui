@@ -16,15 +16,19 @@ import subprocess
 import tempfile
 import pyperclip
 
+from aria2tui.utils.logging_utils import get_logger
 from aria2tui.ui.aria2tui_form import run_form
 from listpick import *
 from listpick.listpick_app import *
 from listpick.ui.keys import *
 from .format import flatten_data, unflatten_data, bytes_to_human_readable
 
+logger = get_logger()
+
 
 def changeOptionDialog(gid:str) -> str:
     """ Change the option(s) for the download. """
+    logger.info("changeOptionDialog called gid=%s", gid)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import getOption, sendReq, changeOption
 
@@ -318,24 +322,15 @@ def changeFilenamePicker(stdscr: curses.window, gid:str) -> str:
 
     return f"{len(keys_with_diff_values)} option(s) changed."
 
-def changeFilenameForm(stdscr: curses.window, gid:str) -> str:
+def changeFilenameForm(stdscr: curses.window, gid:str, fname:string) -> str:
     """Change the filename using the aria2tui form interface."""
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import getOption, sendReq, changeOption
-    import pyperclip
-    pyperclip.copy(gid)
 
     if not gid:
         return "0 options changed"
 
-    try:
-        req = getOption(str(gid))
-        response = sendReq(req)["result"]
-        current_options = json.loads(json.dumps(response))
-    except Exception as e:
-        return str(e)
-
-    current_out = current_options.get("out", "")
+    current_out = fname
 
     form_dict = {
         "Filename": {

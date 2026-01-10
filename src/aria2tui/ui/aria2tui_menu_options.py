@@ -88,8 +88,8 @@ download_options = [
     ),
     Operation(
         name="Change Filename(s)",
-        function=lambda stdscr, gid, fname, operation, function_args: changeFilenamePicker(stdscr, gid),
-        send_request=True,
+        function=lambda stdscr, gid, fname, operation, function_args: changeFilenameForm(stdscr, gid, fname),
+        # send_request=True,
         applicable_statuses=["active", "waiting", "paused"]
     ),
     # Operation(
