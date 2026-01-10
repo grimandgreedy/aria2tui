@@ -5,22 +5,28 @@ Supports navigation, editing, scrolling, and keyboard shortcuts.
 """
 
 import curses
-from typing import Dict, List, Tuple
+import subprocess
+import tempfile
+import os
+from typing import Dict, List, Tuple, Union, Optional
 
 
 class FormField:
     """Represents a single form field."""
 
-    def __init__(self, section: str, label: str, value: str):
+    def __init__(self, section: str, label: str, value: str,
+                 field_type: str = "text", options: Optional[List[str]] = None):
         self.section = section
         self.label = label
         self.value = value
+        self.field_type = field_type  # "text", "cycle", "file"
+        self.options = options or []  # For cycle: list of valid values
 
 
 class FormApp:
     """Main form application using curses."""
 
-    def __init__(self, stdscr, form_dict: Dict[str, Dict[str, str]]):
+    def __init__(self, stdscr, form_dict: Dict[str, Dict[str, Union[str, Tuple]]]):
         self.stdscr = stdscr
         self.form_dict = form_dict
         self.fields: List[FormField] = []
@@ -29,6 +35,7 @@ class FormApp:
         self.editing = False
         self.cursor_pos = 0
         self.original_values = {}  # Store original values for discard
+        self.yazi_path = "yazi"  # Path to yazi executable
 
         # Initialize curses settings
         curses.curs_set(1)
@@ -49,8 +56,20 @@ class FormApp:
     def _build_fields(self):
         """Build flat list of fields from nested dictionary."""
         for section, fields in self.form_dict.items():
-            for label, value in fields.items():
-                self.fields.append(FormField(section, label, value))
+            for label, field_data in fields.items():
+                # Support both old format (string) and new format (tuple)
+                if isinstance(field_data, str):
+                    # Old format: just a string value
+                    self.fields.append(FormField(section, label, field_data))
+                elif isinstance(field_data, tuple):
+                    # New format: (value, field_type, options?)
+                    value = field_data[0]
+                    field_type = field_data[1] if len(field_data) > 1 else "text"
+                    options = field_data[2] if len(field_data) > 2 else None
+                    self.fields.append(FormField(section, label, value, field_type, options))
+                else:
+                    # Fallback: treat as string
+                    self.fields.append(FormField(section, label, str(field_data)))
 
     def _is_on_save_button(self) -> bool:
         """Check if current selection is on Save button."""
@@ -74,6 +93,46 @@ class FormApp:
             if field.value != self.original_values[id(field)]:
                 return True
         return False
+
+    def _launch_file_picker(self, current_path: str) -> Optional[str]:
+        """
+        Launch yazi file picker and return the selected path.
+        Returns None if cancelled or no selection made.
+        """
+        # Create a temporary file to store the selected path
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as tmp_file:
+            tmp_path = tmp_file.name
+
+        try:
+            # Reset curses before launching yazi
+            curses.endwin()
+
+            # Launch yazi with the current path as starting directory
+            start_dir = current_path if current_path and os.path.isdir(current_path) else os.getcwd()
+
+            # Run yazi with output file
+            result = subprocess.run(
+                [self.yazi_path, start_dir, "--chooser-file", tmp_path],
+                check=False
+            )
+
+            # Reinitialize curses
+            self.stdscr.clear()
+            self.stdscr.refresh()
+
+            # Read the selected path from the temporary file
+            if result.returncode == 0 and os.path.exists(tmp_path):
+                with open(tmp_path, 'r') as f:
+                    selected = f.read().strip()
+                    if selected:
+                        return selected
+
+            return None
+
+        finally:
+            # Clean up temporary file
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
 
     def _show_confirmation_dialog(self, message: str) -> bool:
         """
@@ -115,14 +174,14 @@ class FormApp:
             no_x = button_start_x + len(yes_text) + button_spacing
 
             # Draw Yes button
-            yes_attr = curses.color_pair(4) | curses.A_BOLD if selected == 0 else curses.A_NORMAL
+            yes_attr = curses.color_pair(8) | curses.A_BOLD if selected == 0 else curses.A_NORMAL
             try:
                 dialog_win.addstr(4, yes_x, yes_text, yes_attr)
             except curses.error:
                 pass
 
             # Draw No button
-            no_attr = curses.color_pair(5) | curses.A_BOLD if selected == 1 else curses.A_NORMAL
+            no_attr = curses.color_pair(7) | curses.A_BOLD if selected == 1 else curses.A_NORMAL
             try:
                 dialog_win.addstr(4, no_x, no_text, no_attr)
             except curses.error:
@@ -246,8 +305,17 @@ class FormApp:
         edit_cursor_y = None
         edit_cursor_x = None
 
-        # Draw header
-        header = " Form Editor - Tab: Next | Enter: Edit/Activate | g/G: Top/Bottom | q: Quit "
+        # Draw header - show different messages based on current field type
+        if self._is_on_field():
+            field = self.fields[self.current_field]
+            if field.field_type == "cycle":
+                header = " Tab: Next Section | j/k: Navigate | Enter/Space: Cycle | g/G: Top/Bottom | q: Quit "
+            elif field.field_type == "file":
+                header = " Tab: Next Section | j/k: Navigate | Enter: File Picker | e: Edit | q: Quit "
+            else:
+                header = " Tab: Next Section | j/k: Navigate | Enter: Edit | g/G: Top/Bottom | q: Quit "
+        else:
+            header = " Tab: Next Section | j/k: Navigate | Enter: Activate | q: Quit "
         try:
             self.stdscr.addstr(0, 0, header[:max_x-1], curses.A_REVERSE)
         except curses.error:
@@ -284,7 +352,7 @@ class FormApp:
                     label_width = 30
 
                     if is_current and not self.editing:
-                        self.stdscr.addstr(y, 2, label_text[:label_width].ljust(label_width), curses.color_pair(1))
+                        self.stdscr.addstr(y, 2, label_text[:label_width].ljust(label_width), curses.color_pair(9))
                     else:
                         self.stdscr.addstr(y, 2, label_text[:label_width].ljust(label_width))
 
@@ -313,9 +381,18 @@ class FormApp:
                         edit_cursor_y = y
                         edit_cursor_x = value_x + min(self.cursor_pos, value_width - 1)
                     else:
+                        # Add field type indicator
+                        indicator = ""
+                        if field.field_type == "cycle":
+                            indicator = " ↻"
+                        elif field.field_type == "file":
+                            indicator = " 📁"
+
                         display_value = field.value if field.value else "<empty>"
-                        attr = curses.color_pair(1) if is_current else curses.A_DIM if not field.value else curses.A_NORMAL
-                        self.stdscr.addstr(y, value_x, display_value[:value_width], attr)
+                        display_value_with_indicator = display_value + indicator
+
+                        attr = curses.color_pair(9) if is_current else curses.A_DIM if not field.value else curses.A_NORMAL
+                        self.stdscr.addstr(y, value_x, display_value_with_indicator[:value_width], attr)
 
                     y += 1
 
@@ -353,19 +430,19 @@ class FormApp:
                 # Draw Save button
                 if self._is_on_save_button():
                     # Selected - bright green with bold and reverse
-                    save_attr = curses.color_pair(4) | curses.A_BOLD | curses.A_REVERSE
+                    save_attr = curses.color_pair(8) | curses.A_BOLD | curses.A_REVERSE
                 else:
                     # Not selected - just green
-                    save_attr = curses.color_pair(4)
+                    save_attr = curses.color_pair(8)
                 self.stdscr.addstr(max_y - 1, save_x, save_text, save_attr)
 
                 # Draw Discard button
                 if self._is_on_discard_button():
                     # Selected - bright red with bold and reverse
-                    discard_attr = curses.color_pair(5) | curses.A_BOLD | curses.A_REVERSE
+                    discard_attr = curses.color_pair(7) | curses.A_BOLD | curses.A_REVERSE
                 else:
                     # Not selected - just red
-                    discard_attr = curses.color_pair(5)
+                    discard_attr = curses.color_pair(7)
                 self.stdscr.addstr(max_y - 1, discard_x, discard_text, discard_attr)
 
             except curses.error:
@@ -466,20 +543,99 @@ class FormApp:
             )
             self.cursor_pos += 1
 
+    def _get_section_boundaries(self) -> List[Tuple[str, int, int]]:
+        """
+        Get list of sections with their start and end field indices.
+        Returns: List of (section_name, start_idx, end_idx) tuples
+        """
+        boundaries = []
+        current_section = None
+        start_idx = 0
+
+        for idx, field in enumerate(self.fields):
+            if field.section != current_section:
+                if current_section is not None:
+                    boundaries.append((current_section, start_idx, idx - 1))
+                current_section = field.section
+                start_idx = idx
+
+        # Add the last section
+        if current_section is not None:
+            boundaries.append((current_section, start_idx, len(self.fields) - 1))
+
+        return boundaries
+
+    def _jump_to_next_section(self):
+        """Jump to the first field of the next section or to buttons."""
+        if self._is_on_save_button():
+            # From Save button, go to Discard button
+            self.current_field = len(self.fields) + 1
+        elif self._is_on_discard_button():
+            # From Discard button, wrap to first field
+            self.current_field = 0
+            self.cursor_pos = len(self.fields[0].value) if self.fields else 0
+        elif self._is_on_field():
+            current_section = self.fields[self.current_field].section
+            boundaries = self._get_section_boundaries()
+
+            # Find current section
+            current_section_idx = None
+            for idx, (section, start, end) in enumerate(boundaries):
+                if section == current_section:
+                    current_section_idx = idx
+                    break
+
+            if current_section_idx is not None:
+                if current_section_idx < len(boundaries) - 1:
+                    # Jump to next section's first field
+                    next_start = boundaries[current_section_idx + 1][1]
+                    self.current_field = next_start
+                    self.cursor_pos = len(self.fields[next_start].value)
+                else:
+                    # Jump to Save button
+                    self.current_field = len(self.fields)
+
+    def _jump_to_prev_section(self):
+        """Jump to the first field of the previous section or to buttons."""
+        if self._is_on_discard_button():
+            # From Discard button, go to Save button
+            self.current_field = len(self.fields)
+        elif self._is_on_save_button():
+            # From Save button, go to last section
+            if self.fields:
+                self.current_field = len(self.fields) - 1
+                self.cursor_pos = len(self.fields[self.current_field].value)
+        elif self._is_on_field():
+            current_section = self.fields[self.current_field].section
+            boundaries = self._get_section_boundaries()
+
+            # Find current section
+            current_section_idx = None
+            for idx, (section, start, end) in enumerate(boundaries):
+                if section == current_section:
+                    current_section_idx = idx
+                    break
+
+            if current_section_idx is not None:
+                if current_section_idx > 0:
+                    # Jump to previous section's first field
+                    prev_start = boundaries[current_section_idx - 1][1]
+                    self.current_field = prev_start
+                    self.cursor_pos = len(self.fields[prev_start].value)
+                else:
+                    # Jump to Discard button (wrap around)
+                    self.current_field = len(self.fields) + 1
+
     def _handle_navigation_mode(self, key: int) -> bool:
         """
         Handle keyboard input in navigation mode.
         Returns True if app should exit, False otherwise.
         """
-        if key == 9:  # Tab - move to next item (field or button)
-            self.current_field = (self.current_field + 1) % self._total_items()
-            if self._is_on_field():
-                self.cursor_pos = len(self.fields[self.current_field].value)
+        if key == 9:  # Tab - jump to next section
+            self._jump_to_next_section()
 
-        elif key in [curses.KEY_BTAB, ord('k')]:  # Shift+Tab - move to previous item
-            self.current_field = (self.current_field - 1) % self._total_items()
-            if self._is_on_field():
-                self.cursor_pos = len(self.fields[self.current_field].value)
+        elif key == curses.KEY_BTAB:  # Shift+Tab - jump to previous section
+            self._jump_to_prev_section()
 
         elif key in (curses.KEY_ENTER, 10, 13):  # Enter - edit field or activate button
             if self._is_on_save_button():
@@ -498,9 +654,47 @@ class FormApp:
                     # No changes, just exit
                     return True
             elif self._is_on_field():
-                # Start editing the field
-                self.editing = True
-                self.cursor_pos = len(self.fields[self.current_field].value)
+                field = self.fields[self.current_field]
+
+                if field.field_type == "text":
+                    # Start editing the text field
+                    self.editing = True
+                    self.cursor_pos = len(field.value)
+
+                elif field.field_type == "cycle":
+                    # Cycle to next value
+                    if field.options and field.value in field.options:
+                        current_idx = field.options.index(field.value)
+                        field.value = field.options[(current_idx + 1) % len(field.options)]
+                    elif field.options:
+                        # Value not in options, set to first option
+                        field.value = field.options[0]
+
+                elif field.field_type == "file":
+                    # Launch file picker
+                    selected_path = self._launch_file_picker(field.value)
+                    if selected_path:
+                        field.value = selected_path
+
+        elif key == ord(' '):  # Space bar - cycle fields only
+            if self._is_on_field():
+                field = self.fields[self.current_field]
+                if field.field_type == "cycle":
+                    # Cycle to next value
+                    if field.options and field.value in field.options:
+                        current_idx = field.options.index(field.value)
+                        field.value = field.options[(current_idx + 1) % len(field.options)]
+                    elif field.options:
+                        # Value not in options, set to first option
+                        field.value = field.options[0]
+
+        elif key == ord('e'):  # 'e' key - edit file path as text
+            if self._is_on_field():
+                field = self.fields[self.current_field]
+                if field.field_type == "file":
+                    # Start editing the file path as text
+                    self.editing = True
+                    self.cursor_pos = len(field.value)
 
         elif key == ord('q') or key == ord('Q'):  # Quit
             # Check if there are unsaved changes
@@ -567,15 +761,37 @@ class FormApp:
         return result
 
 
-def run_form(form_dict: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str, str]]:
+def run_form(form_dict: Dict[str, Dict[str, Union[str, Tuple]]]) -> Dict[str, Dict[str, str]]:
     """
     Run the form application with the given form dictionary.
 
     Args:
-        form_dict: Dictionary of sections containing field-value pairs
+        form_dict: Dictionary of sections containing field-value pairs.
+                   Values can be:
+                   - str: Simple text field
+                   - Tuple: (value, field_type, options)
+                     - field_type: "text", "cycle", or "file"
+                     - options: List of values for "cycle" type
 
     Returns:
-        Updated form dictionary with user input
+        Updated form dictionary with user input (values only, no type info)
+
+    Examples:
+        # Simple text fields (backward compatible)
+        form_dict = {
+            "Section": {
+                "Name": "default_value"
+            }
+        }
+
+        # With field types
+        form_dict = {
+            "Section": {
+                "Name": ("John", "text"),
+                "Enabled": ("true", "cycle", ["true", "false"]),
+                "Path": ("/home", "file")
+            }
+        }
     """
     def _curses_main(stdscr):
         app = FormApp(stdscr, form_dict)
