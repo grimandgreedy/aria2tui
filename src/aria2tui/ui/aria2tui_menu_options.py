@@ -98,7 +98,7 @@ download_options = [
     #     applicable_statuses=["active", "waiting", "paused"]
     # ),
     Operation(
-        name="Change Options Picker (For All Selected)",
+        name="Change Options",
         function=lambda stdscr, gids, fnames, operation, function_args: changeOptionsBatchPicker(stdscr, gids),
         accepts_gids_list=True,
         applicable_statuses=["active", "waiting", "paused"]
@@ -225,30 +225,26 @@ menu_options = [
     Operation(
         name="Get Global Options",
         function=lambda stdscr, gids, fnames, operation, function_args: getGlobalOption(),
-        picker_view=True,
         send_request=True,
-        meta_args={"picker_view": True}
+        form_view=True,
     ),
     Operation(
         name="Get Global Stats",
         function=lambda stdscr, gids, fnames, operation, function_args: getGlobalStat(),
-        picker_view=True,
         send_request=True,
-        meta_args={"picker_view": True},
+        form_view=True,
     ),
     Operation(
         name="Get Session Info",
         function=lambda stdscr, gids, fnames, operation, function_args: getSessionInfo(),
-        picker_view=True,
         send_request=True,
-        meta_args={"picker_view": True}
+        form_view=True,
     ),
     Operation(
         name="Get Version",
         function=lambda stdscr, gids, fnames, operation, function_args: getVersion(),
-        picker_view=True,
         send_request=True,
-        meta_args={"picker_view": True}
+        form_view=True,
     ),
     Operation(
         name="Edit Config",
@@ -283,8 +279,7 @@ download_info_menu = [
     Operation(
         name="DL Info: Get All Info",
         function=lambda stdscr, gid, fname, operation, function_args: getAllInfo(gid),
-        meta_args={"picker_view":True},
-        picker_view=True,
+        form_view=True,
     ),
     Operation(
         name="DL Info: Files",
@@ -294,37 +289,32 @@ download_info_menu = [
     Operation(
         name="DL Info: Servers",
         function=lambda stdscr, gid, fname, operation, function_args: getServers(gid),
-        meta_args={"picker_view":True},
         send_request=True,
-        picker_view=True,
+        form_view=True,
     ),
     Operation(
         name="DL Info: Peers",
         function=lambda stdscr, gid, fname, operation, function_args: getPeers(gid),
-        meta_args={"picker_view":True},
         send_request=True,
-        picker_view=True,
+        form_view=True,
     ),
     Operation(
         name="DL Info: URIs",
         function=lambda stdscr, gid, fname, operation, function_args: getUris(gid),
-        meta_args={"picker_view":True},
         send_request=True,
-        picker_view=True,
+        form_view=True,
     ),
     Operation(
         name="DL Info: Status Info",
         function=lambda stdscr, gid, fname, operation, function_args: tellStatus(gid),
-        meta_args={"picker_view":True},
         send_request=True,
-        picker_view=True,
+        form_view=True,
     ),
     Operation(
         name="DL Info: Aria2c Options",
         function=lambda stdscr, gid, fname, operation, function_args: getOption(gid),
-        meta_args={"picker_view":True},
         send_request=True,
-        picker_view=True,
+        form_view=True,
     ),
 ]
 

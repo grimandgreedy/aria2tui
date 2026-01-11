@@ -35,6 +35,7 @@ class Operation:
         send_request: bool = False,
         view: bool = False,
         picker_view: bool = False,
+        form_view: bool = False,
         reapply_terminal_settings = False,
         applicable_statuses = [],
         torrent_operation = False
@@ -48,6 +49,7 @@ class Operation:
         self.send_request = send_request
         self.view = view
         self.picker_view = picker_view
+        self.form_view = form_view
         self.reapply_terminal_settings = reapply_terminal_settings
         self.applicable_statuses = applicable_statuses
         self.torrent_operation = torrent_operation
