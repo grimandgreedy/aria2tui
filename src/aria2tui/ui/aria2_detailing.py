@@ -64,9 +64,14 @@ highlights = [
 ]
 menu_highlights = [
     {
-        "match": "^watch|^view",
+        "match": "^watch",
         "field": 0,
         "color": 8,
+    },
+    {
+        "match": "^view",
+        "field": 0,
+        "color": 11,
     },
     {
         "match": "^add",
@@ -74,14 +79,14 @@ menu_highlights = [
         "color": 13,
     },
     {
+        "match": "^batch add",
+        "field": 0,
+        "color": 22,
+    },
+    {
         "match": "^pause|^remove",
         "field": 0,
         "color": 7,
-    },
-    {
-        "match": "^get",
-        "field": 0,
-        "color": 22,
     },
     {
         "match": "^edit|^restart",
@@ -174,6 +179,6 @@ operations_highlights = [
     {
         "match": "^Modify",
         "field": 0,
-        "color": 10,
+        "color": 22,
     },
 ]
