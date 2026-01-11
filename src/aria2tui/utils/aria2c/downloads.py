@@ -18,7 +18,7 @@ import curses
 from typing import Tuple
 
 from aria2tui.lib.aria2c_wrapper import input_file_accepted_options
-from aria2tui.ui.aria2tui_form import run_form
+from aria2tui.ui.aria2tui_form import run_form, FormViewerApp
 from aria2tui.utils.aria_adduri import addDownloadFull
 from aria2tui.utils.logging_utils import get_logger
 from listpick import *
@@ -235,10 +235,11 @@ def addDownloadTasksForm() -> str:
         "Basic Download Options": {
             "URL": ("", "text") ,
             "out": ("", "text"),
-            "dir": ("~/Downloads", "file"),
+            "dir": (os.path.expanduser("~/Downloads"), "file"),
             "pause": ("false", "cycle", ["true","false"]),
         },
         "Advanced Options": {
+            "split": "5",
             "user-agent": "",
             "load-cookies": "",
             "all-proxy": ""
@@ -479,8 +480,51 @@ def applyToDownloads(
             tmpfile_path = tmpfile.name
         cmd = rf"nvim -c 'set commentstring=#\ %s' {tmpfile_path}"
         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+    elif operation.form_view:
+        # Show structured results in the read-only form viewer
+        if not result:
+            stdscr.clear()
+            return
+
+        form_dict = {}
+
+        for i, response in enumerate(result):
+            # Use the GID as section name when available
+            section_name = gids[i] if i < len(gids) else f"Item {i}"
+
+            # Unwrap JSON-RPC style responses
+            if isinstance(response, dict) and "result" in response:
+                payload = response["result"]
+            else:
+                payload = response
+
+            # Try to normalize and flatten the payload; fall back to string
+            try:
+                processed = process_dl_dict(payload)
+                flat = flatten_data(processed)
+            except Exception:
+                flat = {"value": json.dumps(payload, indent=2, default=str)}
+
+            section_fields = {}
+            for key, val in flat.items():
+                section_fields[str(key)] = str(val)
+
+            form_dict[str(section_name)] = section_fields
+        
+        def is_string_dict(d):
+            for key, val in d.items():
+                if type(val) != type(""): return False
+            return True
+        
+        if is_string_dict(form_dict):
+            form_dict = { operation.name : form_dict }
+
+
+        viewer = FormViewerApp(stdscr, form_dict)
+        viewer.run()
 
     stdscr.clear()
+
 
 
 def remove_downloads(gids):

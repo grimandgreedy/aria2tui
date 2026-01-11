@@ -29,6 +29,7 @@ from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, oper
 from aria2tui.ui.aria2tui_keys import download_option_keys
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
 from aria2tui.ui.aria2tui_menu_options import menu_options, download_options, menu_data, downloads_data, dl_operations_data
+from aria2tui.ui.aria2tui_form import FormViewerApp
 from aria2tui.utils.logging_utils import configure_logging, get_logger
 
 logger = get_logger()
@@ -231,7 +232,32 @@ class Aria2TUI:
                             cell_cursor=False,
                         )
                         x.run()
+                    
+                    elif menu_option.form_view:
+                        # Display structured data in the read-only form viewer
+                        DownloadsPicker.clear_on_start = True
+                        MenuPicker.clear_on_start = True
 
+                        # Unwrap JSON-RPC style responses
+                        if isinstance(result, dict) and "result" in result:
+                            payload = result["result"]
+                        else:
+                            payload = result
+
+                        # Flatten nested structures where possible
+                        try:
+                            flat = flatten_data(payload)
+                        except Exception:
+                            flat = {"value": json.dumps(payload, indent=2, default=str)}
+
+                        section_fields = {}
+                        for key, val in flat.items():
+                            section_fields[str(key)] = str(val)
+
+                        form_dict = {str(menu_option.name): section_fields}
+
+                        viewer = FormViewerApp(self.stdscr, form_dict)
+                        viewer.run()
                     
                     else:
                         if "display_message" in menu_option.meta_args and menu_option.meta_args["display_message"]:
