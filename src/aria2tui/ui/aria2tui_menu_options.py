@@ -90,7 +90,15 @@ download_options = [
         name="Change Filename(s)",
         function=lambda stdscr, gid, fname, operation, function_args: changeFilenameForm(stdscr, gid, fname),
         # send_request=True,
-        applicable_statuses=["active", "waiting", "paused"]
+        applicable_statuses=["active", "waiting", "paused"],
+        non_torrent_operation=True,
+    ),
+    Operation(
+        name="Modify Torrent Files",
+        function=lambda stdscr, gids, fnames, operation, function_args: download_selected_files(stdscr, gids),
+        accepts_gids_list=True,
+        applicable_statuses=["active", "paused", "waiting"],
+        torrent_operation=True
     ),
     # Operation(
     #     name="Change Options Picker (for each selected)",
@@ -115,13 +123,6 @@ download_options = [
         accepts_gids_list=True,
         reapply_terminal_settings=True,
         applicable_statuses=["active", "waiting", "paused"]
-    ),
-    Operation(
-        name="Modify Torrent Files",
-        function=lambda stdscr, gids, fnames, operation, function_args: download_selected_files(stdscr, gids),
-        accepts_gids_list=True,
-        applicable_statuses=["active", "paused", "waiting"],
-        torrent_operation=True
     ),
     Operation(
         name="Retry Download(s)",
@@ -191,30 +192,30 @@ menu_options = [
         name="Watch Downloads",
         function=lambda: 4
     ),
-    Operation(
-        name="View Downloads",
-        function=lambda stdscr=None, gid=0, fname="", operation=None, function_args={}: 4,
-    ),
+    # Operation(
+    #     name="View Downloads",
+    #     function=lambda stdscr=None, gid=0, fname="", operation=None, function_args={}: 4,
+    # ),
     # Operation( name="Add URIs", addUris, {}, {"reapply_terminal_settings": True}),
     # Operation( name="Add URIs and immediately pause", addUrisAndPause, {}, {"reapply_terminal_settings": True}),
     Operation(
-        name="Add Download Task (Form)",
+        name="Add Download",
         function=lambda stdscr, gids, fnames, operation, function_args: addDownloadTasksForm(),
         reapply_terminal_settings=True,
     ),
     Operation(
-        name="Add Download Tasks",
+        name="Add Torrent File",
+        function=lambda stdscr, gids, fnames, operation, function_args: addTorrentsFilePicker(),
+        reapply_terminal_settings=True,
+    ),
+    Operation(
+        name="Batch Add Downloads",
         function=lambda stdscr, gids, fnames, operation, function_args: addDownloadsAndTorrents(),
         reapply_terminal_settings=True,
     ),
     Operation(
-        name="Add Download Tasks & Pause", 
+        name="Batch Add Download Tasks & Pause", 
         function=lambda stdscr, gids, fnames, operation, function_args: addDownloadsAndTorrentsAndPause(),
-        reapply_terminal_settings=True,
-    ),
-    Operation(
-        name="Add Torrent Files (file picker)",
-        function=lambda stdscr, gids, fnames, operation, function_args: addTorrentsFilePicker(),
         reapply_terminal_settings=True,
     ),
     # Operation( name="Add Torrents (nvim)", addTorrents, {}, {"reapply_terminal_settings": True}),
@@ -223,41 +224,41 @@ menu_options = [
     # Operation( name="Remove completed/errored downloads", removeCompleted),
 
     Operation(
-        name="Get Global Options",
+        name="View Global Options",
         function=lambda stdscr, gids, fnames, operation, function_args: getGlobalOption(),
         send_request=True,
         form_view=True,
     ),
     Operation(
-        name="Get Global Stats",
+        name="View Global Stats",
         function=lambda stdscr, gids, fnames, operation, function_args: getGlobalStat(),
         send_request=True,
         form_view=True,
     ),
     Operation(
-        name="Get Session Info",
+        name="View Session Info",
         function=lambda stdscr, gids, fnames, operation, function_args: getSessionInfo(),
         send_request=True,
         form_view=True,
     ),
     Operation(
-        name="Get Version",
+        name="View Version",
         function=lambda stdscr, gids, fnames, operation, function_args: getVersion(),
         send_request=True,
         form_view=True,
     ),
     Operation(
-        name="Edit Config",
+        name="Edit Aria2c Config",
         function=lambda stdscr, gids, fnames, operation, function_args: editConfig(), 
         reapply_terminal_settings=True,
     ),
     Operation(
-        name="Restart Aria",
+        name="Restart Aria2c",
         function=lambda stdscr, gids, fnames, operation, function_args: restartAria(),
         meta_args={"display_message": "Restarting Aria2c..." }
     ),
     Operation(
-        name="Transfer Speed Graph (Global)", 
+        name="Global Transfer Speed Graph", 
         function=lambda stdscr, gids, fnames, operation, function_args: graph_speeds(stdscr, **function_args), 
         function_args={
             "get_data_function": lambda: sendReq(getGlobalStat()),
