@@ -198,7 +198,7 @@ class FormApp:
             # Handle input
             key = dialog_win.getch()
 
-            if key in (curses.KEY_LEFT, curses.KEY_RIGHT, 9, curses.KEY_BTAB):
+            if key in (curses.KEY_LEFT, curses.KEY_RIGHT, 9, curses.KEY_BTAB, ord('j'), ord('k')):
                 # Toggle between Yes and No
                 selected = 1 - selected
             elif key in (curses.KEY_ENTER, 10, 13):
@@ -911,6 +911,433 @@ def run_form(form_dict: Dict[str, Dict[str, Union[str, Tuple]]]) -> Dict[str, Di
         return app.run()
 
     return curses.wrapper(_curses_main)
+
+
+class FormViewerApp:
+    """Read-only viewer for structured form data.
+
+    This uses the same flattened field structure and navigation
+    as FormApp, but does not allow editing or saving.
+    """
+
+    def __init__(self, stdscr, form_dict: Dict[str, Dict[str, Union[str, Tuple]]]):
+        self.stdscr = stdscr
+        self.form_dict = form_dict
+        self.fields: List[FormField] = []
+        self.current_field = 0
+        self.scroll_offset = 0
+
+        # Search state
+        self.search_query: Optional[str] = None
+        self.search_matches: List[int] = []  # indices into self.fields
+        self.search_input_mode: bool = False
+        self.search_input: str = ""
+
+        # Build field list from form_dict
+        self._build_fields()
+
+        # Viewer is purely read-only; hide cursor by default
+        try:
+            curses.curs_set(0)
+        except curses.error:
+            pass
+
+    def _build_fields(self) -> None:
+        """Build flat list of fields from nested dictionary."""
+        for section, fields in self.form_dict.items():
+            for label, field_data in fields.items():
+                if isinstance(field_data, str):
+                    self.fields.append(FormField(section, label, field_data))
+                elif isinstance(field_data, tuple):
+                    value = field_data[0]
+                    field_type = field_data[1] if len(field_data) > 1 else "text"
+                    options = field_data[2] if len(field_data) > 2 else None
+                    self.fields.append(FormField(section, label, value, field_type, options))
+                else:
+                    self.fields.append(FormField(section, label, str(field_data)))
+
+    def _get_display_rows(self) -> List[Tuple[str, str, int]]:
+        """Return display rows as (type, content, field_index).
+
+        Type can be: 'section', 'field', 'blank'.
+        """
+        rows: List[Tuple[str, str, int]] = []
+        current_section: Optional[str] = None
+
+        for idx, field in enumerate(self.fields):
+            if field.section != current_section:
+                if current_section is not None:
+                    rows.append(("blank", "", -1))
+                rows.append(("section", field.section, -1))
+                rows.append(("blank", "", -1))
+                current_section = field.section
+
+            rows.append(("field", field, idx))
+
+        return rows
+
+    def _calculate_scroll(self, max_y: int) -> None:
+        """Calculate scroll offset to keep current field visible."""
+        if not self.fields:
+            self.scroll_offset = 0
+            return
+
+        # Always show section headers when near the top
+        if self.current_field == 0:
+            self.scroll_offset = 0
+            return
+
+        rows = self._get_display_rows()
+
+        # Find the row index of current field
+        current_row: Optional[int] = None
+        for row_idx, (row_type, _content, field_idx) in enumerate(rows):
+            if row_type == "field" and field_idx == self.current_field:
+                current_row = row_idx
+                break
+
+        if current_row is None:
+            return
+
+        # Available space for content (reserve lines for header and footer)
+        visible_height = max_y - 3
+
+        if current_row < self.scroll_offset:
+            self.scroll_offset = current_row
+        elif current_row >= self.scroll_offset + visible_height:
+            self.scroll_offset = current_row - visible_height + 1
+
+        self.scroll_offset = max(0, self.scroll_offset)
+        max_scroll = max(0, len(rows) - visible_height)
+        self.scroll_offset = min(self.scroll_offset, max_scroll)
+
+    def _draw_scrollbar(self, max_y: int, max_x: int) -> None:
+        """Draw scrollbar on the right side if needed."""
+        rows = self._get_display_rows()
+        visible_height = max_y - 3
+        total_rows = len(rows)
+
+        if total_rows <= visible_height:
+            return
+
+        scrollbar_x = max_x - 1
+        scrollbar_height = visible_height
+
+        thumb_size = max(1, int(scrollbar_height * visible_height / total_rows))
+        thumb_pos = int(scrollbar_height * self.scroll_offset / total_rows)
+
+        for y in range(2, 2 + scrollbar_height):
+            try:
+                if 2 + thumb_pos <= y < 2 + thumb_pos + thumb_size:
+                    self.stdscr.addch(y, scrollbar_x, "█")
+                else:
+                    self.stdscr.addch(y, scrollbar_x, "│")
+            except curses.error:
+                pass
+
+    def _get_section_boundaries(self) -> List[Tuple[str, int, int]]:
+        """Return (section_name, start_idx, end_idx) tuples."""
+        boundaries: List[Tuple[str, int, int]] = []
+        current_section: Optional[str] = None
+        start_idx = 0
+
+        for idx, field in enumerate(self.fields):
+            if field.section != current_section:
+                if current_section is not None:
+                    boundaries.append((current_section, start_idx, idx - 1))
+                current_section = field.section
+                start_idx = idx
+
+        if current_section is not None:
+            boundaries.append((current_section, start_idx, len(self.fields) - 1))
+
+        return boundaries
+
+    def _jump_to_next_section(self) -> None:
+        """Jump to the first field of the next section (wrap around)."""
+        if not self.fields:
+            return
+
+        current_section = self.fields[self.current_field].section
+        boundaries = self._get_section_boundaries()
+
+        current_section_idx: Optional[int] = None
+        for idx, (section, _start, _end) in enumerate(boundaries):
+            if section == current_section:
+                current_section_idx = idx
+                break
+
+        if current_section_idx is None:
+            return
+
+        if current_section_idx < len(boundaries) - 1:
+            next_start = boundaries[current_section_idx + 1][1]
+            self.current_field = next_start
+        else:
+            # Wrap to first section
+            self.current_field = boundaries[0][1]
+
+    def _jump_to_prev_section(self) -> None:
+        """Jump to the first field of the previous section (wrap around)."""
+        if not self.fields:
+            return
+
+        current_section = self.fields[self.current_field].section
+        boundaries = self._get_section_boundaries()
+
+        current_section_idx: Optional[int] = None
+        for idx, (section, _start, _end) in enumerate(boundaries):
+            if section == current_section:
+                current_section_idx = idx
+                break
+
+        if current_section_idx is None:
+            return
+
+        if current_section_idx > 0:
+            prev_start = boundaries[current_section_idx - 1][1]
+            self.current_field = prev_start
+        else:
+            # Wrap to last section
+            self.current_field = boundaries[-1][1]
+
+    def _start_search_input(self) -> None:
+        """Enter search input mode for finding fields."""
+        self.search_input_mode = True
+        self.search_input = ""
+
+    def _perform_search(self, query: str) -> None:
+        """Search over section names and field labels."""
+        normalized = query.lower()
+        matches: List[int] = []
+        for idx, field in enumerate(self.fields):
+            haystack = f"{field.section} {field.label}".lower()
+            if normalized in haystack:
+                matches.append(idx)
+
+        self.search_query = query
+        self.search_matches = matches
+
+        if matches:
+            self.current_field = matches[0]
+        else:
+            try:
+                curses.flash()
+            except curses.error:
+                pass
+
+    def _handle_search_input(self, key: int) -> None:
+        """Handle keyboard input in search prompt mode."""
+        if key == 27:  # Esc
+            self.search_input_mode = False
+            self.search_input = ""
+            return
+
+        if key in (curses.KEY_ENTER, 10, 13):
+            query = self.search_input.strip()
+            self.search_input_mode = False
+            if query:
+                self._perform_search(query)
+            else:
+                self.search_query = None
+                self.search_matches = []
+            return
+
+        if key in (curses.KEY_BACKSPACE, 127, curses.KEY_DC):
+            if self.search_input:
+                self.search_input = self.search_input[:-1]
+            return
+
+        if 32 <= key <= 126:
+            self.search_input += chr(key)
+
+    def _handle_navigation_mode(self, key: int) -> bool:
+        """Handle navigation keys. Return True to exit."""
+        if key == ord('/'):
+            self._start_search_input()
+
+        elif key in (ord('n'), ord('N')):
+            if self.search_query and self.search_matches:
+                matches = self.search_matches
+                try:
+                    current_index = matches.index(self.current_field)
+                except ValueError:
+                    current_index = -1
+
+                if key == ord('n'):
+                    next_index = (current_index + 1) % len(matches)
+                else:
+                    next_index = (current_index - 1) % len(matches)
+
+                self.current_field = matches[next_index]
+
+        elif key == 9:  # Tab
+            self._jump_to_next_section()
+
+        elif key == curses.KEY_BTAB:  # Shift+Tab
+            self._jump_to_prev_section()
+
+        elif key in (ord('q'), ord('Q'), 27):  # q/Q/Esc
+            return True
+
+        elif key == ord('g') and self.fields:  # Go to top
+            self.current_field = 0
+
+        elif key == ord('G') and self.fields:  # Go to bottom
+            self.current_field = len(self.fields) - 1
+
+        elif key in (curses.KEY_UP, ord('k')):
+            if self.current_field > 0:
+                self.current_field -= 1
+
+        elif key in (curses.KEY_DOWN, ord('j')):
+            if self.current_field < len(self.fields) - 1:
+                self.current_field += 1
+
+        return False
+
+    def _draw(self) -> None:
+        """Draw the read-only viewer interface."""
+        self.stdscr.clear()
+        max_y, max_x = self.stdscr.getmaxyx()
+
+        self._calculate_scroll(max_y)
+
+        # Track cursor position for search input mode
+        search_cursor_y: Optional[int] = None
+        search_cursor_x: Optional[int] = None
+
+        header = " VIEW MODE | j/k: Navigate | g/G: Top/Bottom | /: Search | n/N: Next/Prev | q: Close "
+        try:
+            self.stdscr.addstr(0, 0, header[: max_x - 1], curses.A_REVERSE)
+        except curses.error:
+            pass
+
+        rows = self._get_display_rows()
+        visible_height = max_y - 3
+
+        y = 2
+        for row_idx in range(self.scroll_offset, min(len(rows), self.scroll_offset + visible_height)):
+            if y >= max_y - 1:
+                break
+
+            row_type, content, field_idx = rows[row_idx]
+
+            try:
+                if row_type == "blank":
+                    y += 1
+                    continue
+
+                if row_type == "section":
+                    section_text = f"[ {content} ]"
+                    self.stdscr.addstr(y, 2, section_text[: max_x - 4], curses.color_pair(2) | curses.A_BOLD)
+                    y += 1
+                    continue
+
+                if row_type == "field":
+                    field = content
+                    is_current = field_idx == self.current_field
+                    is_search_match = field_idx in self.search_matches if self.search_matches else False
+
+                    label_text = f"  {field.label}:"
+                    label_width = 30
+
+                    label_attr = curses.A_NORMAL
+                    if is_current:
+                        label_attr = curses.color_pair(9)
+                    if is_search_match:
+                        label_attr |= curses.A_BOLD
+                    self.stdscr.addstr(y, 2, label_text[:label_width].ljust(label_width), label_attr)
+
+                    value_x = 2 + label_width + 2
+                    value_width = max_x - value_x - 3
+
+                    indicator = ""
+                    if field.field_type == "cycle":
+                        indicator = " ↻"
+                    elif field.field_type == "file":
+                        indicator = " 📁"
+
+                    display_value = field.value if field.value else "<empty>"
+                    display_value_with_indicator = display_value + indicator
+
+                    attr = curses.color_pair(9) if is_current else curses.A_DIM if not field.value else curses.A_NORMAL
+                    if is_search_match:
+                        attr |= curses.A_BOLD
+                    self.stdscr.addstr(y, value_x, display_value_with_indicator[:value_width], attr)
+
+                    y += 1
+
+            except curses.error:
+                pass
+
+        self._draw_scrollbar(max_y, max_x)
+
+        if self.search_input_mode:
+            prompt = f"/{self.search_input}"
+            helper = "  (Enter: search, Esc: cancel)"
+            footer_text = (prompt + helper)[: max_x - 1]
+            try:
+                self.stdscr.addstr(max_y - 1, 0, " " * (max_x - 1), curses.A_REVERSE)
+                self.stdscr.addstr(max_y - 1, 0, footer_text, curses.A_REVERSE)
+            except curses.error:
+                pass
+            search_cursor_y = max_y - 1
+            search_cursor_x = min(len(prompt), max_x - 2)
+        else:
+            footer = " q: Close "
+            try:
+                self.stdscr.addstr(max_y - 1, 0, " " * (max_x - 1), curses.A_REVERSE)
+                self.stdscr.addstr(max_y - 1, 0, footer[: max_x - 1], curses.A_REVERSE)
+            except curses.error:
+                pass
+
+        # Cursor handling
+        if self.search_input_mode and search_cursor_y is not None and search_cursor_x is not None:
+            try:
+                curses.curs_set(2)
+                self.stdscr.move(search_cursor_y, search_cursor_x)
+            except curses.error:
+                pass
+        else:
+            try:
+                curses.curs_set(0)
+            except curses.error:
+                pass
+
+        self.stdscr.refresh()
+
+    def run(self) -> None:
+        """Run the viewer main loop until the user exits."""
+        should_exit = False
+
+        while not should_exit:
+            self._draw()
+
+            try:
+                key = self.stdscr.getch()
+            except KeyboardInterrupt:
+                break
+
+            if self.search_input_mode:
+                self._handle_search_input(key)
+            else:
+                should_exit = self._handle_navigation_mode(key)
+
+
+def run_viewer(form_dict: Dict[str, Dict[str, Union[str, Tuple]]]) -> None:
+    """Run the read-only structured data viewer.
+
+    The input structure matches run_form: a mapping of sections to
+    label/value pairs. Tuple values are interpreted the same way as
+    in run_form, but are displayed read-only.
+    """
+
+    def _curses_main(stdscr):
+        app = FormViewerApp(stdscr, form_dict)
+        app.run()
+
+    curses.wrapper(_curses_main)
 
 
 if __name__ == "__main__":
