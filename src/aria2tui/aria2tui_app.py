@@ -108,6 +108,8 @@ class Aria2TUI:
                 # If selected downloads are not all torrents remove menu options only applicable to torrents
                 if not set(selected_download_types) == set(["torrent"]):
                     applicable_download_operations = [dl_opt for dl_opt in applicable_download_operations if not dl_opt.torrent_operation]
+                else:
+                    applicable_download_operations = [dl_opt for dl_opt in applicable_download_operations if not dl_opt.non_torrent_operation]
 
                 self.dl_operations_data["items"] = [[download_option.name] for download_option in applicable_download_operations]
 

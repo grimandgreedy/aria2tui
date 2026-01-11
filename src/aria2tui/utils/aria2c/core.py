@@ -38,7 +38,8 @@ class Operation:
         form_view: bool = False,
         reapply_terminal_settings = False,
         applicable_statuses = [],
-        torrent_operation = False
+        torrent_operation = False,
+        non_torrent_operation = False,
     ):
         self.name = name
         self.function = function
@@ -53,6 +54,7 @@ class Operation:
         self.reapply_terminal_settings = reapply_terminal_settings
         self.applicable_statuses = applicable_statuses
         self.torrent_operation = torrent_operation
+        self.non_torrent_operation = non_torrent_operation
         """
         Operation.function(
             stdscr: curses.window,
