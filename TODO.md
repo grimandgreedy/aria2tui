@@ -15,6 +15,33 @@
 > - [ ] Change Filename:
 >  - [ ] Refactor and simplify. Currently is a copy of change options and is unnecessarily bloated.
 >  - [ ] This doesn't apply to torrents. Can we unify the modify torrent file menu option with this?
+> - [ ] Help page should be shown as a form viewer. Macro?
+> - [ ] When adding torrents, after selecting the files, take us to a form editor to change any options
+
+## Forms
+> - [x] Create editable forms
+>  - [x] Allow booleans to be toggled
+>  - [x] Allow a set to be cycled to be toggled
+>  - [x] Allow a field to be a set by a file picker
+>   - [ ] Allow a file picker field to be edited by pressing e
+>  - [ ] Make foldable sections...?
+>  - [x] Add search to forms
+> - [ ] Use editable forms with:
+>  - [x] Add downloads
+>   - [ ] Create default config options for setting add download options
+>    - [ ] Priority: read from aria2tui.toml > read from ara2.conf > default aria2 values
+>    - [ ] Different defaults for torrents and for direct downloads (e.g., splits)
+>    - 
+>  - [x] Change download options
+>  - [x] 
+> - [ ] Create form viewer for structured data
+>  - [x] Main menus views
+>   - [x] View global config
+>   - [x] View session info
+>   - [x] View version stats
+>   - [x] View version version
+>  - [x] View download options
+>  - [x] View download info
 
 
 > [!IMPORTANT] Features
