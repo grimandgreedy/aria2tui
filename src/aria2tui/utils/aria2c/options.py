@@ -372,6 +372,7 @@ def download_selected_files(stdscr, gids):
     Returns:
         None
     """
+
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import getFiles, sendReq, getOption, changeOption
 
@@ -380,20 +381,29 @@ def download_selected_files(stdscr, gids):
         files_dict = sendReq(req)["result"]
         options = sendReq(getOption(gid))
         dir = options["result"]["dir"]
-
-        # files = [os.path.basename(f["path"]) for f in files_dict]
         files = [f["path"].replace(dir, "") for f in files_dict]
         sizes = [bytes_to_human_readable(f["length"]) for f in files_dict]
         selected_indices = [i for i in range(len(files_dict)) if files_dict[i]['selected'] == 'true']
         selections = {i: f['selected'] == "true" for i, f in enumerate(files_dict)}
-        items = [[files[i], sizes[i]] for i in range(len(files))]
-        header = ["File", "Size"]
+
+        file_progress = []
+        for i in range(len(files)):
+            done = files_dict[i]["completedLength"]
+            total = files_dict[i]["length"]
+            if total == '0':
+                progress = "0%"
+            else:
+                progress = f"{100*int(done)/int(total):.1f}%"
+
+            file_progress.append(progress)
+
+        items = [[files[i], sizes[i], file_progress[i]] for i in range(len(files))]
+        header = ["File", "Size", "Progress"]
 
         # from listpick.ui.keys import picker_keys as pk
         # from copy import copy
         # pk = copy(pk)
         # pk["edit"] = [ord('e')]
-
         selectionsPicker = Picker(
             stdscr,
             items=items,
@@ -404,7 +414,10 @@ def download_selected_files(stdscr, gids):
             editable_by_default=True,
             keys_dict=picker_keys,
             startup_notification="Selected files will be downloaded. Non-selected will be skipped. 'e' to edit filename. 'E' to edit selected cells in nvim. 'q' to exit. 'Return' to submit changes.",
-            disable_file_close_warning=True,
+            selected_char = "☒",
+            unselected_char = "☐",
+            selecting_char = "☒",
+            deselecting_char = "☐",
         )
         modified_selections, options, function_data = selectionsPicker.run()
         if selected_indices != modified_selections and function_data["last_key"] != ord("q"):
