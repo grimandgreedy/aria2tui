@@ -801,7 +801,7 @@ class FormApp:
         elif key == ord('e'):  # 'e' key - edit file path as text
             if self._is_on_field():
                 field = self.fields[self.current_field]
-                if field.field_type == "file":
+                if field.field_type in ["file", "text"]:
                     # Start editing the file path as text
                     self.editing = True
                     self.cursor_pos = len(field.value)
