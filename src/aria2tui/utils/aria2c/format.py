@@ -14,27 +14,69 @@ from typing import Tuple
 
 # Import from listpick for helper functions (format_size, convert_percentage_to_ascii_bar, convert_seconds)
 try:
-    from listpick import format_size, convert_percentage_to_ascii_bar, convert_seconds
+    from listpick.listpick_app import format_size, convert_percentage_to_ascii_bar, convert_seconds
 except ImportError:
     # Fallback if listpick doesn't export these
     def format_size(size):
         """Fallback format_size if not available from listpick"""
         return bytes_to_human_readable(size)
 
-    def convert_percentage_to_ascii_bar(percentage):
-        """Fallback progress bar"""
-        filled = int(percentage / 10)
-        return "[" + "=" * filled + " " * (10 - filled) + "]"
+    def convert_seconds(seconds:int, long_format:bool=False) -> str:
+        """ Convert seconds to human readable format. E.g., 60*60*24*3+62=772262 -> 3d2m2s """
+        if isinstance(seconds, str):
+            seconds = int(seconds)
 
-    def convert_seconds(seconds):
-        """Fallback time formatting"""
-        if seconds < 60:
-            return f"{seconds}s"
-        elif seconds < 3600:
-            return f"{seconds//60}m {seconds%60}s"
+        # Calculate years, days, hours, minutes, and seconds
+        years = seconds // (365 * 24 * 3600)
+        days = (seconds % (365 * 24 * 3600)) // (24 * 3600)
+        hours = (seconds % (24 * 3600)) // 3600
+        minutes = (seconds % 3600) // 60
+        remaining_seconds = seconds % 60
+
+        # Long format = years, days, hours, minutes, seconds
+        if long_format:
+            human_readable = []
+            if years > 0:
+                human_readable.append(f"{years} year{'s' if years > 1 else ''}")
+            if days > 0:
+                human_readable.append(f"{days} day{'s' if days > 1 else ''}")
+            if hours > 0:
+                human_readable.append(f"{hours} hour{'s' if hours > 1 else ''}")
+            if minutes > 0:
+                human_readable.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
+            if remaining_seconds > 0 or not human_readable:
+                human_readable.append(f"{remaining_seconds} second{'s' if remaining_seconds != 1 else ''}")
+            return ', '.join(human_readable)
         else:
-            return f"{seconds//3600}h {(seconds%3600)//60}m"
+            # Compact format = y, d, h, m, s
+            compact_parts = []
+            if years > 0:
+                compact_parts.append(f"{years}y")
+            if days > 0:
+                compact_parts.append(f"{days}d")
+            if hours > 0:
+                compact_parts.append(f"{hours}h")
+            if minutes > 0:
+                compact_parts.append(f"{minutes}m")
+            if remaining_seconds > 0 or not compact_parts:
+                compact_parts.append(f"{remaining_seconds}s")
+            return ''.join(compact_parts)
 
+    def convert_percentage_to_ascii_bar(p:int, chars:int=8) -> str:
+        """ Convert percentage to an ascii status bar of length chars. """
+
+        done = "█"
+        notdone = "▒"
+        return done * int(p / 100 * chars) + (chars-(int(p / 100 * chars)))*notdone
+        return "[" + "=" * int(p / 100 * chars) + ">" + " " * (chars - int(p / 100 * chars) - 1) + "]"
+
+
+def get_selected_indices(selections: dict[int, bool]) -> list[int]:
+    """ Return a list of indices which are True in the selections dictionary. """
+
+    # selected_indices = [items[i] for i, selected in selections.values() if selected]
+    selected_indices = [i for i, selected in selections.items() if selected]
+    return selected_indices
 
 def bytes_to_human_readable(size: float, sep =" ", round_at=1) -> str:
     """
