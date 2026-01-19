@@ -44,6 +44,7 @@ class FormApp:
         self.search_input: str = ""
 
         # Initialize curses settings
+        self.stdscr.keypad(True)  # Enable keypad mode for special keys
         curses.curs_set(1)
         # Color pairs are assumed to be already initialized by the parent application
         # Pair 1: Highlighted (black on white)
@@ -318,13 +319,13 @@ class FormApp:
         if self._is_on_field():
             field = self.fields[self.current_field]
             if field.field_type == "cycle":
-                header = " Tab: Next Section | j/k: Navigate | Enter/Space: Cycle | g/G: Top/Bottom | /: Search | n/N: Next/Prev | q: Quit "
+                header = " Tab: Next Section | j/k: Navigate | PgUp/PgDn: Page | Enter/Space: Cycle | g/G: Top/Bottom | /: Search | q: Quit "
             elif field.field_type == "file":
-                header = " Tab: Next Section | j/k: Navigate | Enter: File Picker | e: Edit | /: Search | n/N: Next/Prev | q: Quit "
+                header = " Tab: Next Section | j/k: Navigate | PgUp/PgDn: Page | Enter: File Picker | e: Edit | /: Search | q: Quit "
             else:
-                header = " Tab: Next Section | j/k: Navigate | Enter: Edit | g/G: Top/Bottom | /: Search | n/N: Next/Prev | q: Quit "
+                header = " Tab: Next Section | j/k: Navigate | PgUp/PgDn: Page | Enter: Edit | g/G: Top/Bottom | /: Search | q: Quit "
         else:
-            header = " Tab: Next Section | j/k: Navigate | Enter: Activate | /: Search | n/N: Next/Prev | q: Quit "
+            header = " Tab: Next Section | j/k: Navigate | PgUp/PgDn: Page | Enter: Activate | /: Search | q: Quit "
         try:
             self.stdscr.addstr(0, 0, header[:max_x-1], curses.A_REVERSE)
         except curses.error:
@@ -840,6 +841,22 @@ class FormApp:
                 if self._is_on_field():
                     self.cursor_pos = len(self.fields[self.current_field].value)
 
+        elif key in [curses.KEY_PPAGE, 2]:  # Page Up or Ctrl+B
+            # Calculate page size based on visible height
+            max_y, _ = self.stdscr.getmaxyx()
+            page_size = max(1, max_y - 3)  # visible_height
+            self.current_field = max(0, self.current_field - page_size)
+            if self._is_on_field():
+                self.cursor_pos = len(self.fields[self.current_field].value)
+
+        elif key in [curses.KEY_NPAGE, 6]:  # Page Down or Ctrl+F
+            # Calculate page size based on visible height
+            max_y, _ = self.stdscr.getmaxyx()
+            page_size = max(1, max_y - 3)  # visible_height
+            self.current_field = min(self._total_items() - 1, self.current_field + page_size)
+            if self._is_on_field():
+                self.cursor_pos = len(self.fields[self.current_field].value)
+
         return False
 
     def run(self) -> Dict[str, Dict[str, str]]:
@@ -932,6 +949,9 @@ class FormViewerApp:
         self.search_matches: List[int] = []  # indices into self.fields
         self.search_input_mode: bool = False
         self.search_input: str = ""
+
+        # Enable keypad mode for special keys (arrow keys, etc.)
+        self.stdscr.keypad(True)
 
         # Build field list from form_dict
         self._build_fields()
@@ -1194,6 +1214,18 @@ class FormViewerApp:
             if self.current_field < len(self.fields) - 1:
                 self.current_field += 1
 
+        elif key in (curses.KEY_PPAGE, 2):  # Page Up or Ctrl+B
+            # Calculate page size based on visible height
+            max_y, _ = self.stdscr.getmaxyx()
+            page_size = max(1, max_y - 3)  # visible_height
+            self.current_field = max(0, self.current_field - page_size)
+
+        elif key in (curses.KEY_NPAGE, 6):  # Page Down or Ctrl+F
+            # Calculate page size based on visible height
+            max_y, _ = self.stdscr.getmaxyx()
+            page_size = max(1, max_y - 3)  # visible_height
+            self.current_field = min(len(self.fields) - 1, self.current_field + page_size)
+
         return False
 
     def _draw(self) -> None:
@@ -1207,7 +1239,7 @@ class FormViewerApp:
         search_cursor_y: Optional[int] = None
         search_cursor_x: Optional[int] = None
 
-        header = " VIEW MODE | j/k: Navigate | g/G: Top/Bottom | /: Search | n/N: Next/Prev | q: Close "
+        header = " VIEW MODE | j/k: Navigate | PgUp/PgDn: Page | g/G: Top/Bottom | /: Search | n/N: Next/Prev | q: Close "
         try:
             self.stdscr.addstr(0, 0, header[: max_x - 1], curses.A_REVERSE)
         except curses.error:
