@@ -424,6 +424,7 @@ def handleAriaStartPromt(stdscr):
         elif choice == [2]:
             editAria2TUIConfig()
             stdscr.clear()
+            return None
 
         config = get_config()
         ConnectionPicker.splash_screen("Starting Aria2c Now...")
