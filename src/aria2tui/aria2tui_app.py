@@ -9,6 +9,13 @@ License: MIT
 
 import os
 import sys
+
+
+# Redirect stderr to prevent artifacts from affecting TUI
+_original_stderr = sys.stderr
+sys.stderr = open(os.devnull, 'w')
+
+
 from sys import exit
 import tempfile
 import time
