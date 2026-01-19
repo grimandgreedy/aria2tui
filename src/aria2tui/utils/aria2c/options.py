@@ -275,7 +275,11 @@ def changeGlobalOptionsForm(stdscr: curses.window) -> str:
                 form_dict[section][key] = (value, "cycle", ["true", "false"])
 
     # Run the form and get results
-    result_dict = run_form(form_dict)
+    result_dict, saved = run_form(form_dict)
+    
+    # If user didn't save, return early
+    if not saved:
+        return "0 options changed"
 
     # Flatten the result back to compare with original
     loaded_options = {}
@@ -353,7 +357,11 @@ def changeOptionsBatchForm(stdscr: curses.window, gids:str) -> str:
                 form_dict[section][key] = (value, "cycle", ["true", "false"])
 
     # Run the form and get results
-    result_dict = run_form(form_dict)
+    result_dict, saved = run_form(form_dict)
+    
+    # If user didn't save, return early
+    if not saved:
+        return "0 options changed"
 
     # Flatten the result back to compare with original
     loaded_options = {}
@@ -435,7 +443,11 @@ def changeFilenameForm(stdscr: curses.window, gid:str, fname:string) -> str:
         }
     }
 
-    result_dict = run_form(form_dict)
+    result_dict, saved = run_form(form_dict)
+    
+    # If user didn't save, return early
+    if not saved:
+        return "0 options changed"
 
     # Safely extract the new filename from the result
     new_out = ""

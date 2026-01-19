@@ -246,7 +246,11 @@ def addDownloadTasksForm() -> str:
         }
     }
 
-    result_dict = run_form(form_dict)
+    result_dict, saved = run_form(form_dict)
+    
+    # If user didn't save, return early
+    if not saved:
+        return "Download cancelled"
 
     options = {}
     for _, fields in result_dict.items():
