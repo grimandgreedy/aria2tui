@@ -62,13 +62,30 @@ except ImportError:
                 compact_parts.append(f"{remaining_seconds}s")
             return ''.join(compact_parts)
 
-    def convert_percentage_to_ascii_bar(p:int, chars:int=8) -> str:
-        """ Convert percentage to an ascii status bar of length chars. """
+def convert_percentage_to_ascii_bar(p: int, chars: int = 8) -> str:
+    """ Convert percentage to an ascii status bar of length chars. """
+    # Clamp percentage between 0 and 100
+    p = max(0, min(100, p))
+    
+    # Calculate exact progress
+    exact_progress = p / 100 * chars
+    filled = int(exact_progress)
+    remainder = exact_progress - filled
+    
+    # Determine if we need a partial character
+    if remainder > 0 and filled < chars:
+        partial = '▌'  # Half-filled block
+        empty = chars - filled - 1
+    else:
+        partial = ''
+        empty = chars - filled
+    
+    # Create the bar
+    bar = '█' * filled + partial + ' ' * empty
+    
+    return f"[{bar}]"
 
-        done = "█"
-        notdone = "▒"
-        return done * int(p / 100 * chars) + (chars-(int(p / 100 * chars)))*notdone
-        return "[" + "=" * int(p / 100 * chars) + ">" + " " * (chars - int(p / 100 * chars) - 1) + "]"
+
 
 
 def get_selected_indices(selections: dict[int, bool]) -> list[int]:
