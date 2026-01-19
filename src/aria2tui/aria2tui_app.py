@@ -32,7 +32,7 @@ from listpick.listpick_app import Picker, start_curses, close_curses, restrict_c
 
 from aria2tui.lib.aria2c_wrapper import *
 # from aria2tui.utils.aria2c_utils import *
-from aria2tui.utils.aria2c_utils import Operation, applyToDownloads, sendReq, flatten_data, get_config, config_file_exists, get_default_config_for_form, create_config_from_form, testConnection, testAriaConnection, classify_download_string, addDownload, addTorrent
+from aria2tui.utils.aria2c_utils import Operation, applyToDownloads, sendReq, flatten_data, get_config, config_file_exists, get_default_config_for_form, create_config_from_form, testConnection, testAriaConnection, classify_download_string, addDownload, addTorrent, editAria2TUIConfig
 from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, operations_highlights
 from aria2tui.ui.aria2tui_keys import download_option_keys
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
@@ -340,15 +340,16 @@ def handleConfigSetup(stdscr):
             app = FormApp(stdscr, form_data)
             return app.run()
         
-        result = curses.wrapper(form_wrapper)
+        result, saved = curses.wrapper(form_wrapper)
         
         # Restart curses and clear screen
         new_stdscr = start_curses()
         new_stdscr.clear()
         new_stdscr.refresh()
         
-        if not result:
-            logger.info("User cancelled config setup")
+        # Only create config file if user clicked Save button
+        if not saved:
+            logger.info("User cancelled or discarded config setup")
             return False, new_stdscr
         
         # Create config file from form data
@@ -400,7 +401,7 @@ def handleAriaStartPromt(stdscr):
 
     colour_theme_number=config["appearance"]["theme"]
 
-    header, choices = ["Aria2c Connection Down. Do you want to start it?"], ["Yes", "No"]
+    header, choices = ["Aria2c Connection Down. Do you want to start it?"], ["Yes", "No", "Edit Aria2TUI Config"]
     connect_data = {
         "items": choices,
         "title": "Aria2TUI",
@@ -412,34 +413,40 @@ def handleAriaStartPromt(stdscr):
     ConnectionPicker = Picker(stdscr, **connect_data)
     ConnectionPicker.splash_screen("Testing Aria2 Connection")
 
+
+    def connectionPrompt():
+        choice, opts, function_data = ConnectionPicker.run()
+
+        if choice == [1] or choice == []:
+            close_curses(stdscr)
+            logger.info("User chose not to start aria2c; exiting")
+            exit()
+        elif choice == [2]:
+            editAria2TUIConfig()
+            stdscr.clear()
+
+        config = get_config()
+        ConnectionPicker.splash_screen("Starting Aria2c Now...")
+
+        for cmd in config["general"]["startup_commands"]:
+            logger.info("Starting aria2c with command: %s", cmd)
+            subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+
+        time.sleep(0.2)
+
     while True:
         connection_up = testConnection()
         can_connect = testAriaConnection()
         logger.info("Connection check: connection_up=%s can_connect=%s", connection_up, can_connect)
         if not can_connect:
             if not connection_up:
-
-                choice, opts, function_data = ConnectionPicker.run()
-
-                if choice == [1] or choice == []:
-                    close_curses(stdscr)
-                    logger.info("User chose not to start aria2c; exiting")
-                    exit()
-
-                config = get_config()
-                ConnectionPicker.splash_screen("Starting Aria2c Now...")
-
-                for cmd in config["general"]["startup_commands"]:
-                    logger.info("Starting aria2c with command: %s", cmd)
-                    subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-
-                time.sleep(0.2)
+                connectionPrompt()
             else:
                 ConnectionPicker.splash_screen(["The connection is up but unresponsive...", "Is your token correct in your aria2tui.toml?"])
-                stdscr.timeout(5000)
+                stdscr.timeout(3500)
                 stdscr.getch()
-                logger.info("Connection up but unresponsive; exiting")
-                exit()
+                logger.info("Connection up but unresponsive")
+                connectionPrompt()
         else:
             break
 

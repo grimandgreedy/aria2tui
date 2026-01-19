@@ -23,6 +23,7 @@ from .core import (
     create_config_from_form,
     restartAria,
     editConfig,
+    editAria2TUIConfig,
     classify_download_string,
 )
 
@@ -153,6 +154,7 @@ __all__ = [
     'create_config_from_form',
     'restartAria',
     'editConfig',
+    'editAria2TUIConfig',
     'classify_download_string',
     # Format
     'bytes_to_human_readable',
