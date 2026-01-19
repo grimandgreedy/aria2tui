@@ -107,7 +107,7 @@ download_options = [
     # ),
     Operation(
         name="Change Options",
-        function=lambda stdscr, gids, fnames, operation, function_args: changeOptionsBatchPicker(stdscr, gids),
+        function=lambda stdscr, gids, fnames, operation, function_args: changeOptionsBatchForm(stdscr, gids),
         accepts_gids_list=True,
         applicable_statuses=["active", "waiting", "paused"]
     ),
@@ -224,6 +224,18 @@ menu_options = [
     # Operation( name="Remove completed/errored downloads", removeCompleted),
 
     Operation(
+        name="Change Global Options (Session)",
+        function=lambda stdscr, gids, fnames, operation, function_args: changeGlobalOptionsForm(stdscr),
+        reapply_terminal_settings=True,
+        # accepts_gids_list=True,
+        # applicable_statuses=["active", "waiting", "paused"]
+    ),
+    Operation(
+        name="Edit Aria2c Config",
+        function=lambda stdscr, gids, fnames, operation, function_args: editConfig(), 
+        reapply_terminal_settings=True,
+    ),
+    Operation(
         name="View Global Options",
         function=lambda stdscr, gids, fnames, operation, function_args: getGlobalOption(),
         send_request=True,
@@ -246,11 +258,6 @@ menu_options = [
         function=lambda stdscr, gids, fnames, operation, function_args: getVersion(),
         send_request=True,
         form_view=True,
-    ),
-    Operation(
-        name="Edit Aria2c Config",
-        function=lambda stdscr, gids, fnames, operation, function_args: editConfig(), 
-        reapply_terminal_settings=True,
     ),
     Operation(
         name="Restart Aria2c",

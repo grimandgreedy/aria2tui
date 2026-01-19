@@ -89,7 +89,7 @@ menu_highlights = [
         "color": 7,
     },
     {
-        "match": "^edit|^restart",
+        "match": "^edit|^change|^restart",
         "field": 0,
         "color": 10,
     },

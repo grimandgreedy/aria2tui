@@ -168,6 +168,13 @@ def changeOptionFull(gid, key, val, token=None):
     jsonreq["method"] = "aria2.changeOption"
     return json.dumps(jsonreq).encode('utf-8')
 
+def changeGlobalOptionFull(options, token=None):
+    jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer', 'params' : [f"token:{token}"] }
+    jsonreq["params"] = [] if token in [None, ""] else [f"token:{token}"]
+    jsonreq["params"] += [options]
+    jsonreq["method"] = "aria2.changeGlobalOption"
+    return json.dumps(jsonreq).encode('utf-8')
+
 def tellActiveFull(offset=0, max=5000, token=None):
     jsonreq = { 'jsonrpc': '2.0', 'id': 'qwer', 'params' : [f"token:{token}"] }
     jsonreq["params"] = [] if token in [None, ""] else [f"token:{token}"]

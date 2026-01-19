@@ -57,10 +57,11 @@ from .options import (
     changeOptionDialog,
     changeOptionBatchDialog,
     changeOptionPicker,
-    changeOptionsBatchPicker,
+    changeOptionsBatchForm,
     changeFilenamePicker,
     changeFilenameForm,
     download_selected_files,
+    changeGlobalOptionsForm,
 )
 
 # 5. Downloads (depends on core, format)
@@ -102,6 +103,7 @@ getServers = _lambdas.getServers
 getPeers = _lambdas.getPeers
 getUris = _lambdas.getUris
 getGlobalOption = _lambdas.getGlobalOption
+changeGlobalOption = _lambdas.changeGlobalOption
 getSessionInfo = _lambdas.getSessionInfo
 getVersion = _lambdas.getVersion
 getGlobalStat = _lambdas.getGlobalStat
@@ -176,10 +178,11 @@ __all__ = [
     'changeOptionDialog',
     'changeOptionBatchDialog',
     'changeOptionPicker',
-    'changeOptionsBatchPicker',
+    'changeOptionsBatchForm',
     'changeFilenamePicker',
     'changeFilenameForm',
     'download_selected_files',
+    'changeGlobalOptionsForm',
     # Downloads
     'addUrisFull',
     'addUrisAndPauseFull',
@@ -209,6 +212,7 @@ __all__ = [
     'getPeers',
     'getUris',
     'getGlobalOption',
+    'changeGlobalOption',
     'getSessionInfo',
     'getVersion',
     'getGlobalStat',
