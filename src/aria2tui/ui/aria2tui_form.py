@@ -36,6 +36,7 @@ class FormApp:
         self.cursor_pos = 0
         self.original_values = {}  # Store original values for discard
         self.yazi_path = "yazi"  # Path to yazi executable
+        self.saved = False  # Track if user clicked Save button
 
         # Search state
         self.search_query: Optional[str] = None
@@ -750,6 +751,7 @@ class FormApp:
         elif key in (curses.KEY_ENTER, 10, 13):  # Enter - edit field or activate button
 
             if self._is_on_save_button():
+                self.saved = True  # Mark that user clicked Save
                 return True  # Exit and save
             elif self._is_on_discard_button():
                 # Check if there are unsaved changes
@@ -859,8 +861,14 @@ class FormApp:
 
         return False
 
-    def run(self) -> Dict[str, Dict[str, str]]:
-        """Run the form application main loop."""
+    def run(self) -> Tuple[Dict[str, Dict[str, str]], bool]:
+        """Run the form application main loop.
+        
+        Returns:
+            Tuple of (form_data, saved) where:
+            - form_data: The form values (either saved or original if discarded)
+            - saved: True if user clicked Save, False if discarded/cancelled
+        """
         should_exit = False
 
         while not should_exit:
@@ -888,10 +896,10 @@ class FormApp:
                 result[field.section] = {}
             result[field.section][field.label] = field.value
 
-        return result
+        return result, self.saved
 
 
-def run_form(form_dict: Dict[str, Dict[str, Union[str, Tuple]]]) -> Dict[str, Dict[str, str]]:
+def run_form(form_dict: Dict[str, Dict[str, Union[str, Tuple]]]) -> Tuple[Dict[str, Dict[str, str]], bool]:
     """
     Run the form application with the given form dictionary.
 
@@ -904,7 +912,9 @@ def run_form(form_dict: Dict[str, Dict[str, Union[str, Tuple]]]) -> Dict[str, Di
                      - options: List of values for "cycle" type
 
     Returns:
-        Updated form dictionary with user input (values only, no type info)
+        Tuple of (form_data, saved) where:
+        - form_data: Updated form dictionary with user input (values only, no type info)
+        - saved: True if user clicked Save, False if discarded/cancelled
 
     Examples:
         # Simple text fields (backward compatible)
@@ -1390,10 +1400,11 @@ if __name__ == "__main__":
         }
     }
 
-    result = run_form(form_dict)
+    result, saved = run_form(form_dict)
 
     # Print results
     print("\n=== Form Results ===")
+    print(f"Saved: {saved}")
     for section, fields in result.items():
         print(f"\n{section}:")
         for label, value in fields.items():
