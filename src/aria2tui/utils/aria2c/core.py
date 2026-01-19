@@ -153,6 +153,140 @@ def editConfig() -> None:
     logger.info("Opening config file: %s", file)
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
+def editAria2TUIConfig() -> None:
+    """
+    Edit the aria2tui config file using a form interface.
+    
+    Loads the existing config from the default location or ARIA2TUI_CONFIG_PATH,
+    populates a form with current values (using defaults for missing fields),
+    and saves the updated config back to the same location.
+    
+    Note: This function is called from within a Picker context, so curses
+    color pairs are already initialized and don't need to be set up again.
+    """
+    import curses
+    
+    logger.info("editAria2TUIConfig called")
+    
+    # Get the current config (merges user config with defaults)
+    current_config = get_config()
+    
+    # Get default form structure
+    form_data = get_default_config_for_form()
+    
+    # Populate form with current config values
+    # Connection Settings
+    form_data["Connection Settings"]["URL"] = current_config["general"]["url"]
+    form_data["Connection Settings"]["Port"] = current_config["general"]["port"]
+    form_data["Connection Settings"]["Token"] = current_config["general"]["token"]
+    
+    # Commands - join list items back into command strings
+    startup_cmds = current_config["general"]["startup_commands"]
+    if isinstance(startup_cmds, list):
+        form_data["Commands"]["Startup Commands"] = " && ".join(startup_cmds)
+    else:
+        form_data["Commands"]["Startup Commands"] = str(startup_cmds)
+    
+    restart_cmds = current_config["general"]["restart_commands"]
+    if isinstance(restart_cmds, list):
+        form_data["Commands"]["Restart Commands"] = " && ".join(restart_cmds)
+    else:
+        form_data["Commands"]["Restart Commands"] = str(restart_cmds)
+    
+    # Paths
+    form_data["Paths"]["Aria2 Config Path"] = (
+        current_config["general"]["aria2_config_path"], 
+        "file"
+    )
+    form_data["Paths"]["Terminal File Manager"] = current_config["general"]["terminal_file_manager"]
+    form_data["Paths"]["GUI File Manager"] = current_config["general"]["gui_file_manager"]
+    form_data["Paths"]["Launch Command"] = current_config["general"]["launch_command"]
+    
+    # Behavior
+    paginate_value = "true" if current_config["general"]["paginate"] else "false"
+    form_data["Behavior"]["Paginate"] = (
+        paginate_value,
+        "cycle",
+        ["true", "false"]
+    )
+    form_data["Behavior"]["Refresh Timer (seconds)"] = str(current_config["general"]["refresh_timer"])
+    form_data["Behavior"]["Global Stats Timer (seconds)"] = str(current_config["general"]["global_stats_timer"])
+    
+    # Appearance
+    form_data["Appearance"]["Theme"] = (
+        str(current_config["appearance"]["theme"]),
+        "cycle",
+        ["0", "1", "2", "3", "4", "5"]
+    )
+    show_right_pane = "true" if current_config["appearance"]["show_right_pane_default"] else "false"
+    form_data["Appearance"]["Show Right Pane by Default"] = (
+        show_right_pane,
+        "cycle",
+        ["true", "false"]
+    )
+    form_data["Appearance"]["Right Pane Default Index"] = (
+        str(current_config["appearance"]["right_pane_default_index"]),
+        "cycle",
+        ["0", "1", "2"]
+    )
+    
+    # Show the form using curses wrapper
+    # Color pairs are already initialized by Picker, so we don't need to set them up
+    def form_wrapper(stdscr):
+        from aria2tui.ui.aria2tui_form import FormApp
+        app = FormApp(stdscr, form_data)
+        return app.run()
+    
+    result, saved = curses.wrapper(form_wrapper)
+    
+    # Only save if user clicked the Save button
+    # This prevents overwriting the config file when user discards changes or exits without saving,
+    # which would lose comments and formatting in the TOML file
+    if saved:
+        create_config_from_form(result)
+        logger.info("Config file updated successfully")
+        
+        # Reload modules to pick up new config values
+        import importlib
+        import sys
+        
+        # First reload core to get fresh config
+        import aria2tui.utils.aria2c.core
+        importlib.reload(aria2tui.utils.aria2c.core)
+        
+        # Reload _lambdas which uses the config
+        import aria2tui.utils.aria2c._lambdas
+        importlib.reload(aria2tui.utils.aria2c._lambdas)
+        
+        # Reload the aria2c package __init__ which re-exports lambdas
+        import aria2tui.utils.aria2c
+        importlib.reload(aria2tui.utils.aria2c)
+        
+        # Reload menu options which may use config
+        import aria2tui.ui.aria2tui_menu_options
+        importlib.reload(aria2tui.ui.aria2tui_menu_options)
+        
+        # Reload the compatibility shim
+        import aria2tui.utils.aria2c_utils
+        importlib.reload(aria2tui.utils.aria2c_utils)
+        
+        # Update the currently running aria2tui_app module's namespace with new functions
+        import aria2tui.aria2tui_app
+        if hasattr(aria2tui.aria2tui_app, 'sendReq'):
+            aria2tui.aria2tui_app.sendReq = aria2tui.utils.aria2c.sendReq
+        if hasattr(aria2tui.aria2tui_app, 'testConnection'):
+            aria2tui.aria2tui_app.testConnection = aria2tui.utils.aria2c.testConnection
+        if hasattr(aria2tui.aria2tui_app, 'testAriaConnection'):
+            aria2tui.aria2tui_app.testAriaConnection = aria2tui.utils.aria2c.testAriaConnection
+        if hasattr(aria2tui.aria2tui_app, 'addDownload'):
+            aria2tui.aria2tui_app.addDownload = aria2tui.utils.aria2c.addDownload
+        if hasattr(aria2tui.aria2tui_app, 'addTorrent'):
+            aria2tui.aria2tui_app.addTorrent = aria2tui.utils.aria2c.addTorrent
+        
+        logger.info("Reloaded config modules and updated references with new config values")
+    else:
+        logger.info("Config edit cancelled or discarded by user")
+
 
 def config_file_exists() -> bool:
     """Check if the aria2tui config file exists."""
@@ -207,7 +341,9 @@ def get_default_config_for_form() -> dict:
 
 
 def create_config_from_form(form_data: dict) -> None:
-    """Create config file and directories from form data."""
+    """Create config file and directories from form data with comments and header."""
+    from datetime import datetime
+    
     config_path = get_config_path()
     config_dir = os.path.dirname(os.path.expanduser(config_path))
     
@@ -237,9 +373,86 @@ def create_config_from_form(form_data: dict) -> None:
         }
     }
     
-    # Write config file
+    # Get current timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Helper function to format values for TOML
+    def format_toml_value(value):
+        """Format a Python value as a TOML value string."""
+        if isinstance(value, bool):
+            return str(value).lower()
+        elif isinstance(value, str):
+            # Escape quotes and backslashes
+            escaped = value.replace('\\', '\\\\').replace('"', '\\"')
+            return f'"{escaped}"'
+        elif isinstance(value, list):
+            # Format list of strings
+            items = [format_toml_value(item) for item in value]
+            return f'[{", ".join(items)}]'
+        elif isinstance(value, (int, float)):
+            return str(value)
+        else:
+            return str(value)
+    
+    # Write config file with header, comments, and formatting
     with open(os.path.expanduser(config_path), "w") as f:
-        toml.dump(config, f)
+        # Write header
+        f.write("####################################################\n")
+        f.write("##        Aria2TUI Configuration File\n")
+        f.write("####################################################\n")
+        f.write("\n")
+        f.write(f"# Saved on: {timestamp}\n")
+        f.write("\n")
+        
+        # Write [general] section with comments
+        f.write("[general]\n")
+        f.write(f'port = {format_toml_value(config["general"]["port"])}\n')
+        f.write(f'token = {format_toml_value(config["general"]["token"])}\n')
+        f.write(f'url = {format_toml_value(config["general"]["url"])}\n')
+        f.write("\n")
+        
+        f.write("# Used for starting and restarting aria2c from within aria2tui\n")
+        f.write(f'startup_commands = {format_toml_value(config["general"]["startup_commands"])}\n')
+        f.write(f'restart_commands = {format_toml_value(config["general"]["restart_commands"])}\n')
+        f.write("\n")
+        
+        f.write('# Used when "Edit Config" option is chosen in the main menu\n')
+        f.write(f'aria2_config_path = {format_toml_value(config["general"]["aria2_config_path"])}\n')
+        f.write("\n")
+        
+        f.write("# File managers\n")
+        f.write("## terminal_file_manager will open in the same terminal as Aria2TUI in a blocking fashion;\n")
+        f.write("## gui_file_manager will fork a new process and open a new application.\n")
+        f.write(f'terminal_file_manager = {format_toml_value(config["general"]["terminal_file_manager"])}\n')
+        f.write(f'gui_file_manager = {format_toml_value(config["general"]["gui_file_manager"])}\n')
+        f.write("\n")
+        
+        f.write("# launch_command is used for opening files with the default application\n")
+        f.write(f'launch_command = {format_toml_value(config["general"]["launch_command"])}\n')
+        f.write("\n")
+        
+        f.write("# Data refresh time (in seconds) for the global stats and for the download data.\n")
+        f.write(f'global_stats_timer = {config["general"]["global_stats_timer"]}\n')
+        f.write(f'refresh_timer = {config["general"]["refresh_timer"]}\n')
+        f.write("\n")
+        
+        f.write("# Scrolls by default\n")
+        f.write(f'paginate = {str(config["general"]["paginate"]).lower()}\n')
+        f.write("\n")
+        
+        # Write [appearance] section with comments
+        f.write("[appearance]\n")
+        f.write("# Can change in app from the settings (~) or by pressing `th<Return>\n")
+        f.write(f'theme = {config["appearance"]["theme"]}\n')
+        f.write("\n")
+        
+        f.write("# Whether the right pane (DL Info, DL graphs) should be displayed by default when opening aria2tui\n")
+        f.write(f'show_right_pane_default = {str(config["appearance"]["show_right_pane_default"]).lower()}\n')
+        f.write("\n")
+        
+        f.write("# Which pane should be displayed first when the sidebar is opened.\n")
+        f.write("# [0=DL Files (info), 1=speed graph, 2=progress graph, 3=download pieces]\n")
+        f.write(f'right_pane_default_index = {config["appearance"]["right_pane_default_index"]}\n')
     
     logger.info("Config file created at: %s", config_path)
 

@@ -214,7 +214,7 @@ menu_options = [
         reapply_terminal_settings=True,
     ),
     Operation(
-        name="Batch Add Download Tasks & Pause", 
+        name="Batch Add Downloads & Pause", 
         function=lambda stdscr, gids, fnames, operation, function_args: addDownloadsAndTorrentsAndPause(),
         reapply_terminal_settings=True,
     ),
@@ -224,15 +224,18 @@ menu_options = [
     # Operation( name="Remove completed/errored downloads", removeCompleted),
 
     Operation(
-        name="Change Global Options (Session)",
-        function=lambda stdscr, gids, fnames, operation, function_args: changeGlobalOptionsForm(stdscr),
+        name="Edit Aria2TUI Config",
+        function=lambda stdscr, gids, fnames, operation, function_args: editAria2TUIConfig(), 
         reapply_terminal_settings=True,
-        # accepts_gids_list=True,
-        # applicable_statuses=["active", "waiting", "paused"]
     ),
     Operation(
         name="Edit Aria2c Config",
         function=lambda stdscr, gids, fnames, operation, function_args: editConfig(), 
+        reapply_terminal_settings=True,
+    ),
+    Operation(
+        name="Change Global Download Options (Session)",
+        function=lambda stdscr, gids, fnames, operation, function_args: changeGlobalOptionsForm(stdscr),
         reapply_terminal_settings=True,
     ),
     Operation(
