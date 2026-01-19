@@ -154,6 +154,96 @@ def editConfig() -> None:
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
 
+def config_file_exists() -> bool:
+    """Check if the aria2tui config file exists."""
+    default_path = "~/.config/aria2tui/config.toml"
+    
+    config_path = default_path
+    if "ARIA2TUI_CONFIG_PATH" in os.environ:
+        config_path = os.environ["ARIA2TUI_CONFIG_PATH"]
+    
+    return os.path.exists(os.path.expanduser(config_path))
+
+
+def get_config_path() -> str:
+    """Get the path to the aria2tui config file."""
+    default_path = "~/.config/aria2tui/config.toml"
+    
+    if "ARIA2TUI_CONFIG_PATH" in os.environ:
+        return os.environ["ARIA2TUI_CONFIG_PATH"]
+    
+    return default_path
+
+
+def get_default_config_for_form() -> dict:
+    """Get default config structure formatted for the form UI."""
+    return {
+        "Connection Settings": {
+            "URL": "http://localhost",
+            "Port": "6800", 
+            "Token": "",
+        },
+        "Commands": {
+            "Startup Commands": "aria2c",
+            "Restart Commands": "pkill aria2c && sleep 1 && aria2c",
+        },
+        "Paths": {
+            "Aria2 Config Path": ("~/.config/aria2/aria2.conf", "file"),
+            "Terminal File Manager": "yazi",
+            "GUI File Manager": "kitty yazi",
+            "Launch Command": "xdg-open",
+        },
+        "Behavior": {
+            "Paginate": ("false", "cycle", ["true", "false"]),
+            "Refresh Timer (seconds)": "2",
+            "Global Stats Timer (seconds)": "1",
+        },
+        "Appearance": {
+            "Theme": ("3", "cycle", ["0", "1", "2", "3", "4", "5"]),
+            "Show Right Pane by Default": ("false", "cycle", ["true", "false"]),
+            "Right Pane Default Index": ("0", "cycle", ["0", "1", "2"]),
+        }
+    }
+
+
+def create_config_from_form(form_data: dict) -> None:
+    """Create config file and directories from form data."""
+    config_path = get_config_path()
+    config_dir = os.path.dirname(os.path.expanduser(config_path))
+    
+    # Create directories if they don't exist
+    os.makedirs(config_dir, exist_ok=True)
+    
+    # Convert form data to config structure
+    config = {
+        "general": {
+            "url": form_data["Connection Settings"]["URL"],
+            "port": form_data["Connection Settings"]["Port"],
+            "token": form_data["Connection Settings"]["Token"],
+            "startup_commands": [cmd.strip() for cmd in form_data["Commands"]["Startup Commands"].split("&&") if cmd.strip()],
+            "restart_commands": [cmd.strip() for cmd in form_data["Commands"]["Restart Commands"].split("&&") if cmd.strip()],
+            "aria2_config_path": form_data["Paths"]["Aria2 Config Path"],
+            "paginate": form_data["Behavior"]["Paginate"].lower() == "true",
+            "refresh_timer": int(form_data["Behavior"]["Refresh Timer (seconds)"]),
+            "global_stats_timer": int(form_data["Behavior"]["Global Stats Timer (seconds)"]),
+            "terminal_file_manager": form_data["Paths"]["Terminal File Manager"],
+            "gui_file_manager": form_data["Paths"]["GUI File Manager"],
+            "launch_command": form_data["Paths"]["Launch Command"],
+        },
+        "appearance": {
+            "theme": int(form_data["Appearance"]["Theme"]),
+            "show_right_pane_default": form_data["Appearance"]["Show Right Pane by Default"].lower() == "true",
+            "right_pane_default_index": int(form_data["Appearance"]["Right Pane Default Index"]),
+        }
+    }
+    
+    # Write config file
+    with open(os.path.expanduser(config_path), "w") as f:
+        toml.dump(config, f)
+    
+    logger.info("Config file created at: %s", config_path)
+
+
 def classify_download_string(input_string: str) -> str:
     magnet_link_pattern = r'^magnet:\?xt=urn:btih'
     metalink_pattern = r'^metalink:'
