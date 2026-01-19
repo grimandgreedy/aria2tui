@@ -29,13 +29,15 @@
 > - [ ] Add support for multiple aria2 daemons which can be switched between
 > - [ ] Kitty OSX TUI problems
 >   - [ ] Multiple "ghost lines" for speed graph
+>   - [ ] Progress graph shows ???
 >   - [ ] ? for brail characters
 >    - [ ] `fig.plot(..., marker=".")`
 >   - [ ] Artifacts when changing themes
-> - [ ] Speed graph doesn't show properly on OSX terminal
 > - [x] Add config setup form if no config file exists
->   - [ ] Check that it works with the env variable set
-> - [ ] Add edit config or exit option if we can't connect
+>   - [x] Check that it works with the env variable set
+> - [x] Add edit config or exit option if we can't connect
+> - [ ] Add more options to add download dialogue
+> - [ ] Improve keys in form editor
 
 
 ## Forms
