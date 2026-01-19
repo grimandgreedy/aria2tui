@@ -62,7 +62,7 @@ except ImportError:
                 compact_parts.append(f"{remaining_seconds}s")
             return ''.join(compact_parts)
 
-def convert_percentage_to_ascii_bar(p: int, chars: int = 8) -> str:
+def convert_percentage_to_ascii_bar(p: int, chars: int = 6) -> str:
     """ Convert percentage to an ascii status bar of length chars. """
     # Clamp percentage between 0 and 100
     p = max(0, min(100, p))
