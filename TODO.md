@@ -17,6 +17,26 @@
 >  - [ ] This doesn't apply to torrents. Can we unify the modify torrent file menu option with this?
 > - [ ] Help page should be shown as a form viewer. Macro?
 > - [ ] When adding torrents, after selecting the files, take us to a form editor to change any options
+> - [ ] Add config option to use simple chars. Some terminals and fonts do not render the symbols well.
+>  - [ ] Pin cursor symbol
+>  - [ ] Refresh symbol
+>  - [ ] Progress bar
+>  - [ ] Progress bar
+>  - [ ] Brail in graphs
+> - [ ] Save hidden columns in settings. 
+> - [ ] Fix menu persistency and row-persistency.
+>   - [ ] If we change the global options it should take us back to the main menu
+> - [ ] Add support for multiple aria2 daemons which can be switched between
+> - [ ] Kitty OSX TUI problems
+>   - [ ] Multiple "ghost lines" for speed graph
+>   - [ ] ? for brail characters
+>    - [ ] `fig.plot(..., marker=".")`
+>   - [ ] Artifacts when changing themes
+> - [ ] Speed graph doesn't show properly on OSX terminal
+> - [x] Add config setup form if no config file exists
+>   - [ ] Check that it works with the env variable set
+> - [ ] Add edit config or exit option if we can't connect
+
 
 ## Forms
 > - [x] Create editable forms
