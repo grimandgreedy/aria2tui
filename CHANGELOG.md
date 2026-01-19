@@ -1,12 +1,26 @@
 # CHANGELOG.md
 
 ## [0.1.12.1] ?
- - Fix bitstring to download pieces display in right pane.
+- Created first-time startup form that generates default config if missing
+- Added ability to edit aria2tui config through a form interface
+- Updated form to store and return exit status
+- Improved progress bar display
+- Added "Change Global Options (Session)" (for aria2c) to main menu
+- Fixed scrolling in form views with page up/down key support
+- Redirected stderr messages at app launch to prevent TUI distortion
+- Added new structured data viewer
+  - Used to display download info
+  - Used to display global info
+- Fix bitstring to download pieces display in right pane.
+- Added new forms in aria2tui
+  - Add download form
+  - Form to enter config details if first time starting aria2tui
+  - Change download options form
 
 ## [0.1.12.0] 2026-01-04
  - Download operation menu options now auto-filter based on download selections.
   - So, e.g., "Modify torrent files" will not appear in the menu when direct downloads are selected.
- - Improvement: Retry Downloadi now ensures that all aria2c download options from target download are preserved in new download.
+ - Improvement: Retry Download now ensures that all aria2c download options from target download are preserved in new download.
  - Fix change filename menu option
  - Improve help descriptions and ordering
  - Disable modification checks for change options menu and also for change torrent filenames menu.
