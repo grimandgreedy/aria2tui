@@ -17,6 +17,7 @@ import json
 import curses
 import subprocess
 import logging
+import importlib
 from pathlib import Path
 
 from listpick.listpick_app import *
@@ -24,7 +25,7 @@ from listpick.listpick_app import Picker, start_curses, close_curses, restrict_c
 
 from aria2tui.lib.aria2c_wrapper import *
 # from aria2tui.utils.aria2c_utils import *
-from aria2tui.utils.aria2c_utils import Operation, applyToDownloads, sendReq, flatten_data, get_config, testConnection, testAriaConnection, classify_download_string, addDownload, addTorrent
+from aria2tui.utils.aria2c_utils import Operation, applyToDownloads, sendReq, flatten_data, get_config, config_file_exists, get_default_config_for_form, create_config_from_form, testConnection, testAriaConnection, classify_download_string, addDownload, addTorrent
 from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, operations_highlights
 from aria2tui.ui.aria2tui_keys import download_option_keys
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
@@ -285,6 +286,94 @@ def display_message(stdscr: curses.window, msg: str) -> None:
         stdscr.refresh()
 
 
+def handleConfigSetup(stdscr):
+    """
+    Handles the config file setup if it doesn't exist.
+
+    Checks for the presence of a config file at ~/.config/aria2tui/config.toml
+    (or ARIA2TUI_CONFIG_PATH if set). If the config file doesn't exist,
+    presents the user with a form to create it.
+
+    Returns:
+        tuple: (success: bool, new_stdscr: curses.window or None)
+    """
+    logger.info("handleConfigSetup() called")
+    
+    if config_file_exists():
+        logger.info("Config file already exists")
+        return True, stdscr
+    
+    logger.info("Config file does not exist, showing setup form")
+    
+    # Get default config for the form
+    form_data = get_default_config_for_form()
+    
+    # Show the form
+    from aria2tui.ui.aria2tui_form import run_form
+    
+    # Temporarily exit curses to run the form
+    close_curses(stdscr)
+    
+
+    try:
+        def form_wrapper(stdscr):
+            # Picker colours have not been defined yet
+            curses.start_color()
+            curses.use_default_colors()
+            
+            # Define color pairs that the form expects
+            curses.init_pair(2, curses.COLOR_BLUE, curses.COLOR_BLACK)     # Section titles
+            curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_YELLOW)   # Editing field background  
+            curses.init_pair(7, curses.COLOR_RED, curses.COLOR_BLACK)      # Discard button
+            curses.init_pair(8, curses.COLOR_GREEN, curses.COLOR_BLACK)    # Save button
+            curses.init_pair(9, curses.COLOR_BLACK, curses.COLOR_WHITE)    # Current field highlight
+            
+            # Run the form
+            from aria2tui.ui.aria2tui_form import FormApp
+            app = FormApp(stdscr, form_data)
+            return app.run()
+        
+        result = curses.wrapper(form_wrapper)
+        
+        # Restart curses and clear screen
+        new_stdscr = start_curses()
+        new_stdscr.clear()
+        new_stdscr.refresh()
+        
+        if not result:
+            logger.info("User cancelled config setup")
+            return False, new_stdscr
+        
+        # Create config file from form data
+        create_config_from_form(result)
+        logger.info("Config file created successfully")
+        
+        # Reload modules to pick up new config values
+        import aria2tui.utils.aria2c._lambdas
+        import aria2tui.ui.aria2tui_menu_options
+        importlib.reload(aria2tui.utils.aria2c._lambdas)
+        importlib.reload(aria2tui.ui.aria2tui_menu_options)
+        
+        import aria2tui.utils.aria2c_utils
+        importlib.reload(aria2tui.utils.aria2c_utils)
+        
+        logger.info("Reloaded config modules with new config values")
+        
+        # Small delay to ensure file is written to disk before aria2 connection check
+        time.sleep(0.2)
+        
+        return True, new_stdscr
+        
+    except Exception as e:
+        logger.exception("Error during config setup: %s", e)
+        # Restart curses even on error
+        new_stdscr = start_curses()
+        # Clear screen even on error
+        new_stdscr.clear()
+        new_stdscr.refresh()
+        return False, new_stdscr
+
+
 def handleAriaStartPromt(stdscr):
     """
     Handles the aria2c startup prompt when a connection cannot be established. 
@@ -461,6 +550,13 @@ def aria2tui() -> None:
     ## Run curses
     logger.info("Starting curses UI")
     stdscr = start_curses()
+
+    ## Check for config file and create it if it doesn't exist
+    config_success, stdscr = handleConfigSetup(stdscr)
+    if not config_success:
+        logger.info("Config setup cancelled, exiting")
+        close_curses(stdscr)
+        return
 
     ## Check if aria is running and prompt the user to start it if not
     handleAriaStartPromt(stdscr)
