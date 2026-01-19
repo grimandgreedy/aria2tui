@@ -226,8 +226,105 @@ def _organize_options_into_sections(options: dict) -> dict:
 
     return form_dict
 
+def filterGlobalOptions(options):
+    """
+    Return the global options
+    
+    :param options: Description
+    """
+    input_file_options = ["all-proxy", "all-proxy-passwd", "all-proxy-user", "allow-overwrite", "allow-piece-length-change", "always-resume", "async-dns", "auto-file-renaming", "bt-enable-hook-after-hash-check", "bt-enable-lpd", "bt-exclude-tracker", "bt-external-ip", "bt-force-encryption", "bt-hash-check-seed", "bt-load-saved-metadata", "bt-max-peers", "bt-metadata-only", "bt-min-crypto-level", "bt-prioritize-piece", "bt-remove-unselected-file", "bt-request-peer-speed-limit", "bt-require-crypto", "bt-save-metadata", "bt-seed-unverified", "bt-stop-timeout", "bt-tracker", "bt-tracker-connect-timeout", "bt-tracker-interval", "bt-tracker-timeout", "check-integrity", "checksum", "conditional-get", "connect-timeout", "content-disposition-default-utf8", "continue", "dir", "dry-run", "enable-http-keep-alive", "enable-http-pipelining", "enable-mmap", "enable-peer-exchange", "file-allocation", "follow-metalink", "follow-torrent", "force-save", "ftp-passwd", "ftp-pasv", "ftp-proxy", "ftp-proxy-passwd", "ftp-proxy-user", "ftp-reuse-connection", "ftp-type", "ftp-user", "gid", "hash-check-only", "header", "http-accept-gzip", "http-auth-challenge", "http-no-cache", "http-passwd", "http-proxy", "http-proxy-passwd", "http-proxy-user", "http-user", "https-proxy", "https-proxy-passwd", "https-proxy-user", "index-out", "lowest-speed-limit", "max-connection-per-server", "max-download-limit", "max-file-not-found", "max-mmap-limit", "max-resume-failure-tries", "max-tries", "max-upload-limit", "metalink-base-uri", "metalink-enable-unique-protocol", "metalink-language", "metalink-location", "metalink-os", "metalink-preferred-protocol", "metalink-version", "min-split-size", "no-file-allocation-limit", "no-netrc", "no-proxy", "out", "parameterized-uri", "pause", "pause-metadata", "piece-length", "proxy-method", "realtime-chunk-checksum", "referer", "remote-time", "remove-control-file", "retry-wait", "reuse-uri", "rpc-save-upload-metadata", "seed-ratio", "seed-time", "select-file", "split", "ssh-host-key-md", "stream-piece-selector", "timeout", "uri-selector", "use-head", "user-agent"]
 
-def changeOptionsBatchPicker(stdscr: curses.window, gids:str) -> str:
+    exclude_input_options = ["checksum", "index-out", "out", "pause", "select-file"]
+
+
+    global_options = ["bt-max-open-files", "download-result", "keep-unfinished-download-result", "log", "log-level", "max-concurrent-downloads", "max-download-result", "max-overall-download-limit", "max-overall-upload-limit", "optimize-concurrent-downloads", "save-cookies", "save-session", "server-stat-of"]
+
+    acceptable_options = (set(input_file_options).difference(set(exclude_input_options))).union(set(global_options))
+
+    options = { key:value for key, value in options.items() if key in acceptable_options }
+
+    return options
+
+def changeGlobalOptionsForm(stdscr: curses.window) -> str:
+    """ Change the option(s) for the download using form interface. """
+    # Import here to avoid circular dependency during module initialization
+    from aria2tui.utils.aria2c import getGlobalOption, sendReq, changeGlobalOption
+
+    try:
+        req = getGlobalOption()
+        response = sendReq(req)["result"]
+        current_options = json.loads(json.dumps(response))
+    except Exception as e:
+        return str(e)
+
+    current_options = filterGlobalOptions(current_options)
+
+    # Convert flat options dict to form_dict format with sections
+    # Group options by category for better organization
+    # form_dict = _organize_options_into_sections(current_options)
+    form_dict = {"General Options": current_options}
+
+    # Convert boolean fields to cycle type and dir to file picker
+    for section in form_dict:
+        for key, value in list(form_dict[section].items()):
+            if key == "dir":
+                # Convert dir field to file picker type
+                form_dict[section][key] = (value, "file")
+            elif value.lower() in ["true", "false"]:
+                # Convert boolean fields to cycle type
+                form_dict[section][key] = (value, "cycle", ["true", "false"])
+
+    # Run the form and get results
+    result_dict = run_form(form_dict)
+
+    # Flatten the result back to compare with original
+    loaded_options = {}
+    for section, fields in result_dict.items():
+        for label, value in fields.items():
+            loaded_options[label] = value
+            
+
+    # Get difference between dicts
+    # keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
+    # keys_with_diff_values = set(key for key in current_options if current_options[key] != loaded_options.get(key, None))
+    # keys_with_diff_values = set(key for key in loaded_options if key in current_options and current_options[key] != loaded_options[key])
+
+    keys_with_diff_values = []
+    for key, new_val in loaded_options.items():
+        if key in current_options:
+            if type(current_options[key]) == type((1,)):
+                old_val = current_options[key][0]
+            else:
+                old_val = current_options[key]
+            if old_val != new_val:
+                keys_with_diff_values.append(key)
+
+
+            
+
+    # reqs = []
+    # for gid in gids:
+    #     for key in keys_with_diff_values:
+    #         reqs.append(json.loads(changeOption(gid, key, loaded_options[key])))
+
+    # batch = sendReq(json.dumps(reqs).encode('utf-8'))
+
+
+    reqs = []
+    for key in keys_with_diff_values:
+        reqs.append(json.loads(changeGlobalOption({key: loaded_options[key]})))
+
+    import pyperclip
+    try:
+        pyperclip.copy(f"{str(reqs)}")
+        batch = sendReq(json.dumps(reqs).encode('utf-8'))
+    except Exception as e:
+        pass
+        pyperclip.copy(f"{str(reqs)}\n\n{str(e)}")
+
+    return f"{len(keys_with_diff_values)} option(s) changed."
+
+def changeOptionsBatchForm(stdscr: curses.window, gids:str) -> str:
     """ Change the option(s) for the download using form interface. """
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import getOption, sendReq, changeOption
