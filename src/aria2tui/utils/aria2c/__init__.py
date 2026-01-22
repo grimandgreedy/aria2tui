@@ -15,6 +15,8 @@ License: MIT
 # 1. Core (no internal dependencies)
 from .core import (
     Operation,
+    ConfigManager,
+    config_manager,
     get_config,
     get_default_config,
     config_file_exists,
@@ -146,6 +148,8 @@ paginate = _lambdas.paginate
 __all__ = [
     # Core
     'Operation',
+    'ConfigManager',
+    'config_manager',
     'get_config',
     'get_default_config',
     'config_file_exists',

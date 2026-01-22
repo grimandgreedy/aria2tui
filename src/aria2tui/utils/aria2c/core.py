@@ -23,6 +23,47 @@ from aria2tui.utils.logging_utils import get_logger
 logger = get_logger()
 
 
+class ConfigManager:
+    """
+    Singleton configuration manager for aria2tui.
+    
+    Manages loading, caching, and reloading of configuration.
+    Provides getter methods to access current config values without re-reading the file.
+    """
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(ConfigManager, cls).__new__(cls)
+            cls._instance._config = get_config()
+        return cls._instance
+    
+    def reload(self, path=""):
+        """Reload configuration from file."""
+        self._config = get_config(path)
+        logger.info("Configuration reloaded")
+    
+    def get_config(self) -> dict:
+        """Get the full configuration dictionary."""
+        return self._config
+    
+    def get_url(self) -> str:
+        """Get the aria2 RPC URL."""
+        return self._config["general"]["url"]
+    
+    def get_port(self) -> str:
+        """Get the aria2 RPC port."""
+        return self._config["general"]["port"]
+    
+    def get_token(self) -> str:
+        """Get the aria2 RPC token."""
+        return self._config["general"]["token"]
+    
+    def get_paginate(self) -> bool:
+        """Get the paginate setting."""
+        return self._config["general"]["paginate"]
+
+
 class Operation:
     def __init__(
         self,
@@ -130,6 +171,10 @@ def get_default_config() -> dict:
         }
     }
     return default_config
+
+
+# Global config manager instance - must be instantiated after get_config() is defined
+config_manager = ConfigManager()
 
 
 def restartAria() -> None:
@@ -246,44 +291,10 @@ def editAria2TUIConfig() -> None:
         create_config_from_form(result)
         logger.info("Config file updated successfully")
         
-        # Reload modules to pick up new config values
-        import importlib
-        import sys
-        
-        # First reload core to get fresh config
-        import aria2tui.utils.aria2c.core
-        importlib.reload(aria2tui.utils.aria2c.core)
-        
-        # Reload _lambdas which uses the config
-        import aria2tui.utils.aria2c._lambdas
-        importlib.reload(aria2tui.utils.aria2c._lambdas)
-        
-        # Reload the aria2c package __init__ which re-exports lambdas
-        import aria2tui.utils.aria2c
-        importlib.reload(aria2tui.utils.aria2c)
-        
-        # Reload menu options which may use config
-        import aria2tui.ui.aria2tui_menu_options
-        importlib.reload(aria2tui.ui.aria2tui_menu_options)
-        
-        # Reload the compatibility shim
-        import aria2tui.utils.aria2c_utils
-        importlib.reload(aria2tui.utils.aria2c_utils)
-        
-        # Update the currently running aria2tui_app module's namespace with new functions
-        import aria2tui.aria2tui_app
-        if hasattr(aria2tui.aria2tui_app, 'sendReq'):
-            aria2tui.aria2tui_app.sendReq = aria2tui.utils.aria2c.sendReq
-        if hasattr(aria2tui.aria2tui_app, 'testConnection'):
-            aria2tui.aria2tui_app.testConnection = aria2tui.utils.aria2c.testConnection
-        if hasattr(aria2tui.aria2tui_app, 'testAriaConnection'):
-            aria2tui.aria2tui_app.testAriaConnection = aria2tui.utils.aria2c.testAriaConnection
-        if hasattr(aria2tui.aria2tui_app, 'addDownload'):
-            aria2tui.aria2tui_app.addDownload = aria2tui.utils.aria2c.addDownload
-        if hasattr(aria2tui.aria2tui_app, 'addTorrent'):
-            aria2tui.aria2tui_app.addTorrent = aria2tui.utils.aria2c.addTorrent
-        
-        logger.info("Reloaded config modules and updated references with new config values")
+        # Reload config using ConfigManager
+        # This automatically updates all lambdas that use config_manager
+        config_manager.reload()
+        logger.info("Configuration reloaded successfully")
     else:
         logger.info("Config edit cancelled or discarded by user")
 
