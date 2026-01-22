@@ -111,10 +111,18 @@ def get_config(path="") -> dict:
     full_config = get_default_config()
     default_path = "~/.config/aria2tui/config.toml"
 
-    CONFIGPATH = default_path
-    if "ARIA2TUI_CONFIG_PATH" in os.environ:
+    # If a path is explicitly provided, use it
+    if path:
+        CONFIGPATH = path
+    # Otherwise check environment variable
+    elif "ARIA2TUI_CONFIG_PATH" in os.environ:
         if os.path.exists(os.path.expanduser(os.environ["ARIA2TUI_CONFIG_PATH"])):
             CONFIGPATH = os.environ["ARIA2TUI_CONFIG_PATH"]
+        else:
+            CONFIGPATH = default_path
+    # Otherwise use default
+    else:
+        CONFIGPATH = default_path
 
     ## Ensure that users with old keys in their config are not bothered by key changes
     new_keys_to_old = {
