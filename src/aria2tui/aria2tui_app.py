@@ -26,13 +26,16 @@ import subprocess
 import logging
 import importlib
 from pathlib import Path
+from typing import Optional
 
 from listpick.listpick_app import *
 from listpick.listpick_app import Picker, start_curses, close_curses, restrict_curses, unrestrict_curses, default_option_selector, right_split_display_list
+from listpick.utils.picker_state import DynamicPickerState
 
 from aria2tui.lib.aria2c_wrapper import *
 # from aria2tui.utils.aria2c_utils import *
 from aria2tui.utils.aria2c_utils import Operation, applyToDownloads, sendReq, flatten_data, get_config, config_file_exists, get_default_config_for_form, create_config_from_form, testConnection, testAriaConnection, classify_download_string, addDownload, addTorrent, editAria2TUIConfig
+from aria2tui.utils.aria2c.core import config_manager, get_config_path
 from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, operations_highlights
 from aria2tui.ui.aria2tui_keys import download_option_keys
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
@@ -52,6 +55,7 @@ class Aria2TUI:
         menu_data: dict,
         downloads_data: dict,
         dl_operations_data: dict,
+        picker_states: Optional[list[DynamicPickerState]] = None,
         debug: bool = False,
     ):
         logger.info("Aria2TUI initialized (debug=%s)", debug)
@@ -61,6 +65,7 @@ class Aria2TUI:
         self.menu_data = menu_data
         self.downloads_data = downloads_data
         self.dl_operations_data = dl_operations_data
+        self.picker_states = picker_states or []
         self.debug = debug
         self.add_require_option_to_dl_operations()
 
@@ -82,13 +87,19 @@ class Aria2TUI:
 
         logger.info("Aria2TUI.run() started")
 
+        # Set up dynamic picker states if provided
+        if self.picker_states:
+            self.downloads_data["loaded_picker_states"] = self.picker_states
+            self.downloads_data["picker_state_index"] = 0
+            logger.info("Loaded %d picker states", len(self.picker_states))
+
         # Create the main menu, downloads, and operations Picker objects
         DownloadsPicker = Picker(self.stdscr, **self.downloads_data)
         DownloadsPicker.load_input_history("~/.config/aria2tui/cmdhist.json")
         
         # Enable verbose mode if debug flag is set
         if self.debug:
-            DownloadsPicker.verbose = True
+            DownloadsPicker.debug = True
             logger.info("DownloadsPicker verbose mode enabled")
         
         MenuPicker = Picker(self.stdscr, **self.menu_data)
@@ -301,6 +312,51 @@ def display_message(stdscr: curses.window, msg: str) -> None:
         stdscr.refresh()
 
 
+def create_picker_state_with_config(
+    config_path: str,
+    display_name: str,
+    path_id: str,
+    base_refresh_function,
+    auto_refresh: bool,
+    refresh_timer: float
+) -> DynamicPickerState:
+    """
+    Create a DynamicPickerState that reloads config when activated.
+    
+    Args:
+        config_path: Path to the config file (e.g., "~/.config/aria2tui/torrents.toml")
+        display_name: Display name for the picker state
+        path_id: Unique identifier for the state (e.g., "aria2://torrents")
+        base_refresh_function: The refresh function to use after loading config
+        auto_refresh: Whether to auto-refresh
+        refresh_timer: Refresh timer in seconds
+    
+    Returns:
+        A DynamicPickerState configured to reload the specified config
+    """
+    def refresh_with_config_reload(items, header, visible_rows_indices, getting_data, state):
+        """Refresh function that reloads config before fetching data."""
+        expanded_path = os.path.expanduser(config_path)
+        
+        # Only reload config if the file exists
+        if os.path.exists(expanded_path):
+            logger.info(f"Reloading config from {config_path} for picker state '{display_name}'")
+            config_manager.reload(expanded_path)
+        else:
+            logger.warning(f"Config file not found: {config_path}, using current config")
+        
+        # Call the base refresh function with the reloaded config
+        return base_refresh_function(items, header, visible_rows_indices, getting_data, state)
+    
+    return DynamicPickerState(
+        path=path_id,
+        display_name=display_name,
+        refresh_function=refresh_with_config_reload,
+        auto_refresh=auto_refresh,
+        refresh_timer=refresh_timer
+    )
+
+
 def handleConfigSetup(stdscr):
     """
     Handles the config file setup if it doesn't exist.
@@ -484,7 +540,7 @@ def aria2tui() -> None:
     debug = False
     if "--debug" in sys.argv:
         debug = True
-        sys.argv.remove("--debug")
+        # sys.argv.remove("--debug")
 
     configure_logging(debug=debug)
     logger.info("aria2tui() called with argv=%s (debug=%s)", sys.argv, debug)
@@ -584,6 +640,34 @@ def aria2tui() -> None:
     ## Check if aria is running and prompt the user to start it if not
     handleAriaStartPromt(stdscr)
 
+    # Create dynamic picker states for multiple configs
+    picker_states = []
+    
+    # State 1: Default config (uses ~/.config/aria2tui/config.toml by default)
+    default_state = create_picker_state_with_config(
+        config_path=get_config_path(),
+        display_name="Default",
+        path_id="aria2://default",
+        base_refresh_function=downloads_data["refresh_function"],
+        auto_refresh=downloads_data.get("auto_refresh", False),
+        refresh_timer=downloads_data.get("timer", 2.0)
+    )
+    picker_states.append(default_state)
+    
+    # State 2: Torrents config (if it exists)
+    torrents_config_path = "~/.config/aria2tui/torrents.toml"
+    if os.path.exists(os.path.expanduser(torrents_config_path)):
+        logger.info(f"Found torrents config at {torrents_config_path}, adding picker state")
+        torrents_state = create_picker_state_with_config(
+            config_path=torrents_config_path,
+            display_name="Torrents",
+            path_id="aria2://torrents",
+            base_refresh_function=downloads_data["refresh_function"],
+            auto_refresh=downloads_data.get("auto_refresh", False),
+            refresh_timer=downloads_data.get("timer", 2.0)
+        )
+        picker_states.append(torrents_state)
+
     app = Aria2TUI(
         stdscr, 
         download_options,
@@ -591,6 +675,7 @@ def aria2tui() -> None:
         menu_data,
         downloads_data,
         dl_operations_data,
+        picker_states=picker_states,
         debug=debug,
     )
     logger.info("Starting Aria2TUI.run() loop")

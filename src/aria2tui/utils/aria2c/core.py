@@ -325,7 +325,7 @@ def get_config_path() -> str:
     if "ARIA2TUI_CONFIG_PATH" in os.environ:
         return os.environ["ARIA2TUI_CONFIG_PATH"]
     
-    return default_path
+    return os.path.expanduser(default_path)
 
 
 def get_default_config_for_form() -> dict:
