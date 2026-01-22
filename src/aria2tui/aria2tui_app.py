@@ -52,14 +52,16 @@ class Aria2TUI:
         menu_data: dict,
         downloads_data: dict,
         dl_operations_data: dict,
+        debug: bool = False,
     ):
-        logger.info("Aria2TUI initialized")
+        logger.info("Aria2TUI initialized (debug=%s)", debug)
         self.stdscr = stdscr
         self.download_options = download_options
         self.menu_options = menu_options
         self.menu_data = menu_data
         self.downloads_data = downloads_data
         self.dl_operations_data = dl_operations_data
+        self.debug = debug
         self.add_require_option_to_dl_operations()
 
 
@@ -83,6 +85,12 @@ class Aria2TUI:
         # Create the main menu, downloads, and operations Picker objects
         DownloadsPicker = Picker(self.stdscr, **self.downloads_data)
         DownloadsPicker.load_input_history("~/.config/aria2tui/cmdhist.json")
+        
+        # Enable verbose mode if debug flag is set
+        if self.debug:
+            DownloadsPicker.verbose = True
+            logger.info("DownloadsPicker verbose mode enabled")
+        
         MenuPicker = Picker(self.stdscr, **self.menu_data)
         DownloadOperationPicker = Picker(self.stdscr, **self.dl_operations_data)
 
@@ -583,6 +591,7 @@ def aria2tui() -> None:
         menu_data,
         downloads_data,
         dl_operations_data,
+        debug=debug,
     )
     logger.info("Starting Aria2TUI.run() loop")
     app.run()
