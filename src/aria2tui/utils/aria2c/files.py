@@ -22,7 +22,7 @@ from aria2tui.utils.logging_utils import get_logger
 from listpick import *
 from listpick.listpick_app import *
 from listpick.ui.keys import *
-from .core import get_config
+from .core import get_config, config_manager
 
 logger = get_logger()
 
@@ -276,5 +276,11 @@ aria2tui_macros = [
         "keys": [ord("O")],
         "description": "Open location of hovered download in a new (gui) window.",
         "function": open_hovered_location,
-    }
+    },
+    {
+        "keys": [ord("Z")],
+        "description": "Toggle config",
+        "function": config_manager.reload("/home/noah/.config/aria2tui/torrents.toml"),
+    },
+    
 ]
