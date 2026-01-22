@@ -266,6 +266,18 @@ def open_hovered_location(picker) -> None:
     openDownloadLocation(gid, new_window=True)
 
 
+def reload_alternate_config(picker) -> None:
+    """Reload config from alternate path."""
+    logger.info("Before reload - Token: %s", config_manager.get_token()[:20] + "...")
+    logger.info("Before reload - URL: %s", config_manager.get_url())
+    
+    config_manager.reload("/Users/noah/.config/torrents.toml")
+    
+    logger.info("After reload - Token: %s", config_manager.get_token()[:20] + "...")
+    logger.info("After reload - URL: %s", config_manager.get_url())
+    logger.info("Config reloaded from /Users/noah/.config/torrents.toml")
+
+
 aria2tui_macros = [
     {
         "keys": [ord("o")],
@@ -280,7 +292,7 @@ aria2tui_macros = [
     {
         "keys": [ord("Z")],
         "description": "Toggle config",
-        "function": config_manager.reload("/home/noah/.config/aria2tui/torrents.toml"),
+        "function": reload_alternate_config,
     },
     
 ]
