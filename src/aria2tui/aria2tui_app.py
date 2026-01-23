@@ -529,8 +529,11 @@ def handleAriaStartPromt(stdscr):
 
     colour_theme_number = config["appearance"]["theme"]
 
+    instance_name = config_manager.get_instance_name(
+        config_manager.get_current_instance_index()
+    )
     header, choices = (
-        ["Aria2c Connection Down. Do you want to start it?"],
+        [f"Aria2c Connection Down ({instance_name}). Do you want to start it?"],
         ["Yes", "No", "Edit Aria2TUI Config"],
     )
     connect_data = {
@@ -556,10 +559,14 @@ def handleAriaStartPromt(stdscr):
             stdscr.clear()
             return None
 
-        config = get_config()
-        ConnectionPicker.splash_screen("Starting Aria2c Now...")
+        instance = config_manager.get_current_instance()
+        instance_name = config_manager.get_instance_name(
+            config_manager.get_current_instance_index()
+        )
+        ConnectionPicker.splash_screen(f"Starting {instance_name} Aria2c Now...")
 
-        for cmd in config["general"]["startup_commands"]:
+        startup_commands = instance.get("startup_commands", [])
+        for cmd in startup_commands:
             logger.info("Starting aria2c with command: %s", cmd)
             subprocess.Popen(
                 cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
@@ -723,12 +730,22 @@ def aria2tui() -> None:
         return
 
     ## Check if aria is running and prompt the user to start it if not
-    handleAriaStartPromt(stdscr)
+    # Test all instances
+    instance_count = config_manager.get_instance_count()
+    logger.info(f"Testing connections for {instance_count} instance(s)")
+
+    for i in range(instance_count):
+        config_manager.switch_instance(i)
+        instance_name = config_manager.get_instance_name(i)
+        logger.info(f"Testing connection for instance: {instance_name}")
+        handleAriaStartPromt(stdscr)
+
+    # Reset to first instance after testing
+    config_manager.switch_instance(0)
 
     # Create picker states dynamically based on instances in config
     picker_states = []
 
-    instance_count = config_manager.get_instance_count()
     logger.info(f"Creating {instance_count} picker state(s) from config")
 
     for i in range(instance_count):
