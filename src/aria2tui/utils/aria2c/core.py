@@ -46,6 +46,12 @@ class ConfigManager:
 
     def _load_instances(self):
         """Load instances from config if multi mode is enabled."""
+        logger.info(f"Config keys: {list(self._config.keys())}")
+        logger.info(
+            f"Multi setting: {self._config.get('general', {}).get('multi', False)}"
+        )
+        logger.info(f"Instances in config: {self._config.get('instances', [])}")
+
         if self._config.get("general", {}).get("multi", False):
             # Multi-instance mode
             self._instances = self._config.get("instances", [])
@@ -248,6 +254,10 @@ def get_config(path="") -> dict:
                 full_config["appearance"][full_config_key] = user_config["appearance"][
                     user_key
                 ]
+
+        # Copy instances array if present (for multi-instance mode)
+        if "instances" in user_config:
+            full_config["instances"] = user_config["instances"]
 
     return full_config
 
