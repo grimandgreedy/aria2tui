@@ -38,6 +38,9 @@
 > - [x] Add edit config or exit option if we can't connect
 > - [ ] Add more options to add download dialogue
 > - [ ] Improve keys in form editor
+> - [ ] Figure out a way to determine the active config dynamically
+> - [ ] Redirect stdout and stderr in open macro
+
 
 
 ## Forms
