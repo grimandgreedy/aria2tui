@@ -763,7 +763,7 @@ def aria2tui() -> None:
             return startup_function
 
         state = DynamicPickerState(
-            path=f"aria2://instance-{i}",
+            path=f"aria2://{instance_name}",
             display_name=instance_name,
             refresh_function=downloads_data["refresh_function"],
             auto_refresh=downloads_data.get("auto_refresh", False),
