@@ -725,48 +725,36 @@ def aria2tui() -> None:
     ## Check if aria is running and prompt the user to start it if not
     handleAriaStartPromt(stdscr)
 
-    # Create two picker states for different configs
+    # Create picker states dynamically based on instances in config
     picker_states = []
 
-    # Picker state 1: Default config
-    def default_startup(
-        items, header, visible_rows_indices, getting_data, function_data
-    ):
-        # config_path = get_config_path()
-        config_path = "~/.config/aria2tui/config.toml"
-        logger.info(f"Loading default config from {config_path}")
-        config_manager.reload(config_path)
+    instance_count = config_manager.get_instance_count()
+    logger.info(f"Creating {instance_count} picker state(s) from config")
 
-    default_state = DynamicPickerState(
-        path="aria2://default",
-        display_name="Default",
-        refresh_function=downloads_data["refresh_function"],
-        auto_refresh=downloads_data.get("auto_refresh", False),
-        refresh_timer=downloads_data.get("timer", 2.0),
-        startup_function=default_startup,
-    )
-    picker_states.append(default_state)
+    for i in range(instance_count):
+        instance_name = config_manager.get_instance_name(i)
 
-    # Picker state 2: Torrents config (if it exists)
-    torrents_config_path = os.path.expanduser("~/.config/aria2tui/torrents.toml")
-    if os.path.exists(torrents_config_path):
-        logger.info(f"Found torrents config at {torrents_config_path}")
+        # Create a closure to capture the instance index
+        def make_startup(instance_index):
+            def startup_function(
+                items, header, visible_rows_indices, getting_data, function_data
+            ):
+                name = config_manager.get_instance_name(instance_index)
+                logger.info(f"Switching to instance: {name}")
+                config_manager.switch_instance(instance_index)
 
-        def torrents_startup(
-            items, header, visible_rows_indices, getting_data, function_data
-        ):
-            logger.info(f"Loading torrents config from {torrents_config_path}")
-            config_manager.reload(torrents_config_path)
+            return startup_function
 
-        torrents_state = DynamicPickerState(
-            path="aria2://torrents",
-            display_name="Torrents",
+        state = DynamicPickerState(
+            path=f"aria2://instance-{i}",
+            display_name=instance_name,
             refresh_function=downloads_data["refresh_function"],
             auto_refresh=downloads_data.get("auto_refresh", False),
             refresh_timer=downloads_data.get("timer", 2.0),
-            startup_function=torrents_startup,
+            startup_function=make_startup(i),
         )
-        picker_states.append(torrents_state)
+        picker_states.append(state)
+        logger.info(f"Created picker state for instance: {instance_name}")
 
     # Add picker states to downloads_data
     downloads_data["loaded_picker_states"] = picker_states
