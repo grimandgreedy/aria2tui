@@ -36,10 +36,15 @@ remove_keys = [
     "toggle_left_pane",
     "cycle_left_pane",
     "paste",
+    "exit",
 ]
 
 for key in remove_keys:
     if key in aria2tui_keys: del aria2tui_keys[key]
+
+# set 'q'
+
+aria2tui_keys["minimise"] = [ord('q')]
 
 download_option_keys = {
     "refresh":                          [curses.KEY_F5],
