@@ -9,11 +9,23 @@ License: MIT
 
 import os
 import sys
+import contextlib
+import atexit
 
 
 # Redirect stderr to prevent artifacts from affecting TUI
-_original_stderr = sys.stderr
-sys.stderr = open(os.devnull, "w")
+_devnull = open(os.devnull, "w")
+_stderr_redirect = contextlib.redirect_stderr(_devnull)
+_stderr_redirect.__enter__()
+
+
+# Register cleanup to close the file descriptor on exit
+def _cleanup_stderr_redirect():
+    _stderr_redirect.__exit__(None, None, None)
+    _devnull.close()
+
+
+atexit.register(_cleanup_stderr_redirect)
 
 
 from sys import exit
