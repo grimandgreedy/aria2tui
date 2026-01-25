@@ -34,9 +34,6 @@ launch_command = "xdg-open"
 global_stats_timer = 1
 refresh_timer = 2
 
-# Scrolls by default
-paginate = false
-
 [appearance]
 theme = 3
 

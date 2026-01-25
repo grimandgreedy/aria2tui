@@ -23,10 +23,10 @@ from aria2tui.graphing.pane_graph_progress import get_dl_progress, right_split_d
 from aria2tui.graphing.pane_pieces import right_split_piece_progress, get_dl_pieces
 from aria2tui.graphing.pane_files import right_split_files, get_dl_files
 from aria2tui.utils.display_info import *
+from aria2tui.utils.aria2c.downloads import retryDownloadWithModifiedOptions
 
 
 config = get_config()
-paginate = config["general"]["paginate"]
 
 colour_theme_number=config["appearance"]["theme"]
 
@@ -88,9 +88,17 @@ download_options = [
     ),
     Operation(
         name="Change Filename(s)",
-        function=lambda stdscr, gid, fname, operation, function_args: changeFilenamePicker(stdscr, gid),
-        send_request=True,
-        applicable_statuses=["active", "waiting", "paused"]
+        function=lambda stdscr, gid, fname, operation, function_args: changeFilenameForm(stdscr, gid, fname),
+        # send_request=True,
+        applicable_statuses=["active", "waiting", "paused"],
+        non_torrent_operation=True,
+    ),
+    Operation(
+        name="Modify Torrent Files",
+        function=lambda stdscr, gids, fnames, operation, function_args: download_selected_files(stdscr, gids),
+        accepts_gids_list=True,
+        applicable_statuses=["active", "paused", "waiting"],
+        torrent_operation=True
     ),
     # Operation(
     #     name="Change Options Picker (for each selected)",
@@ -98,8 +106,8 @@ download_options = [
     #     applicable_statuses=["active", "waiting", "paused"]
     # ),
     Operation(
-        name="Change Options Picker (For All Selected)",
-        function=lambda stdscr, gids, fnames, operation, function_args: changeOptionsBatchPicker(stdscr, gids),
+        name="Change Options",
+        function=lambda stdscr, gids, fnames, operation, function_args: changeOptionsBatchForm(stdscr, gids),
         accepts_gids_list=True,
         applicable_statuses=["active", "waiting", "paused"]
     ),
@@ -117,20 +125,18 @@ download_options = [
         applicable_statuses=["active", "waiting", "paused"]
     ),
     Operation(
-        name="Modify Torrent Files",
-        function=lambda stdscr, gids, fnames, operation, function_args: download_selected_files(stdscr, gids),
-        accepts_gids_list=True,
-        applicable_statuses=["active", "paused", "waiting"],
-        torrent_operation=True
-    ),
-    Operation(
         name="Retry Download(s)",
         function=lambda stdscr, gid, fname, operation, function_args: retryDownload(gid),
         applicable_statuses=["error", "removed", "complete"]
     ),
+    # Operation(
+    #     name="Retry Download(s) and Pause",
+    #     function=lambda stdscr, gid, fname, operation, function_args: retryDownloadAndPause(gid),
+    #     applicable_statuses=["error", "removed", "complete"]
+    # ),
     Operation(
-        name="Retry Download(s) and Pause",
-        function=lambda stdscr, gid, fname, operation, function_args: retryDownloadAndPause(gid),
+        name="Retry Download(s) and Change Options",
+        function=lambda stdscr, gid, fname, operation, function_args: retryDownloadWithModifiedOptions(gid),
         applicable_statuses=["error", "removed", "complete"]
     ),
     Operation(
@@ -191,25 +197,30 @@ menu_options = [
         name="Watch Downloads",
         function=lambda: 4
     ),
-    Operation(
-        name="View Downloads",
-        function=lambda stdscr=None, gid=0, fname="", operation=None, function_args={}: 4,
-    ),
+    # Operation(
+    #     name="View Downloads",
+    #     function=lambda stdscr=None, gid=0, fname="", operation=None, function_args={}: 4,
+    # ),
     # Operation( name="Add URIs", addUris, {}, {"reapply_terminal_settings": True}),
     # Operation( name="Add URIs and immediately pause", addUrisAndPause, {}, {"reapply_terminal_settings": True}),
     Operation(
-        name="Add Download Tasks",
+        name="Add Download",
+        function=lambda stdscr, gids, fnames, operation, function_args: addDownloadTasksForm(),
+        reapply_terminal_settings=True,
+    ),
+    Operation(
+        name="Add Torrent File",
+        function=lambda stdscr, gids, fnames, operation, function_args: addTorrentsFilePicker(),
+        reapply_terminal_settings=True,
+    ),
+    Operation(
+        name="Batch Add Downloads",
         function=lambda stdscr, gids, fnames, operation, function_args: addDownloadsAndTorrents(),
         reapply_terminal_settings=True,
     ),
     Operation(
-        name="Add Download Tasks & Pause", 
+        name="Batch Add Downloads & Pause", 
         function=lambda stdscr, gids, fnames, operation, function_args: addDownloadsAndTorrentsAndPause(),
-        reapply_terminal_settings=True,
-    ),
-    Operation(
-        name="Add Torrent Files (file picker)",
-        function=lambda stdscr, gids, fnames, operation, function_args: addTorrentsFilePicker(),
         reapply_terminal_settings=True,
     ),
     # Operation( name="Add Torrents (nvim)", addTorrents, {}, {"reapply_terminal_settings": True}),
@@ -218,45 +229,51 @@ menu_options = [
     # Operation( name="Remove completed/errored downloads", removeCompleted),
 
     Operation(
-        name="Get Global Options",
-        function=lambda stdscr, gids, fnames, operation, function_args: getGlobalOption(),
-        picker_view=True,
-        send_request=True,
-        meta_args={"picker_view": True}
+        name="Edit Aria2TUI Config",
+        function=lambda stdscr, gids, fnames, operation, function_args: editAria2TUIConfig(), 
+        reapply_terminal_settings=True,
     ),
     Operation(
-        name="Get Global Stats",
-        function=lambda stdscr, gids, fnames, operation, function_args: getGlobalStat(),
-        picker_view=True,
-        send_request=True,
-        meta_args={"picker_view": True},
-    ),
-    Operation(
-        name="Get Session Info",
-        function=lambda stdscr, gids, fnames, operation, function_args: getSessionInfo(),
-        picker_view=True,
-        send_request=True,
-        meta_args={"picker_view": True}
-    ),
-    Operation(
-        name="Get Version",
-        function=lambda stdscr, gids, fnames, operation, function_args: getVersion(),
-        picker_view=True,
-        send_request=True,
-        meta_args={"picker_view": True}
-    ),
-    Operation(
-        name="Edit Config",
+        name="Edit Aria2c Config",
         function=lambda stdscr, gids, fnames, operation, function_args: editConfig(), 
         reapply_terminal_settings=True,
     ),
     Operation(
-        name="Restart Aria",
+        name="Change Global Download Options (Session)",
+        function=lambda stdscr, gids, fnames, operation, function_args: changeGlobalOptionsForm(stdscr),
+        reapply_terminal_settings=True,
+    ),
+    Operation(
+        name="View Global Options",
+        function=lambda stdscr, gids, fnames, operation, function_args: getGlobalOption(),
+        send_request=True,
+        form_view=True,
+    ),
+    Operation(
+        name="View Global Stats",
+        function=lambda stdscr, gids, fnames, operation, function_args: getGlobalStat(),
+        send_request=True,
+        form_view=True,
+    ),
+    Operation(
+        name="View Session Info",
+        function=lambda stdscr, gids, fnames, operation, function_args: getSessionInfo(),
+        send_request=True,
+        form_view=True,
+    ),
+    Operation(
+        name="View Version",
+        function=lambda stdscr, gids, fnames, operation, function_args: getVersion(),
+        send_request=True,
+        form_view=True,
+    ),
+    Operation(
+        name="Restart Aria2c",
         function=lambda stdscr, gids, fnames, operation, function_args: restartAria(),
         meta_args={"display_message": "Restarting Aria2c..." }
     ),
     Operation(
-        name="Transfer Speed Graph (Global)", 
+        name="Global Transfer Speed Graph", 
         function=lambda stdscr, gids, fnames, operation, function_args: graph_speeds(stdscr, **function_args), 
         function_args={
             "get_data_function": lambda: sendReq(getGlobalStat()),
@@ -278,8 +295,7 @@ download_info_menu = [
     Operation(
         name="DL Info: Get All Info",
         function=lambda stdscr, gid, fname, operation, function_args: getAllInfo(gid),
-        meta_args={"picker_view":True},
-        picker_view=True,
+        form_view=True,
     ),
     Operation(
         name="DL Info: Files",
@@ -289,37 +305,32 @@ download_info_menu = [
     Operation(
         name="DL Info: Servers",
         function=lambda stdscr, gid, fname, operation, function_args: getServers(gid),
-        meta_args={"picker_view":True},
         send_request=True,
-        picker_view=True,
+        form_view=True,
     ),
     Operation(
         name="DL Info: Peers",
         function=lambda stdscr, gid, fname, operation, function_args: getPeers(gid),
-        meta_args={"picker_view":True},
         send_request=True,
-        picker_view=True,
+        form_view=True,
     ),
     Operation(
         name="DL Info: URIs",
         function=lambda stdscr, gid, fname, operation, function_args: getUris(gid),
-        meta_args={"picker_view":True},
         send_request=True,
-        picker_view=True,
+        form_view=True,
     ),
     Operation(
         name="DL Info: Status Info",
         function=lambda stdscr, gid, fname, operation, function_args: tellStatus(gid),
-        meta_args={"picker_view":True},
         send_request=True,
-        picker_view=True,
+        form_view=True,
     ),
     Operation(
         name="DL Info: Aria2c Options",
         function=lambda stdscr, gid, fname, operation, function_args: getOption(gid),
-        meta_args={"picker_view":True},
         send_request=True,
-        picker_view=True,
+        form_view=True,
     ),
 ]
 
@@ -329,7 +340,6 @@ download_info_menu = [
 menu_data = {
     "top_gap": 0,
     "highlights": menu_highlights,
-    "paginate": paginate,
     "title": app_name,
     "colour_theme_number": colour_theme_number,
     "max_selected": 1,
@@ -337,7 +347,6 @@ menu_data = {
     "header": ["Main Menu    "],
     "centre_in_terminal": True,
     "centre_in_cols": False,
-    "paginate": paginate,
     "centre_in_terminal_vertical": True,
     "hidden_columns": [],
     "keys_dict": menu_keys,
@@ -349,7 +358,6 @@ menu_data = {
 downloads_data = {
     "top_gap": 0,
     "highlights": highlights,
-    "paginate": paginate,
     "modes": modes,
     "display_modes": True,
     "title": app_name,
@@ -361,7 +369,6 @@ downloads_data = {
     "get_new_data": True,
     "get_data_startup": True,
     "timer": refresh_timer,
-    "paginate": paginate,
     "hidden_columns": [],
     "id_column": -1,
     "centre_in_terminal_vertical": False,
@@ -426,11 +433,9 @@ dl_operations_data = {
     "items": [[download_option.name] for download_option in download_options],
     "top_gap": 0,
     "highlights": operations_highlights,
-    "paginate": paginate,
     "title": app_name,
     "colour_theme_number": colour_theme_number,
     "header": [f"Select operation"],
-    "paginate": paginate,
     "hidden_columns": [],
     "keys_dict": download_option_keys,
     "cancel_is_back": True,
