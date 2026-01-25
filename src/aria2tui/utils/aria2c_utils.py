@@ -29,4 +29,4 @@ warnings.warn(
 from aria2tui.utils.aria2c import *
 
 # Also re-export module-level config variables
-from aria2tui.utils.aria2c import config, url, port, token, paginate
+from aria2tui.utils.aria2c import config, url, port, token

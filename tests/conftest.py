@@ -53,7 +53,6 @@ def default_config():
             "url": "http://localhost",
             "global_stats_timer": 1,
             "refresh_timer": 2,
-            "paginate": False
         },
         "appearance": {
             "theme": 3,

@@ -26,7 +26,7 @@ from .downloads import (
 )
 
 # Helper functions to access config dynamically
-# These allow backward compatibility for code that accesses config, url, port, token, paginate
+# These allow backward compatibility for code that accesses config, url, port, token
 def get_current_config():
     """Get current config (dynamically reloads)."""
     return config_manager.get_config()
@@ -43,17 +43,12 @@ def get_current_token():
     """Get current token (dynamically reloads)."""
     return config_manager.get_token()
 
-def get_current_paginate():
-    """Get current paginate setting (dynamically reloads)."""
-    return config_manager.get_paginate()
-
 # For backward compatibility, expose these at module level
 # These will reference the initial config, but lambdas use config_manager directly
 config = config_manager.get_config()
 url = config_manager.get_url()
 port = config_manager.get_port()
 token = config_manager.get_token()
-paginate = config_manager.get_paginate()
 
 # Create lambda functions that access config dynamically via config_manager
 # This ensures they always use the latest config values after reload
