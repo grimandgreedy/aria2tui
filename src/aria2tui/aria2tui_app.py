@@ -166,6 +166,14 @@ class Aria2TUI:
             # When going back to the Downloads picker after selecting a download it shouldn't wait to get new data before displaying the picker
             DownloadsPicker.get_data_startup = False
 
+            try:
+                if selected_downloads and DownloadsPicker.header[0] == "Connection Error":
+                    continue
+            except:
+                pass
+
+
+
             if selected_downloads:
                 ## CHOOSE OPERATION TO APPLY TO SELECTED DOWNLOADS
 
@@ -741,18 +749,11 @@ def aria2tui() -> None:
         close_curses(stdscr)
         return
 
-    ## Check if aria is running and prompt the user to start it if not
-    # Test all instances
+    ## Skip connection checks at startup - errors will be shown in the picker UI
     instance_count = config_manager.get_instance_count()
-    logger.info(f"Testing connections for {instance_count} instance(s)")
+    logger.info(f"Skipping startup connection checks for {instance_count} instance(s)")
 
-    for i in range(instance_count):
-        config_manager.switch_instance(i)
-        instance_name = config_manager.get_instance_name(i)
-        logger.info(f"Testing connection for instance: {instance_name}")
-        handleAriaStartPromt(stdscr)
-
-    # Reset to first instance after testing
+    # Start with first instance
     config_manager.switch_instance(0)
 
     # Create picker states dynamically based on instances in config
