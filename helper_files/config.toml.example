@@ -10,10 +10,8 @@ multi = true
 # Shared settings (apply to all instances)
 terminal_file_manager = "yazi"
 gui_file_manager = "kitty yazi"
-launch_command = "xdg-open"
 global_stats_timer = 1
 refresh_timer = 2
-paginate = false
 
 # Define multiple aria2 instances
 # Each instance connects to a different aria2c daemon

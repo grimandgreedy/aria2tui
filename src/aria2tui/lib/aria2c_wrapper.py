@@ -202,8 +202,8 @@ def tellStatusFull(gid, token=None):
     jsonreq["method"] = "aria2.tellStatus"
     return json.dumps(jsonreq).encode('utf-8')
 
-def sendReqFull(jsonreq, url="http://localhost", port=6800):
-    with rq.urlopen(f'{url}:{port}/jsonrpc', jsonreq) as c:
+def sendReqFull(jsonreq, url="http://localhost", port=6800, timeout=0.5):
+    with rq.urlopen(f'{url}:{port}/jsonrpc', jsonreq, timeout=timeout) as c:
         response = c.read()
     js_rs = json.loads(response)
     # return response

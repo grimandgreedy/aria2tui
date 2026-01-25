@@ -80,10 +80,8 @@ class ConfigManager:
             self._shared_config = {
                 "terminal_file_manager": general.get("terminal_file_manager", "yazi"),
                 "gui_file_manager": general.get("gui_file_manager", "kitty yazi"),
-                "launch_command": general.get("launch_command", "xdg-open"),
                 "global_stats_timer": general.get("global_stats_timer", 1),
                 "refresh_timer": general.get("refresh_timer", 2),
-                "paginate": general.get("paginate", False),
             }
             logger.info("Single instance mode (backward compatible)")
 
@@ -150,11 +148,6 @@ class ConfigManager:
         instance = self.get_current_instance()
         return instance.get("token", self._shared_config.get("token", ""))
 
-    def get_paginate(self) -> bool:
-        """Get the paginate setting."""
-        return self._shared_config.get(
-            "paginate", self._config.get("general", {}).get("paginate", False)
-        )
 
     def get_restart_commands(self) -> list:
         """Get the restart commands for current instance."""
@@ -284,12 +277,10 @@ def get_default_config() -> dict:
             "startup_commands": ["aria2c"],
             "restart_commands": ["pkill aria2c && sleep 1 && aria2c"],
             "aria2_config_path": "~/.config/aria2/aria2.conf",
-            "paginate": False,
             "refresh_timer": 2,
             "global_stats_timer": 1,
             "terminal_file_manager": "yazi",
             "gui_file_manager": "kitty yazi",
-            "launch_command": "xdg-open",
         },
         "appearance": {
             "theme": 3,
@@ -395,24 +386,16 @@ def editAria2TUIConfig() -> None:
             }
 
         # Shared settings from general section
-        form_data["Paths"]["Terminal File Manager"] = current_config["general"].get(
+        form_data["File Management"]["Terminal File Manager"] = current_config["general"].get(
             "terminal_file_manager", "yazi"
         )
-        form_data["Paths"]["GUI File Manager"] = current_config["general"].get(
+        form_data["File Management"]["GUI File Manager"] = current_config["general"].get(
             "gui_file_manager", "kitty yazi"
         )
-        form_data["Paths"]["Launch Command"] = current_config["general"].get(
-            "launch_command", "xdg-open"
-        )
-        # Remove Aria2 Config Path from Paths section (it's per-instance)
-        if "Aria2 Config Path" in form_data["Paths"]:
-            del form_data["Paths"]["Aria2 Config Path"]
+        # Remove Aria2 Config Path from File Management section (it's per-instance)
+        if "Aria2 Config Path" in form_data["File Management"]:
+            del form_data["File Management"]["Aria2 Config Path"]
 
-        # Behavior (shared settings)
-        paginate_value = (
-            "true" if current_config["general"].get("paginate", False) else "false"
-        )
-        form_data["Behavior"]["Paginate"] = (paginate_value, "cycle", ["true", "false"])
         form_data["Behavior"]["Refresh Timer (seconds)"] = str(
             current_config["general"].get("refresh_timer", 2)
         )
@@ -447,28 +430,21 @@ def editAria2TUIConfig() -> None:
         else:
             form_data["Commands"]["Restart Commands"] = str(restart_cmds)
 
-        # Paths
-        form_data["Paths"]["Aria2 Config Path"] = (
+        # File Management
+        form_data["File Management"]["Aria2 Config Path"] = (
             current_config["general"].get(
                 "aria2_config_path", "~/.config/aria2/aria2.conf"
             ),
             "file",
         )
-        form_data["Paths"]["Terminal File Manager"] = current_config["general"].get(
+        form_data["File Management"]["Terminal File Manager"] = current_config["general"].get(
             "terminal_file_manager", "yazi"
         )
-        form_data["Paths"]["GUI File Manager"] = current_config["general"].get(
+        form_data["File Management"]["GUI File Manager"] = current_config["general"].get(
             "gui_file_manager", "kitty yazi"
-        )
-        form_data["Paths"]["Launch Command"] = current_config["general"].get(
-            "launch_command", "xdg-open"
         )
 
         # Behavior
-        paginate_value = (
-            "true" if current_config["general"].get("paginate", False) else "false"
-        )
-        form_data["Behavior"]["Paginate"] = (paginate_value, "cycle", ["true", "false"])
         form_data["Behavior"]["Refresh Timer (seconds)"] = str(
             current_config["general"].get("refresh_timer", 2)
         )
@@ -554,14 +530,12 @@ def get_default_config_for_form() -> dict:
             "Startup Commands": "aria2c",
             "Restart Commands": "pkill aria2c && sleep 1 && aria2c",
         },
-        "Paths": {
+        "File Management": {
             "Aria2 Config Path": ("~/.config/aria2/aria2.conf", "file"),
             "Terminal File Manager": "yazi",
             "GUI File Manager": "kitty yazi",
-            "Launch Command": "xdg-open",
         },
         "Behavior": {
-            "Paginate": ("false", "cycle", ["true", "false"]),
             "Refresh Timer (seconds)": "2",
             "Global Stats Timer (seconds)": "1",
         },
@@ -633,14 +607,12 @@ def create_config_from_form(form_data: dict) -> None:
 
         config = {
             "general": {
-                "paginate": form_data["Behavior"]["Paginate"].lower() == "true",
                 "refresh_timer": int(form_data["Behavior"]["Refresh Timer (seconds)"]),
                 "global_stats_timer": int(
                     form_data["Behavior"]["Global Stats Timer (seconds)"]
                 ),
-                "terminal_file_manager": form_data["Paths"]["Terminal File Manager"],
-                "gui_file_manager": form_data["Paths"]["GUI File Manager"],
-                "launch_command": form_data["Paths"]["Launch Command"],
+                "terminal_file_manager": form_data["File Management"]["Terminal File Manager"],
+                "gui_file_manager": form_data["File Management"]["GUI File Manager"],
             },
             "appearance": {
                 "theme": int(form_data["Appearance"]["Theme"]),
@@ -672,19 +644,17 @@ def create_config_from_form(form_data: dict) -> None:
                 for cmd in form_data["Commands"]["Restart Commands"].split("&&")
                 if cmd.strip()
             ],
-            "aria2_config_path": form_data["Paths"]["Aria2 Config Path"],
+            "aria2_config_path": form_data["File Management"]["Aria2 Config Path"],
         }
 
         config = {
             "general": {
-                "paginate": form_data["Behavior"]["Paginate"].lower() == "true",
                 "refresh_timer": int(form_data["Behavior"]["Refresh Timer (seconds)"]),
                 "global_stats_timer": int(
                     form_data["Behavior"]["Global Stats Timer (seconds)"]
                 ),
-                "terminal_file_manager": form_data["Paths"]["Terminal File Manager"],
-                "gui_file_manager": form_data["Paths"]["GUI File Manager"],
-                "launch_command": form_data["Paths"]["Launch Command"],
+                "terminal_file_manager": form_data["File Management"]["Terminal File Manager"],
+                "gui_file_manager": form_data["File Management"]["GUI File Manager"],
             },
             "appearance": {
                 "theme": int(form_data["Appearance"]["Theme"]),
@@ -730,40 +700,6 @@ def create_config_from_form(form_data: dict) -> None:
         f.write(f"# Saved on: {timestamp}\n")
         f.write("\n")
 
-        # Write [general] section with comments
-        f.write("[general]\n")
-        f.write("# Shared settings (apply to all instances)\n")
-        f.write("# File managers\n")
-        f.write(
-            "## terminal_file_manager will open in the same terminal as Aria2TUI in a blocking fashion;\n"
-        )
-        f.write(
-            "## gui_file_manager will fork a new process and open a new application.\n"
-        )
-        f.write(
-            f"terminal_file_manager = {format_toml_value(config['general']['terminal_file_manager'])}\n"
-        )
-        f.write(
-            f"gui_file_manager = {format_toml_value(config['general']['gui_file_manager'])}\n"
-        )
-        f.write("\n")
-        f.write(
-            "# launch_command is used for opening files with the default application\n"
-        )
-        f.write(
-            f"launch_command = {format_toml_value(config['general']['launch_command'])}\n"
-        )
-        f.write("\n")
-        f.write(
-            "# Data refresh time (in seconds) for the global stats and for the download data.\n"
-        )
-        f.write(f"global_stats_timer = {config['general']['global_stats_timer']}\n")
-        f.write(f"refresh_timer = {config['general']['refresh_timer']}\n")
-        f.write("\n")
-        f.write("# Scrolls by default\n")
-        f.write(f"paginate = {str(config['general']['paginate']).lower()}\n")
-        f.write("\n")
-
         # Write instances - always use instances array format (even for single instance)
         f.write("# Define aria2 instances\n")
         f.write("# Each instance connects to a different aria2c daemon\n")
@@ -789,6 +725,31 @@ def create_config_from_form(form_data: dict) -> None:
                 f"aria2_config_path = {format_toml_value(instance.get('aria2_config_path', '~/.config/aria2/aria2.conf'))}\n"
             )
             f.write("\n")
+
+        # Write [general] section with comments
+        f.write("[general]\n")
+        f.write("# Shared settings (apply to all instances)\n")
+        f.write("# File managers\n")
+        f.write(
+            "## terminal_file_manager will open in the same terminal as Aria2TUI in a blocking fashion;\n"
+        )
+        f.write(
+            "## gui_file_manager will fork a new process and open a new application.\n"
+        )
+        f.write(
+            f"terminal_file_manager = {format_toml_value(config['general']['terminal_file_manager'])}\n"
+        )
+        f.write(
+            f"gui_file_manager = {format_toml_value(config['general']['gui_file_manager'])}\n"
+        )
+        f.write("\n")
+        f.write(
+            "# Data refresh time (in seconds) for the global stats and for the download data.\n"
+        )
+        f.write(f"global_stats_timer = {config['general']['global_stats_timer']}\n")
+        f.write(f"refresh_timer = {config['general']['refresh_timer']}\n")
+        f.write("\n")
+
 
         # Write [appearance] section with comments
         f.write("[appearance]\n")

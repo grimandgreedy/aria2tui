@@ -142,7 +142,6 @@ config = _lambdas.config
 url = _lambdas.url
 port = _lambdas.port
 token = _lambdas.token
-paginate = _lambdas.paginate
 
 # Define __all__ for wildcard imports (preserves current behavior)
 __all__ = [
@@ -253,5 +252,4 @@ __all__ = [
     'url',
     'port',
     'token',
-    'paginate',
 ]

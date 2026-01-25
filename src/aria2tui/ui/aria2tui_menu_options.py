@@ -27,7 +27,6 @@ from aria2tui.utils.aria2c.downloads import retryDownloadWithModifiedOptions
 
 
 config = get_config()
-paginate = config["general"]["paginate"]
 
 colour_theme_number=config["appearance"]["theme"]
 
@@ -341,7 +340,6 @@ download_info_menu = [
 menu_data = {
     "top_gap": 0,
     "highlights": menu_highlights,
-    "paginate": paginate,
     "title": app_name,
     "colour_theme_number": colour_theme_number,
     "max_selected": 1,
@@ -349,7 +347,6 @@ menu_data = {
     "header": ["Main Menu    "],
     "centre_in_terminal": True,
     "centre_in_cols": False,
-    "paginate": paginate,
     "centre_in_terminal_vertical": True,
     "hidden_columns": [],
     "keys_dict": menu_keys,
@@ -361,7 +358,6 @@ menu_data = {
 downloads_data = {
     "top_gap": 0,
     "highlights": highlights,
-    "paginate": paginate,
     "modes": modes,
     "display_modes": True,
     "title": app_name,
@@ -373,7 +369,6 @@ downloads_data = {
     "get_new_data": True,
     "get_data_startup": True,
     "timer": refresh_timer,
-    "paginate": paginate,
     "hidden_columns": [],
     "id_column": -1,
     "centre_in_terminal_vertical": False,
@@ -438,11 +433,9 @@ dl_operations_data = {
     "items": [[download_option.name] for download_option in download_options],
     "top_gap": 0,
     "highlights": operations_highlights,
-    "paginate": paginate,
     "title": app_name,
     "colour_theme_number": colour_theme_number,
     "header": [f"Select operation"],
-    "paginate": paginate,
     "hidden_columns": [],
     "keys_dict": download_option_keys,
     "cancel_is_back": True,
