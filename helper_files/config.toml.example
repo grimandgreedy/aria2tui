@@ -1,0 +1,59 @@
+####################################################
+##        Aria2TUI Configuration File
+##        Multi-Instance Example
+####################################################
+
+[general]
+# Enable multi-instance mode to manage multiple aria2 daemons
+multi = true
+
+# Shared settings (apply to all instances)
+terminal_file_manager = "yazi"
+gui_file_manager = "kitty yazi"
+launch_command = "xdg-open"
+global_stats_timer = 1
+refresh_timer = 2
+paginate = false
+
+# Define multiple aria2 instances
+# Each instance connects to a different aria2c daemon
+
+[[instances]]
+name = "Default"
+url = "http://localhost"
+port = "6800"
+token = "your-secret-token-here"
+startup_commands = ["aria2c"]
+restart_commands = ["pkill aria2c", "sleep 1", "aria2c"]
+aria2_config_path = "~/.config/aria2/aria2.conf"
+
+[[instances]]
+name = "Torrents"
+url = "http://localhost"
+port = "6805"
+token = "your-secret-token-here"
+# Start aria2c with a different config for torrents
+startup_commands = ["aria2c --conf-path=~/.config/aria2/aria2_torrents.conf"]
+restart_commands = ["pkill -f 'aria2c.*aria2_torrents'", "sleep 1", "aria2c --conf-path=~/.config/aria2/aria2_torrents.conf"]
+aria2_config_path = "~/.config/aria2/aria2_torrents.conf"
+
+[[instances]]
+name = "Remote Server"
+url = "http://192.168.1.100"
+port = "6800"
+token = "remote-server-token"
+# Don't start/restart remote server from local machine
+startup_commands = []
+restart_commands = []
+aria2_config_path = "~/.config/aria2/remote.conf"
+
+[appearance]
+# Can change in app from the settings (~) or by pressing `th<Return>
+theme = 3
+
+# Whether the right pane (DL Info, DL graphs) should be displayed by default when opening aria2tui
+show_right_pane_default = false
+
+# Which pane should be displayed first when the sidebar is opened.
+# [0=DL Files (info), 1=speed graph, 2=progress graph, 3=download pieces]
+right_pane_default_index = 0
