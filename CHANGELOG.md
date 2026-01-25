@@ -1,8 +1,13 @@
 # CHANGELOG.md
 
-## [0.1.12.1] ?
-- Created first-time startup form that generates default config if missing
-- Added ability to edit aria2tui config through a form interface
+## [0.1.13.0] 2026-01-26
+- Multiple instance support via new listpick PickerStates
+- Created ConfigManager to allow config switching and hot-reloading
+- Added new forms in aria2tui
+  - Add download form
+  - Change download options form
+  - Startup wizard - generates default config in a form for first-time user.
+  - edit aria2tui config through a form interface
 - Updated form to store and return exit status
 - Improved progress bar display
 - Added "Change Global Options (Session)" (for aria2c) to main menu
@@ -11,11 +16,7 @@
 - Added new structured data viewer
   - Used to display download info
   - Used to display global info
-- Fix bitstring to download pieces display in right pane.
-- Added new forms in aria2tui
-  - Add download form
-  - Form to enter config details if first time starting aria2tui
-  - Change download options form
+- Fix bitstring to piece DL progress display in right pane.
 
 ## [0.1.12.0] 2026-01-04
  - Download operation menu options now auto-filter based on download selections.
