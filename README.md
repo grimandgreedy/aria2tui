@@ -26,21 +26,30 @@ Create a `config.toml` file and place it in `~/.config/aria2tui/`. Here is the d
 ##      and commented for your convenience
 ####################################################
 
-[general]
+# Aria2TUI supports multiple simultaneous connections;
+#   each can be specified as an element of the instances array.
 
+[[instances]]
+name = "Default"
+url = "http://localhost"
 port = 6800
 token = "1234"
-url = "http://localhost"
 
-# Used for starting and restarting.
+# Used for starting and restarting. Creating service files for each instance is recommended
 startup_commands = ["aria2c"]
 restart_commands = ["pkill aria2c && sleep 1 && aria2c"]
 # startup_commands = ["systemctl --user start aria2d.service"]
-# restart_commands = ["systemctl --user restart aria2d.service", "notify-send 'Aria2c has been restarted.'"]
+# restart_commands = ["systemctl --user restart aria2d.service"]
 
-# Used when "Edit Config" option is chosen in the main menu
+# Used when the "Edit Config" option is chosen in the main menu
 aria2_config_path = "~/.config/aria2/aria2.conf"
 
+# [[instances]]
+# name = "Home Server"
+# url = ...
+# port = ...
+
+[general]
 # File managers 
 ## terminal_file_manager will open in the same terminal as Aria2TUI in a blocking fashion;
 ## gui_file_manager will fork a new process and open a new application.
@@ -51,9 +60,6 @@ gui_file_manager = "kitty yazi"
 # Data refresh time (in seconds) for the global stats and for the download data.
 global_stats_timer = 1
 refresh_timer = 2
-
-# Scrolls by default
-paginate = false
 
 [appearance]
 theme = 3
