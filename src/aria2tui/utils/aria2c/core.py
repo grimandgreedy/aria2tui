@@ -45,20 +45,15 @@ class ConfigManager:
         return cls._instance
 
     def _load_instances(self):
-        """Load instances from config if multi mode is enabled."""
+        """Load instances from config if instances array is present."""
         logger.info(f"Config keys: {list(self._config.keys())}")
-        logger.info(
-            f"Multi setting: {self._config.get('general', {}).get('multi', False)}"
-        )
         logger.info(f"Instances in config: {self._config.get('instances', [])}")
 
-        if self._config.get("general", {}).get("multi", False):
+        if "instances" in self._config and self._config["instances"]:
             # Multi-instance mode
             self._instances = self._config.get("instances", [])
-            # Store shared settings from general (everything except 'multi')
-            self._shared_config = {
-                k: v for k, v in self._config.get("general", {}).items() if k != "multi"
-            }
+            # Store shared settings from general
+            self._shared_config = self._config.get("general", {}).copy()
             logger.info(
                 f"Multi-instance mode enabled with {len(self._instances)} instance(s)"
             )
@@ -339,60 +334,149 @@ def editAria2TUIConfig() -> None:
 
     Note: This function is called from within a Picker context, so curses
     color pairs are already initialized and don't need to be set up again.
+
+    Supports both single-instance and multi-instance modes. In multi-instance mode,
+    creates a separate form section for each instance.
     """
     import curses
 
     logger.info("editAria2TUIConfig called")
 
     # Get the current config (merges user config with defaults)
-    current_config = get_config()
+    current_config = config_manager.get_config()
+
+    # Check if multi-instance mode is enabled by checking for instances array
+    is_multi = "instances" in current_config and current_config["instances"]
 
     # Get default form structure
     form_data = get_default_config_for_form()
 
-    # Populate form with current config values
-    # Connection Settings
-    form_data["Connection Settings"]["URL"] = current_config["general"]["url"]
-    form_data["Connection Settings"]["Port"] = current_config["general"]["port"]
-    form_data["Connection Settings"]["Token"] = current_config["general"]["token"]
+    if is_multi:
+        # Multi-instance mode: create a section for each instance
+        instances = current_config["instances"]
 
-    # Commands - join list items back into command strings
-    startup_cmds = current_config["general"]["startup_commands"]
-    if isinstance(startup_cmds, list):
-        form_data["Commands"]["Startup Commands"] = " && ".join(startup_cmds)
+        # Remove the single-instance sections (will be replaced with instance-specific sections)
+        if "Connection Settings" in form_data:
+            del form_data["Connection Settings"]
+        if "Commands" in form_data:
+            del form_data["Commands"]
+
+        # Create a section for each instance
+        for idx, instance in enumerate(instances):
+            instance_name = instance.get("name", f"Instance {idx + 1}")
+            section_key = f"Instance {idx + 1}: {instance_name}"
+
+            # Get commands and format them
+            startup_cmds = instance.get("startup_commands", ["aria2c"])
+            if isinstance(startup_cmds, list):
+                startup_cmds_str = " && ".join(startup_cmds)
+            else:
+                startup_cmds_str = str(startup_cmds)
+
+            restart_cmds = instance.get(
+                "restart_commands", ["pkill aria2c && sleep 1 && aria2c"]
+            )
+            if isinstance(restart_cmds, list):
+                restart_cmds_str = " && ".join(restart_cmds)
+            else:
+                restart_cmds_str = str(restart_cmds)
+
+            form_data[section_key] = {
+                "Name": instance.get("name", f"Instance {idx + 1}"),
+                "URL": instance.get("url", "http://localhost"),
+                "Port": instance.get("port", "6800"),
+                "Token": instance.get("token", ""),
+                "Startup Commands": startup_cmds_str,
+                "Restart Commands": restart_cmds_str,
+                "Aria2 Config Path": (
+                    instance.get("aria2_config_path", "~/.config/aria2/aria2.conf"),
+                    "file",
+                ),
+            }
+
+        # Shared settings from general section
+        form_data["Paths"]["Terminal File Manager"] = current_config["general"].get(
+            "terminal_file_manager", "yazi"
+        )
+        form_data["Paths"]["GUI File Manager"] = current_config["general"].get(
+            "gui_file_manager", "kitty yazi"
+        )
+        form_data["Paths"]["Launch Command"] = current_config["general"].get(
+            "launch_command", "xdg-open"
+        )
+        # Remove Aria2 Config Path from Paths section (it's per-instance)
+        if "Aria2 Config Path" in form_data["Paths"]:
+            del form_data["Paths"]["Aria2 Config Path"]
+
+        # Behavior (shared settings)
+        paginate_value = (
+            "true" if current_config["general"].get("paginate", False) else "false"
+        )
+        form_data["Behavior"]["Paginate"] = (paginate_value, "cycle", ["true", "false"])
+        form_data["Behavior"]["Refresh Timer (seconds)"] = str(
+            current_config["general"].get("refresh_timer", 2)
+        )
+        form_data["Behavior"]["Global Stats Timer (seconds)"] = str(
+            current_config["general"].get("global_stats_timer", 1)
+        )
     else:
-        form_data["Commands"]["Startup Commands"] = str(startup_cmds)
+        # Single instance mode: use general section
+        # Connection Settings
+        form_data["Connection Settings"]["URL"] = current_config["general"].get(
+            "url", "http://localhost"
+        )
+        form_data["Connection Settings"]["Port"] = current_config["general"].get(
+            "port", "6800"
+        )
+        form_data["Connection Settings"]["Token"] = current_config["general"].get(
+            "token", ""
+        )
 
-    restart_cmds = current_config["general"]["restart_commands"]
-    if isinstance(restart_cmds, list):
-        form_data["Commands"]["Restart Commands"] = " && ".join(restart_cmds)
-    else:
-        form_data["Commands"]["Restart Commands"] = str(restart_cmds)
+        # Commands - join list items back into command strings
+        startup_cmds = current_config["general"].get("startup_commands", ["aria2c"])
+        if isinstance(startup_cmds, list):
+            form_data["Commands"]["Startup Commands"] = " && ".join(startup_cmds)
+        else:
+            form_data["Commands"]["Startup Commands"] = str(startup_cmds)
 
-    # Paths
-    form_data["Paths"]["Aria2 Config Path"] = (
-        current_config["general"]["aria2_config_path"],
-        "file",
-    )
-    form_data["Paths"]["Terminal File Manager"] = current_config["general"][
-        "terminal_file_manager"
-    ]
-    form_data["Paths"]["GUI File Manager"] = current_config["general"][
-        "gui_file_manager"
-    ]
-    form_data["Paths"]["Launch Command"] = current_config["general"]["launch_command"]
+        restart_cmds = current_config["general"].get(
+            "restart_commands", ["pkill aria2c && sleep 1 && aria2c"]
+        )
+        if isinstance(restart_cmds, list):
+            form_data["Commands"]["Restart Commands"] = " && ".join(restart_cmds)
+        else:
+            form_data["Commands"]["Restart Commands"] = str(restart_cmds)
 
-    # Behavior
-    paginate_value = "true" if current_config["general"]["paginate"] else "false"
-    form_data["Behavior"]["Paginate"] = (paginate_value, "cycle", ["true", "false"])
-    form_data["Behavior"]["Refresh Timer (seconds)"] = str(
-        current_config["general"]["refresh_timer"]
-    )
-    form_data["Behavior"]["Global Stats Timer (seconds)"] = str(
-        current_config["general"]["global_stats_timer"]
-    )
+        # Paths
+        form_data["Paths"]["Aria2 Config Path"] = (
+            current_config["general"].get(
+                "aria2_config_path", "~/.config/aria2/aria2.conf"
+            ),
+            "file",
+        )
+        form_data["Paths"]["Terminal File Manager"] = current_config["general"].get(
+            "terminal_file_manager", "yazi"
+        )
+        form_data["Paths"]["GUI File Manager"] = current_config["general"].get(
+            "gui_file_manager", "kitty yazi"
+        )
+        form_data["Paths"]["Launch Command"] = current_config["general"].get(
+            "launch_command", "xdg-open"
+        )
 
-    # Appearance
+        # Behavior
+        paginate_value = (
+            "true" if current_config["general"].get("paginate", False) else "false"
+        )
+        form_data["Behavior"]["Paginate"] = (paginate_value, "cycle", ["true", "false"])
+        form_data["Behavior"]["Refresh Timer (seconds)"] = str(
+            current_config["general"].get("refresh_timer", 2)
+        )
+        form_data["Behavior"]["Global Stats Timer (seconds)"] = str(
+            current_config["general"].get("global_stats_timer", 1)
+        )
+
+    # Appearance (always from appearance section)
     form_data["Appearance"]["Theme"] = (
         str(current_config["appearance"]["theme"]),
         "cycle",
@@ -490,7 +574,11 @@ def get_default_config_for_form() -> dict:
 
 
 def create_config_from_form(form_data: dict) -> None:
-    """Create config file and directories from form data with comments and header."""
+    """Create config file and directories from form data with comments and header.
+
+    Args:
+        form_data: Form data from the UI
+    """
     from datetime import datetime
 
     config_path = get_config_path()
@@ -499,9 +587,78 @@ def create_config_from_form(form_data: dict) -> None:
     # Create directories if they don't exist
     os.makedirs(config_dir, exist_ok=True)
 
+    # Determine if this is multi-instance mode by checking form structure
+    # If form has "Instance X:" sections, it's multi-instance mode
+    # If form has "Connection Settings" section, it's single-instance mode
+    has_instance_sections = any(key.startswith("Instance ") for key in form_data.keys())
+    has_connection_settings = "Connection Settings" in form_data
+
+    is_multi = has_instance_sections and not has_connection_settings
+
     # Convert form data to config structure
-    config = {
-        "general": {
+    if is_multi:
+        # Multi-instance mode: rebuild instances array from form sections
+        instances = []
+
+        # Find all instance sections (they start with "Instance ")
+        for section_name in form_data.keys():
+            if section_name.startswith("Instance "):
+                section_data = form_data[section_name]
+
+                # Extract instance data
+                instance = {
+                    "name": section_data.get("Name", "Default"),
+                    "url": section_data.get("URL", "http://localhost"),
+                    "port": section_data.get("Port", "6800"),
+                    "token": section_data.get("Token", ""),
+                    "startup_commands": [
+                        cmd.strip()
+                        for cmd in section_data.get("Startup Commands", "aria2c").split(
+                            "&&"
+                        )
+                        if cmd.strip()
+                    ],
+                    "restart_commands": [
+                        cmd.strip()
+                        for cmd in section_data.get(
+                            "Restart Commands", "pkill aria2c && sleep 1 && aria2c"
+                        ).split("&&")
+                        if cmd.strip()
+                    ],
+                    "aria2_config_path": section_data.get(
+                        "Aria2 Config Path", "~/.config/aria2/aria2.conf"
+                    ),
+                }
+                instances.append(instance)
+
+        config = {
+            "general": {
+                "paginate": form_data["Behavior"]["Paginate"].lower() == "true",
+                "refresh_timer": int(form_data["Behavior"]["Refresh Timer (seconds)"]),
+                "global_stats_timer": int(
+                    form_data["Behavior"]["Global Stats Timer (seconds)"]
+                ),
+                "terminal_file_manager": form_data["Paths"]["Terminal File Manager"],
+                "gui_file_manager": form_data["Paths"]["GUI File Manager"],
+                "launch_command": form_data["Paths"]["Launch Command"],
+            },
+            "appearance": {
+                "theme": int(form_data["Appearance"]["Theme"]),
+                "show_right_pane_default": form_data["Appearance"][
+                    "Show Right Pane by Default"
+                ].lower()
+                == "true",
+                "right_pane_default_index": int(
+                    form_data["Appearance"]["Right Pane Default Index"]
+                ),
+            },
+            "instances": instances,
+        }
+    else:
+        # Single instance mode - convert to instances array format
+        # This standardizes the config format going forward
+        instance = {
+            "name": "Default",
             "url": form_data["Connection Settings"]["URL"],
             "port": form_data["Connection Settings"]["Port"],
             "token": form_data["Connection Settings"]["Token"],
@@ -516,26 +673,31 @@ def create_config_from_form(form_data: dict) -> None:
                 if cmd.strip()
             ],
             "aria2_config_path": form_data["Paths"]["Aria2 Config Path"],
-            "paginate": form_data["Behavior"]["Paginate"].lower() == "true",
-            "refresh_timer": int(form_data["Behavior"]["Refresh Timer (seconds)"]),
-            "global_stats_timer": int(
-                form_data["Behavior"]["Global Stats Timer (seconds)"]
-            ),
-            "terminal_file_manager": form_data["Paths"]["Terminal File Manager"],
-            "gui_file_manager": form_data["Paths"]["GUI File Manager"],
-            "launch_command": form_data["Paths"]["Launch Command"],
-        },
-        "appearance": {
-            "theme": int(form_data["Appearance"]["Theme"]),
-            "show_right_pane_default": form_data["Appearance"][
-                "Show Right Pane by Default"
-            ].lower()
-            == "true",
-            "right_pane_default_index": int(
-                form_data["Appearance"]["Right Pane Default Index"]
-            ),
-        },
-    }
+        }
+
+        config = {
+            "general": {
+                "paginate": form_data["Behavior"]["Paginate"].lower() == "true",
+                "refresh_timer": int(form_data["Behavior"]["Refresh Timer (seconds)"]),
+                "global_stats_timer": int(
+                    form_data["Behavior"]["Global Stats Timer (seconds)"]
+                ),
+                "terminal_file_manager": form_data["Paths"]["Terminal File Manager"],
+                "gui_file_manager": form_data["Paths"]["GUI File Manager"],
+                "launch_command": form_data["Paths"]["Launch Command"],
+            },
+            "appearance": {
+                "theme": int(form_data["Appearance"]["Theme"]),
+                "show_right_pane_default": form_data["Appearance"][
+                    "Show Right Pane by Default"
+                ].lower()
+                == "true",
+                "right_pane_default_index": int(
+                    form_data["Appearance"]["Right Pane Default Index"]
+                ),
+            },
+            "instances": [instance],
+        }
 
     # Get current timestamp
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -570,26 +732,7 @@ def create_config_from_form(form_data: dict) -> None:
 
         # Write [general] section with comments
         f.write("[general]\n")
-        f.write(f"port = {format_toml_value(config['general']['port'])}\n")
-        f.write(f"token = {format_toml_value(config['general']['token'])}\n")
-        f.write(f"url = {format_toml_value(config['general']['url'])}\n")
-        f.write("\n")
-
-        f.write("# Used for starting and restarting aria2c from within aria2tui\n")
-        f.write(
-            f"startup_commands = {format_toml_value(config['general']['startup_commands'])}\n"
-        )
-        f.write(
-            f"restart_commands = {format_toml_value(config['general']['restart_commands'])}\n"
-        )
-        f.write("\n")
-
-        f.write('# Used when "Edit Config" option is chosen in the main menu\n')
-        f.write(
-            f"aria2_config_path = {format_toml_value(config['general']['aria2_config_path'])}\n"
-        )
-        f.write("\n")
-
+        f.write("# Shared settings (apply to all instances)\n")
         f.write("# File managers\n")
         f.write(
             "## terminal_file_manager will open in the same terminal as Aria2TUI in a blocking fashion;\n"
@@ -604,7 +747,6 @@ def create_config_from_form(form_data: dict) -> None:
             f"gui_file_manager = {format_toml_value(config['general']['gui_file_manager'])}\n"
         )
         f.write("\n")
-
         f.write(
             "# launch_command is used for opening files with the default application\n"
         )
@@ -612,17 +754,41 @@ def create_config_from_form(form_data: dict) -> None:
             f"launch_command = {format_toml_value(config['general']['launch_command'])}\n"
         )
         f.write("\n")
-
         f.write(
             "# Data refresh time (in seconds) for the global stats and for the download data.\n"
         )
         f.write(f"global_stats_timer = {config['general']['global_stats_timer']}\n")
         f.write(f"refresh_timer = {config['general']['refresh_timer']}\n")
         f.write("\n")
-
         f.write("# Scrolls by default\n")
         f.write(f"paginate = {str(config['general']['paginate']).lower()}\n")
         f.write("\n")
+
+        # Write instances - always use instances array format (even for single instance)
+        f.write("# Define aria2 instances\n")
+        f.write("# Each instance connects to a different aria2c daemon\n")
+        f.write("# You can add more instances by copying the [[instances]] block\n")
+        f.write("\n")
+        for instance in config["instances"]:
+            f.write("[[instances]]\n")
+            f.write(f"name = {format_toml_value(instance.get('name', 'Default'))}\n")
+            f.write(
+                f"url = {format_toml_value(instance.get('url', 'http://localhost'))}\n"
+            )
+            f.write(f"port = {format_toml_value(instance.get('port', '6800'))}\n")
+            f.write(f"token = {format_toml_value(instance.get('token', ''))}\n")
+            f.write("# Used for starting and restarting aria2c from within aria2tui\n")
+            f.write(
+                f"startup_commands = {format_toml_value(instance.get('startup_commands', ['aria2c']))}\n"
+            )
+            f.write(
+                f"restart_commands = {format_toml_value(instance.get('restart_commands', ['pkill aria2c', 'sleep 1', 'aria2c']))}\n"
+            )
+            f.write('# Used when "Edit Config" option is chosen in the main menu\n')
+            f.write(
+                f"aria2_config_path = {format_toml_value(instance.get('aria2_config_path', '~/.config/aria2/aria2.conf'))}\n"
+            )
+            f.write("\n")
 
         # Write [appearance] section with comments
         f.write("[appearance]\n")

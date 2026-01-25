@@ -49,8 +49,11 @@
 > - [ ] Redirect stdout and stderr in open macro
 > - [x] Add better handling of dead connections.
 >   - [x] What if I have two connections in my config but the daemon on my server is down? Should aria2tui really fail to start?
-> - [ ] Add option to retry download and change options
-> - [ ] Fix edit config form with multiple configs
+> - [x] Add option to retry download and change options
+> - [x] Fix edit config form with multiple configs
+> - [ ] Update form editor to allow section types
+>   - [ ] We can have an array section type which we can press + to add another section with the same fields which will be stacked into an array at the end.
+>      - [ ] E.g., [[instances]] array for config
 
 
 
