@@ -161,6 +161,24 @@ class ConfigManager:
             "paginate", self._config.get("general", {}).get("paginate", False)
         )
 
+    def get_restart_commands(self) -> list:
+        """Get the restart commands for current instance."""
+        instance = self.get_current_instance()
+        return instance.get(
+            "restart_commands",
+            self._shared_config.get(
+                "restart_commands", ["pkill aria2c && sleep 1 && aria2c"]
+            ),
+        )
+
+    def get_aria2_config_path(self) -> str:
+        """Get the aria2 config path for current instance."""
+        instance = self.get_current_instance()
+        return instance.get(
+            "aria2_config_path",
+            self._shared_config.get("aria2_config_path", "~/.config/aria2/aria2.conf"),
+        )
+
 
 class Operation:
     def __init__(
@@ -294,8 +312,8 @@ config_manager = ConfigManager()
 def restartAria() -> None:
     """Restart aria2 daemon."""
     logger.info("restartAria called")
-    config = get_config()
-    for cmd in config["general"]["restart_commands"]:
+    restart_commands = config_manager.get_restart_commands()
+    for cmd in restart_commands:
         logger.info("Restarting aria2c with command: %s", cmd)
         subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE)
     # Wait before trying to reconnect
@@ -305,9 +323,7 @@ def restartAria() -> None:
 def editConfig() -> None:
     """Edit the config file in nvim."""
     logger.info("editConfig called")
-    config = get_config()
-
-    file = config["general"]["aria2_config_path"]
+    file = config_manager.get_aria2_config_path()
     cmd = f"nvim {file}"
     logger.info("Opening config file: %s", file)
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)

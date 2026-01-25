@@ -61,20 +61,21 @@ def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[dict], list[str]]:
         stripped_line = line.rstrip()
 
         # Comment
-        if line.strip().startswith('#') or line.strip() == '': continue
+        if line.strip().startswith("#") or line.strip() == "":
+            continue
 
         # If the line has no leading spaces then it is a url to add
-        if line.startswith('!'):
+        if line.startswith("!"):
             argstrings.append(line)
-        elif not line.startswith(' '):
+        elif not line.startswith(" "):
             if download:
                 downloads.append(download)
                 download = {}
             download["uri"] = stripped_line
-        elif '=' in line and line.startswith(' '):
-            key, value = stripped_line.split('=', 1)
+        elif "=" in line and line.startswith(" "):
+            key, value = stripped_line.split("=", 1)
             download[key.strip()] = value.strip()
-        elif len(download) == 1 and line.startswith(' '):
+        elif len(download) == 1 and line.startswith(" "):
             download["out"] = line.strip()
 
     if download:
@@ -83,7 +84,9 @@ def input_file_lines_to_dict(lines: list[str]) -> Tuple[list[dict], list[str]]:
     return downloads, argstrings
 
 
-def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None) -> Tuple[list[str], str]:
+def addUrisFull(
+    url: str = "http://localhost", port: int = 6800, token: str = None
+) -> Tuple[list[str], str]:
     """
     Add URIs to aria server.
 
@@ -95,17 +98,17 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
 
     s = "# URL\n"
     s += "#    indented_option=value\n"
-    s += '\n'
-    s += '# https://docs.python.org/3/_static/py.png\n'
-    s += '# magnet:?xt=urn:btih:...\n'
-    s +=  '# https://docs.python.org/3/_static/py.svg\n#    out=pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n'
-    s += '#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n'
-    s += '\n'
+    s += "\n"
+    s += "# https://docs.python.org/3/_static/py.png\n"
+    s += "# magnet:?xt=urn:btih:...\n"
+    s += "# https://docs.python.org/3/_static/py.svg\n#    out=pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n"
+    s += "#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n"
+    s += "\n"
     s += "# The full list of DL options can be viewed here:\n"
     s += "# https://aria2.github.io/manual/en/html/aria2c.html#input-file\n\n\n"
 
     ## Create tmpfile
-    with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
+    with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
         tmpfile.write(s)
         tmpfile_path = tmpfile.name
     cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
@@ -123,29 +126,37 @@ def addUrisFull(url: str ="http://localhost", port: int =6800, token: str = None
             continue
 
         uri = dl["uri"]
-        download_options_dict = {key: val for key,val in dl.items() if key in valid_keys}
+        download_options_dict = {
+            key: val for key, val in dl.items() if key in valid_keys
+        }
         if "dir" in download_options_dict:
-            download_options_dict["dir"] = os.path.expandvars(os.path.expanduser(download_options_dict["dir"]))
+            download_options_dict["dir"] = os.path.expandvars(
+                os.path.expanduser(download_options_dict["dir"])
+            )
         return_val, gid = addDownload(uri, download_options_dict=download_options_dict)
         if return_val:
             gids.append(gid)
 
-    return gids, f'{len(gids)} download(s) added.'
+    return gids, f"{len(gids)} download(s) added."
 
 
-def addUrisAndPauseFull(url: str ="http://localhost", port: int =6800, token: str = "") -> Tuple[list[str], str]:
+def addUrisAndPauseFull(
+    url: str = "http://localhost", port: int = 6800, token: str = ""
+) -> Tuple[list[str], str]:
     logger.info("addUrisAndPauseFull called url=%s port=%s", url, port)
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import pause, sendReq
 
-    gids, message = addUrisFull(url=url, port=port,token=token)
+    gids, message = addUrisFull(url=url, port=port, token=token)
     if gids:
         reqs = [json.loads(pause(gid)) for gid in gids]
-        batch = sendReq(json.dumps(reqs).encode('utf-8'))
+        batch = sendReq(json.dumps(reqs).encode("utf-8"))
     return gids, f"{len(gids)} downloads added and paused."
 
 
-def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> Tuple[list[str], str]:
+def addTorrentsFull(
+    url: str = "http://localhost", port: int = 6800, token: str = None
+) -> Tuple[list[str], str]:
     """
     Open a prompt to add torrents to Aria2. The file will accept torrent file paths or magnet links.
     """
@@ -156,7 +167,7 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
     s = "# /path/to/file.torrent\n"
     s += "# magnet:?xt=...\n\n"
 
-    with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
+    with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
         tmpfile.write(s)
         tmpfile_path = tmpfile.name
     cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
@@ -171,7 +182,7 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
     for line in lines:
         if line and line[0] in ["#", "!"] or line.strip() == "":
             pass
-        elif len(line) > len("magnet:") and line[:len("magnet:")] == "magnet:":
+        elif len(line) > len("magnet:") and line[: len("magnet:")] == "magnet:":
             uris.append({"uri": line.strip()})
         else:
             dls.append({"path": os.path.expanduser(line.strip())})
@@ -185,19 +196,27 @@ def addTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =
                 gids.append(resp["result"])
             torrent_count += 1
         except Exception as e:
-            logger.exception("Error adding torrent from path '%s': %s", dl.get("path"), e)
+            logger.exception(
+                "Error adding torrent from path '%s': %s", dl.get("path"), e
+            )
             pass
 
     for dl in uris:
         uri = dl["uri"]
         logger.info("addTorrentsFull adding magnet/URI: %s", uri)
         return_val, gid = addDownload(uri=uri)
-        if return_val: gids.append(gid)
+        if return_val:
+            gids.append(gid)
 
-    return gids, f'{torrent_count} torrent file(s) added. {len(uris)} magnet link(s) added.'
+    return (
+        gids,
+        f"{torrent_count} torrent file(s) added. {len(uris)} magnet link(s) added.",
+    )
 
 
-def addTorrentsFilePickerFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> Tuple[list[str], str]:
+def addTorrentsFilePickerFull(
+    url: str = "http://localhost", port: int = 6800, token: str = None
+) -> Tuple[list[str], str]:
     """Open file picker to add torrents to Aria2."""
     logger.info("addTorrentsFilePickerFull called url=%s port=%s", url, port)
     # Import here to avoid circular dependency during module initialization
@@ -223,31 +242,45 @@ def addTorrentsFilePickerFull(url: str ="http://localhost", port: int = 6800, to
         except:
             pass
 
-    return gids, f'{torrent_count}/{len(dls)} torrent file(s) added.'
+    return gids, f"{torrent_count}/{len(dls)} torrent file(s) added."
 
 
 def addDownloadTasksForm() -> str:
     """Add a download using form interface."""
     # Import here to avoid circular dependency during module initialization
-    from aria2tui.utils.aria2c import addDownload, pause, sendReq
+    from aria2tui.utils.aria2c import addDownload, pause, sendReq, getGlobalOption
+
+    try:
+        req = getGlobalOption()
+        response = sendReq(req)["result"]
+        current_options = response
+    except Exception as e:
+        return str(e)
 
     form_dict = {
         "Basic Download Options": {
-            "URL": ("", "text") ,
+            "URL": ("", "text"),
             "out": ("", "text"),
-            "dir": (os.path.expanduser("~/Downloads"), "file"),
-            "pause": ("false", "cycle", ["true","false"]),
+            # "dir": (os.path.expanduser("~/Downloads"), "file"),
+            "dir": (os.path.expanduser(current_options["dir"]), "file"),
+            "pause": ("false", "cycle", ["true", "false"]),
         },
         "Advanced Options": {
-            "split": "5",
-            "user-agent": "",
-            "load-cookies": "",
-            "all-proxy": ""
-        }
+            "split": current_options.get("split", ""),
+            "max-connection-per-server": current_options.get(
+                "max-connection-per-server", ""
+            ),
+            "user-agent": current_options.get("user-agent", ""),
+            "allow-overwrite": (
+                current_options.get("allow-overwrite", "false"),
+                "cycle",
+                ["true", "false"],
+            ),
+        },
     }
 
     result_dict, saved = run_form(form_dict)
-    
+
     # If user didn't save, return early
     if not saved:
         return "Download cancelled"
@@ -282,7 +315,9 @@ def addDownloadTasksForm() -> str:
     return f"Download added. GID: {gid}"
 
 
-def addDownloadsAndTorrentsFull(url: str ="http://localhost", port: int = 6800, token: str =None) -> Tuple[list[str], str]:
+def addDownloadsAndTorrentsFull(
+    url: str = "http://localhost", port: int = 6800, token: str = None
+) -> Tuple[list[str], str]:
     """Add mixed downloads (URIs, magnets, torrents) via editor."""
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import addTorrent, sendReq, addDownload
@@ -290,17 +325,17 @@ def addDownloadsAndTorrentsFull(url: str ="http://localhost", port: int = 6800, 
     s = "# Add http(s) links, magnet links, metalinks, or torrent files (by path).\n"
     s += "# URL\n"
     s += "#    indented_option=value\n"
-    s += '\n'
-    s += '# https://docs.python.org/3/_static/py.png\n'
-    s += '# magnet:?xt=urn:btih:...\n'
+    s += "\n"
+    s += "# https://docs.python.org/3/_static/py.png\n"
+    s += "# magnet:?xt=urn:btih:...\n"
     s += "# /path/to/file.torrent\n"
-    s +=  '# https://docs.python.org/3/_static/py.svg\n#    out=pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n'
-    s += '#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n'
-    s += '\n'
+    s += "# https://docs.python.org/3/_static/py.svg\n#    out=pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n"
+    s += "#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n"
+    s += "\n"
     s += "# The full list of DL options can be viewed here:\n"
     s += "# https://aria2.github.io/manual/en/html/aria2c.html#input-file\n\n\n"
 
-    with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
+    with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
         tmpfile.write(s)
         tmpfile_path = tmpfile.name
     cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
@@ -322,9 +357,13 @@ def addDownloadsAndTorrentsFull(url: str ="http://localhost", port: int = 6800, 
 
         dl_type = classify_download_string(dl["uri"])
         if dl_type in ["HTTP", "FTP", "Magnet", "Metalink"]:
-            download_options_dict = {key: val for key,val in dl.items() if key in valid_keys}
+            download_options_dict = {
+                key: val for key, val in dl.items() if key in valid_keys
+            }
             if "dir" in download_options_dict:
-                download_options_dict["dir"] = os.path.expandvars(os.path.expanduser(download_options_dict["dir"]))
+                download_options_dict["dir"] = os.path.expandvars(
+                    os.path.expanduser(download_options_dict["dir"])
+                )
             uris.append({"uri": dl["uri"], "options": download_options_dict})
         else:
             dls.append({"path": os.path.expanduser(dl["uri"])})
@@ -344,7 +383,8 @@ def addDownloadsAndTorrentsFull(url: str ="http://localhost", port: int = 6800, 
         uri = dl["uri"]
         options = dl["options"]
         return_val, gid = addDownload(uri=uri, download_options_dict=options)
-        if return_val: gids.append(gid)
+        if return_val:
+            gids.append(gid)
 
     if len(uris) and torrent_count:
         msg = f"{len(uris)} direct download(s) added. {torrent_count} torrent(s) added."
@@ -357,19 +397,23 @@ def addDownloadsAndTorrentsFull(url: str ="http://localhost", port: int = 6800, 
     return gids, msg
 
 
-def addDownloadsAndTorrentsAndPauseFull(url: str ="http://localhost", port: int =6800, token: str = "") -> Tuple[list[str], str]:
+def addDownloadsAndTorrentsAndPauseFull(
+    url: str = "http://localhost", port: int = 6800, token: str = ""
+) -> Tuple[list[str], str]:
     """Add mixed downloads and pause them."""
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import pause, sendReq
 
-    gids, message = addDownloadsAndTorrentsFull(url=url, port=port,token=token)
+    gids, message = addDownloadsAndTorrentsFull(url=url, port=port, token=token)
     if gids:
         reqs = [json.loads(pause(gid)) for gid in gids]
-        batch = sendReq(json.dumps(reqs).encode('utf-8'))
+        batch = sendReq(json.dumps(reqs).encode("utf-8"))
     return gids, f"{len(gids)} download(s) added and paused."
 
 
-def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str ="") -> str:
+def retryDownloadFull(
+    gid: str, url: str = "http://localhost", port: int = 6800, token: str = ""
+) -> str:
     """Retry a failed download by creating a new download with same options."""
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import tellStatus, getOption, sendReq, addDownload
@@ -384,13 +428,17 @@ def retryDownloadFull(gid: str, url: str ="http://localhost", port: int = 6800, 
             dl["dir"] = status["result"]["dir"]
 
         return_val, gid = addDownload(uri=uri, download_options_dict=dl)
-        if return_val: return gid
-        else: return ""
+        if return_val:
+            return gid
+        else:
+            return ""
 
     return ""
 
 
-def retryDownloadAndPauseFull(gid: str, url: str ="http://localhost", port: int = 6800, token: str ="") -> str:
+def retryDownloadAndPauseFull(
+    gid: str, url: str = "http://localhost", port: int = 6800, token: str = ""
+) -> str:
     """Retry a failed download and pause it."""
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import tellStatus, getOption, sendReq, addDownload
@@ -406,10 +454,100 @@ def retryDownloadAndPauseFull(gid: str, url: str ="http://localhost", port: int 
 
         dl["pause"] = "true"
         return_val, gid = addDownload(uri=uri, download_options_dict=dl)
-        if return_val: return gid
-        else: return ""
+        if return_val:
+            return gid
+        else:
+            return ""
 
     return ""
+
+
+def retryDownloadWithModifiedOptions(gid: str) -> str:
+    """
+    Retry a failed download with modified options using form interface.
+
+    Shows a form to modify download options, then retries the download
+    with the modified options.
+
+    Args:
+        gid: GID of the download to retry
+
+    Returns:
+        Status message with new GID or error message
+    """
+    # Import here to avoid circular dependency during module initialization
+    from aria2tui.utils.aria2c import tellStatus, getOption, sendReq, addDownload
+    from aria2tui.ui.aria2tui_form import run_form
+
+    if not gid:
+        return "Error: No GID provided"
+
+    try:
+        # Get current download status and options
+        status = sendReq(tellStatus(gid))
+        options = sendReq(getOption(gid))
+
+        # Only works for non-bittorrent downloads
+        if "bittorrent" in status["result"]:
+            return "Error: Cannot retry BitTorrent downloads with this method"
+
+        # Get the URI from the download
+        uri = status["result"]["files"][0]["uris"][0]["uri"]
+        current_options = json.loads(json.dumps(options["result"]))
+
+        # Add directory from status if available
+        if "dir" in status["result"]:
+            current_options["dir"] = status["result"]["dir"]
+
+    except Exception as e:
+        return f"Error getting download info: {str(e)}"
+
+    # Organize options into sections for the form
+    from aria2tui.utils.aria2c.options import _organize_options_into_sections
+
+    form_dict = _organize_options_into_sections(current_options)
+
+    # Convert boolean fields to cycle type and dir to file picker
+    for section in form_dict:
+        for key, value in list(form_dict[section].items()):
+            if key == "dir":
+                # Convert dir field to file picker type
+                form_dict[section][key] = (value, "file")
+            elif value.lower() in ["true", "false"]:
+                # Convert boolean fields to cycle type
+                form_dict[section][key] = (value, "cycle", ["true", "false"])
+
+    form_dict["Basic Options"]["pause"] = ("false", "cycle", ["false", "true"])
+
+    # Run the form and get results
+    result_dict, saved = run_form(form_dict)
+
+
+    # If user didn't save, return early
+    if not saved:
+        return "Retry cancelled"
+
+    # Flatten the result back to a single dict
+    loaded_options = {}
+    for section, fields in result_dict.items():
+        for label, value in fields.items():
+            loaded_options[label] = value
+
+    # Expand directory path if present
+    if "dir" in loaded_options:
+        loaded_options["dir"] = os.path.expandvars(
+            os.path.expanduser(loaded_options["dir"])
+        )
+
+    # Add the download with modified options
+    try:
+        return_val, new_gid = addDownload(uri=uri, download_options_dict=loaded_options)
+        if return_val:
+            return f"Download retried successfully. New GID: {new_gid}"
+        else:
+            return "Error: Failed to retry download"
+    except Exception as e:
+        return f"Error retrying download: {str(e)}"
 
 
 def applyToDownloads(
@@ -417,13 +555,14 @@ def applyToDownloads(
     operation: Operation,
     gids: list = [],
     user_opts: str = "",
-    fnames:list=[],
+    fnames: list = [],
 ) -> None:
     """Apply an operation to a list of downloads."""
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import sendReq, changePosition
 
-    if len(gids) == 0 : return None
+    if len(gids) == 0:
+        return None
 
     result = []
     if operation.accepts_gids_list:
@@ -433,7 +572,7 @@ def applyToDownloads(
             gids=gids,
             fnames=fnames,
             operation=operation,
-            function_args=operation.function_args
+            function_args=operation.function_args,
         )
         if operation.send_request:
             result = sendReq(result)
@@ -450,7 +589,7 @@ def applyToDownloads(
                         gid=gid,
                         fname=fnames[i],
                         operation=operation,
-                        function_args=operation.function_args
+                        function_args=operation.function_args,
                     )
 
                 if operation.send_request:
@@ -463,7 +602,8 @@ def applyToDownloads(
         l = []
         for i, response in enumerate(result):
             l += [[gids[i], "------"]]
-            if "result" in response: response = response["result"]
+            if "result" in response:
+                response = response["result"]
             response = process_dl_dict(response)
             l += [[key, val] for key, val in flatten_data(response).items()]
         x = Picker(
@@ -477,9 +617,11 @@ def applyToDownloads(
         )
         x.run()
     elif operation.view:
-        with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmpfile:
+        with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
             for i, _ in enumerate(result):
-                tmpfile.write(f'{"*"*50}\n{str(i)+": "+gids[i]:^50}\n{"*"*50}\n')
+                tmpfile.write(
+                    f"{'*' * 50}\n{str(i) + ': ' + gids[i]:^50}\n{'*' * 50}\n"
+                )
                 tmpfile.write(json.dumps(result, indent=4))
             tmpfile_path = tmpfile.name
         cmd = rf"nvim -c 'set commentstring=#\ %s' {tmpfile_path}"
@@ -514,21 +656,20 @@ def applyToDownloads(
                 section_fields[str(key)] = str(val)
 
             form_dict[str(section_name)] = section_fields
-        
+
         def is_string_dict(d):
             for key, val in d.items():
-                if type(val) != type(""): return False
+                if type(val) != type(""):
+                    return False
             return True
-        
-        if is_string_dict(form_dict):
-            form_dict = { operation.name : form_dict }
 
+        if is_string_dict(form_dict):
+            form_dict = {operation.name: form_dict}
 
         viewer = FormViewerApp(stdscr, form_dict)
         viewer.run()
 
     stdscr.clear()
-
 
 
 def remove_downloads(gids):
