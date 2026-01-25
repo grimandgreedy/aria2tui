@@ -23,6 +23,7 @@ from aria2tui.graphing.pane_graph_progress import get_dl_progress, right_split_d
 from aria2tui.graphing.pane_pieces import right_split_piece_progress, get_dl_pieces
 from aria2tui.graphing.pane_files import right_split_files, get_dl_files
 from aria2tui.utils.display_info import *
+from aria2tui.utils.aria2c.downloads import retryDownloadWithModifiedOptions
 
 
 config = get_config()
@@ -129,9 +130,14 @@ download_options = [
         function=lambda stdscr, gid, fname, operation, function_args: retryDownload(gid),
         applicable_statuses=["error", "removed", "complete"]
     ),
+    # Operation(
+    #     name="Retry Download(s) and Pause",
+    #     function=lambda stdscr, gid, fname, operation, function_args: retryDownloadAndPause(gid),
+    #     applicable_statuses=["error", "removed", "complete"]
+    # ),
     Operation(
-        name="Retry Download(s) and Pause",
-        function=lambda stdscr, gid, fname, operation, function_args: retryDownloadAndPause(gid),
+        name="Retry Download(s) and Change Options",
+        function=lambda stdscr, gid, fname, operation, function_args: retryDownloadWithModifiedOptions(gid),
         applicable_statuses=["error", "removed", "complete"]
     ),
     Operation(

@@ -16,7 +16,6 @@
 >  - [ ] Refactor and simplify. Currently is a copy of change options and is unnecessarily bloated.
 >  - [ ] This doesn't apply to torrents. Can we unify the modify torrent file menu option with this?
 > - [ ] Help page should be shown as a form viewer. Macro?
-> - [ ] When adding torrents, after selecting the files, take us to a form editor to change any options
 > - [ ] Add config option to use simple chars. Some terminals and fonts do not render the symbols well.
 >  - [ ] Pin cursor symbol
 >  - [ ] Refresh symbol
@@ -33,13 +32,26 @@
 >   - [ ] ? for brail characters
 >    - [ ] `fig.plot(..., marker=".")`
 >   - [ ] Artifacts when changing themes
+> - [ ] Add support for editing structured data via a form
+>    - [x] Add download form
+>    - [x] Change config for download form
+>    - [x] Change global config form
+>    - [ ] When adding torrents, after selecting the files, take us to a form editor to change any options
+> - [ ] Edit config form problems:
+>     - [ ] Editing config when one of the servers is down doesn't work.
+>     - [ ] Can't add multiple configs to the one form
 > - [x] Add config setup form if no config file exists
 >   - [x] Check that it works with the env variable set
 > - [x] Add edit config or exit option if we can't connect
 > - [ ] Add more options to add download dialogue
 > - [ ] Improve keys in form editor
-> - [ ] Figure out a way to determine the active config dynamically
+> - [x] Figure out a way to determine the active config dynamically
 > - [ ] Redirect stdout and stderr in open macro
+> - [x] Add better handling of dead connections.
+>   - [x] What if I have two connections in my config but the daemon on my server is down? Should aria2tui really fail to start?
+> - [ ] Add option to retry download and change options
+> - [ ] Fix edit config form with multiple configs
+
 
 
 
