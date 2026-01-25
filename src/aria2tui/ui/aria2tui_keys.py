@@ -33,23 +33,24 @@ remove_keys = [
     "add_column_before",
     "add_row_before",
     "add_row_after",
-    "file_next",
-    "file_prev",
     "toggle_left_pane",
     "cycle_left_pane",
     "paste",
+    "exit",
 ]
 
 for key in remove_keys:
     if key in aria2tui_keys: del aria2tui_keys[key]
+
+# set 'q'
+
+aria2tui_keys["minimise"] = [ord('q')]
 
 download_option_keys = {
     "refresh":                          [curses.KEY_F5],
     "help":                             [ord('?')],
     "exit":                             [ord('q'), ord('h')],
     "full_exit":                        [3], # Ctrl+c
-    "move_column_left":                 [ord('{')],
-    "move_column_right":                [ord('}')],
     "cursor_down":                      [ord('j'), curses.KEY_DOWN],
     "cursor_up":                        [ord('k'), curses.KEY_UP],
     "half_page_up":                     [ord('u')],

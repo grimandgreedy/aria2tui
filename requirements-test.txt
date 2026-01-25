@@ -4,5 +4,5 @@ pytest-cov>=4.1.0
 pytest-mock>=3.12.0
 pytest-xdist>=3.5.0
 
-# For mocking HTTP requests if needed
+# For mocking HTTP requests
 responses>=0.24.0

@@ -14,6 +14,7 @@ scripts/
 .coverage
 htmlcov/
 .pytest_cache/
+tests/test_screenshots
 
 # Compile stuff
 src/aria2tui/lib/__pycache__/
@@ -39,4 +40,3 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
