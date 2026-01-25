@@ -60,13 +60,9 @@ def openDownloadLocation(gid: str, new_window: bool = True) -> None:
         pass
 
 
-def openGidFiles(gids: list[str], group: bool = True) -> None:
+def openGidFiles(gids: list[str]) -> None:
     """
-    Open files downloads based on their gid.
-        If group is False then we open each download separately.
-        If group is True then we use xdg-mime and gio to get the default applications
-            and group files by application and open them in one instance of the application.
-            E.g., video and audio files will be opened with mpv and images will be opened with gimp
+    Open download files. We best guess the file opener based on platform.
     """
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import getFiles, sendReq, getOption
@@ -89,16 +85,9 @@ def openGidFiles(gids: list[str], group: bool = True) -> None:
                 loc = val["dir"]
 
             files_list.append(loc)
-
-            if not group:
-                config = get_config()
-                launch_command = config["general"]["launch_command"]
-                cmd = f"{launch_command} {repr(loc)}"
-                subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         except:
             pass
-    if group:
-        openFiles(files_list)
+    openFiles(files_list)
 
 
 def openFiles(files: list[str]) -> None:
