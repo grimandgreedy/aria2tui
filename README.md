@@ -84,19 +84,29 @@ aria2tui
 ## Tips
 
  - See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki), which covers basic usage.
- - Press '?' in aria2tui to see the help page which will list the available keybinds.
- - If you have problems starting aria2c, check that you have an aria2c config file at ~/.config/aria2/aria2.conf
+ - If you have problems starting aria2c, check that you have an aria2c config file at `~/.config/aria2/aria2.conf`
+
+### Keybinds
+ - Press `?` in aria2tui to see the help page which will list the available keybinds.
  - `Ctrl-l` will redraw the screen; useful if there are stray artifacts after dropping to the shell
+ - Switch between open aria2tui instances with `{` and `}`
  - Toggle the right-pane with `'` and cycle between right-pane views with `"`.
- - By default the cursor in aria2tui will track the highlighted download task--that is, if you are hovering over an active download which finishes and moves to the bottom of the list, then the cursor will remain on that task. This is usually what you want. However, sometimes you want to stay at a particular place in the download list--perhaps you want to remain at the top and watch the currently active downloads. To do this you can activate 'pin cursor' mode which will pin the cursor to an index rather than to a particular row.
-    - Press ` and type pc. This will toggle pin cursor mode.
-    - You can also press ~ to open the settings and then select the pin cursor option.
-      - Note: The pin symbol  will be shown in the footer to indicate the cursor tracking mode.
- - If you are performing bulk operations and the downloads are changing state rapidly--e.g., hundreds of images are changing from active/waiting to completed--it is recommended to **toggle the auto-refresh** option to ensure data integrity while selecting which downloads to operate upon.
-    - This can be done by either:
-      - exiting to the main menu ('q') and going to "View Downloads"; or
-      - Pressing ~ and toggling auto-refresh.
-    - Note: The refresh symbol  at the top right indicates that you are in auto-refresh mode.
+### Cursor Tracking and Auto-Refrsh
+
+#### Cursor Tracking Modes
+
+By default, the cursor follows the selected download task. If you're viewing an active download that completes and moves to the bottom of the list, the cursor moves with it.
+
+For scenarios where you want the cursor to stay at a fixed position (e.g., watching active downloads at the top), you can enable **pin cursor mode**:
+
+- Press `` ` `` and type `pc` to toggle pin cursor mode
+- Alternatively, press `~` to open settings and select the pin cursor option
+- A pin symbol (📌) in the footer indicates which tracking mode is active
+
+#### Auto-Refresh Control
+
+When performing bulk operations on rapidly changing downloads (e.g., hundreds of images transitioning from active/waiting to completed), it's recommended to **disable auto-refresh** to maintain data integrity during selection. To toggle auto-refresh:
+- Press `~` and toggle the auto-refresh option
 
 ## Important
 
