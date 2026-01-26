@@ -8,6 +8,9 @@ Aria2tui communicates with an aria2c daemon over RPC. The UI is provided by my T
 
 https://github.com/user-attachments/assets/7c77a13f-90c7-4e67-9946-7b7009c835ad
 
+
+Note: Make sure that you have [aria2c installed and configured](https://github.com/grimandgreedy/aria2tui/wiki/aria2c-setup) with RPC enabled.
+
 ## Quickstart
 
 
@@ -16,17 +19,11 @@ Install aria2tui using pip:
 python -m pip install aria2tui
 ```
 
-Make sure that you have [aria2c](https://github.com/grimandgreedy/aria2tui/wiki/aria2c-setup) installed and configured with RPC enabled.
-
-
-Simply run
+When you run `aria2tui` for the first time it will bring up a config creation form with the defaults pre-set. This creates a config file in `~/.config/aria2tui/config.toml` when you click save. Just enter your `url`, `port`, and `token` into the form and you are good to go.
 
 ```bash
 aria2tui
 ```
-
-and enter your `url`, `port`, and `token` into the startup wizard and you are good to go.
-
 
 See the [wiki](https://github.com/grimandgreedy/aria2tui/wiki) for more information on how to use aria2tui and for more configuration options.
 
