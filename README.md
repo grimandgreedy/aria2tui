@@ -10,76 +10,25 @@ https://github.com/user-attachments/assets/7c77a13f-90c7-4e67-9946-7b7009c835ad
 
 ## Quickstart
 
-See the [wiki](https://github.com/grimandgreedy/aria2tui/wiki).
 
 Install aria2tui using pip:
 ```bash
 python -m pip install aria2tui
 ```
 
-Create a `config.toml` file and place it in `~/.config/aria2tui/`. Here is the default config:
-
-```toml
-####################################################
-##        Default config for Aria2TUI
-##   Some common config options have been provided
-##      and commented for your convenience
-####################################################
-
-# Aria2TUI supports multiple simultaneous connections;
-#   each can be specified as an element of the instances array.
-
-[[instances]]
-name = "Default"
-url = "http://localhost"
-port = 6800
-token = "1234"
-
-# Used for starting and restarting. Creating service files for each instance is recommended
-startup_commands = ["aria2c"]
-restart_commands = ["pkill aria2c && sleep 1 && aria2c"]
-# startup_commands = ["systemctl --user start aria2d.service"]
-# restart_commands = ["systemctl --user restart aria2d.service"]
-
-# Used when the "Edit Config" option is chosen in the main menu
-aria2_config_path = "~/.config/aria2/aria2.conf"
-
-# [[instances]]
-# name = "Home Server"
-# url = ...
-# port = ...
-
-[general]
-# File managers 
-## terminal_file_manager will open in the same terminal as Aria2TUI in a blocking fashion;
-## gui_file_manager will fork a new process and open a new application.
-terminal_file_manager = "yazi"
-gui_file_manager = "kitty yazi"
+Make sure that you have [aria2c](https://github.com/grimandgreedy/aria2tui/wiki/aria2c-setup) installed and configured with RPC enabled.
 
 
-# Data refresh time (in seconds) for the global stats and for the download data.
-global_stats_timer = 1
-refresh_timer = 2
-
-[appearance]
-theme = 3
-
-# Whether the right pane (DL Info, DL graphs) should be displayed by default when opening aria2tui
-show_right_pane_default = false
-
-# Which pane should be displayed first when the sidebar is opened.
-# [0=DL Files (info), 1=speed graph, 2=progress graph, 3=download pieces]
-right_pane_default_index = 0
-```
-
-**Note**: If you have not used aria2c before then download [this file](https://gist.github.com/qzm/a54559726896d5e6bf21adf2363ad334) and put it in ~/.config/aria2/. In any case, since we are using RPC to communicate with aria2c, make sure that you have the following set in your config: `enable-rpc` `rpc-listen-all` `rpc-allow-origin-all`.
-
-After creating ~/.config/aria2tui/config.toml and ensuring that your url, port, and secret token are correct, you are all set to go:
+Simply run
 
 ```bash
 aria2tui
 ```
 
+and enter your `url`, `port`, and `token` into the startup wizard and you are good to go.
+
+
+See the [wiki](https://github.com/grimandgreedy/aria2tui/wiki) for more information on how to use aria2tui and for more configuration options.
 
 ## Tips
 
