@@ -35,7 +35,7 @@ aria2tui
  - `Ctrl-l` will redraw the screen; useful if there are stray artifacts after dropping to the shell
  - Switch between open aria2tui instances with `{` and `}`
  - Toggle the right-pane with `'` and cycle between right-pane views with `"`.
-### Cursor Tracking and Auto-Refrsh
+### Cursor Tracking and Auto-Refresh
 
 #### Cursor Tracking Modes
 
