@@ -8,9 +8,6 @@ Aria2tui communicates with an aria2c daemon over RPC. The UI is provided by my T
 
 https://github.com/user-attachments/assets/7c77a13f-90c7-4e67-9946-7b7009c835ad
 
-
-Note: Make sure that you have [aria2c installed and configured](https://github.com/grimandgreedy/aria2tui/wiki/aria2c-setup) with RPC enabled.
-
 ## Quickstart
 
 
@@ -28,7 +25,7 @@ aria2tui
 ## Tips
 
  - See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki), which covers basic usage.
- - If you have problems starting aria2c, check that you have an aria2c config file at `~/.config/aria2/aria2.conf`
+ - Make sure that you have [aria2c installed and configured](https://github.com/grimandgreedy/aria2tui/wiki/aria2c-setup) with RPC enabled.
 
 ### Keybinds
  - Press `?` in aria2tui to see the help page which will list the available keybinds.
