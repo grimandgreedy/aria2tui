@@ -25,8 +25,6 @@ When you run `aria2tui` for the first time it will bring up a config creation fo
 aria2tui
 ```
 
-See the [wiki](https://github.com/grimandgreedy/aria2tui/wiki) for more information on how to use aria2tui and for more configuration options.
-
 ## Tips
 
  - See [the wiki](https://github.com/grimandgreedy/aria2tui/wiki), which covers basic usage.
