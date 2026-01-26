@@ -1,4 +1,6 @@
 # CHANGELOG.md
+## [0.1.13.1] 2026-01-??
+- Fix "Modify Torrent Files" Picker title
 
 ## [0.1.13.0] 2026-01-26
 - Multiple instance support via new listpick PickerStates
