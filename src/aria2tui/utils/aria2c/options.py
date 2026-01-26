@@ -527,6 +527,7 @@ def download_selected_files(stdscr, gids):
             unselected_char = "☐",
             selecting_char = "☒",
             deselecting_char = "☐",
+            title="Updating Torrent Files..."
         )
         modified_selections, options, function_data = selectionsPicker.run()
         if selected_indices != modified_selections and function_data["last_key"] != ord("q"):
