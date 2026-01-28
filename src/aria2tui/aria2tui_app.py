@@ -65,9 +65,6 @@ from aria2tui.utils.aria2c_utils import (
     create_config_from_form,
     testConnection,
     testAriaConnection,
-    classify_download_string,
-    addDownload,
-    addTorrent,
     editAria2TUIConfig,
 )
 from aria2tui.utils.aria2c.core import config_manager, get_config_path
@@ -88,6 +85,7 @@ from aria2tui.ui.aria2tui_menu_options import (
 )
 from aria2tui.ui.aria2tui_form import FormViewerApp
 from aria2tui.utils.logging_utils import configure_logging, get_logger
+from aria2tui.utils.aria2c.cli import parse_args, handle_cli_mode
 
 logger = get_logger()
 
@@ -628,7 +626,7 @@ def aria2tui() -> None:
     with the user if the aria2c daemon is not running.
 
     Depending on invocation, this function operates in two modes:
-    1. Download Addition Mode: If run with `--add_download` or `--add_download_bg` and a URI,
+    1. Download Addition Mode: If run with `--add-download` or `--add-download-bg` and a URI,
        it attempts to add the download directly. If the aria2c daemon is not running,
        it may prompt the user to start it, and uses either a GUI prompt (via Tkinter) or
        a TUI prompt (via curses) depending on the command-line flag.
@@ -640,103 +638,18 @@ def aria2tui() -> None:
     Returns:
         None
     """
+    # Parse command-line arguments
+    args = parse_args()
+    debug = args.debug
 
-    debug = False
-    if "--debug" in sys.argv:
-        debug = True
-        sys.argv.remove("--debug")
+    # Configure logging based on debug flag
+    configure_logging(debug=args.debug)
+    logger.info("aria2tui() called with args=%s", args)
 
-    configure_logging(debug=debug)
-    logger.info("aria2tui() called with argv=%s (debug=%s)", sys.argv, debug)
-
-    if len(sys.argv) == 3 and sys.argv[1].startswith("--add_download"):
-        connection_up = testConnection()
-        if not connection_up and sys.argv[1] == "--add_download_bg":
-            exit_ = False
-            try:
-                import tkinter as tk
-                from tkinter import messagebox
-
-                # No main window
-                root = tk.Tk()
-                root.withdraw()
-
-                response = messagebox.askyesno(
-                    "Aria2TUI", "Aria2c connection failed. Start daemon?"
-                )
-
-                if not response:
-                    exit_ = True
-                else:
-                    # Attempt to start aria2c
-                    config = get_config()
-                    for cmd in config["general"]["startup_commands"]:
-                        subprocess.run(
-                            cmd,
-                            shell=True,
-                            stderr=subprocess.PIPE,
-                            stdout=subprocess.PIPE,
-                        )
-                    time.sleep(0.1)
-
-            except Exception as e:
-                logger.exception("Error in --add_download_bg flow: %s", e)
-                message = "Problem encountered. Download not added."
-                os.system(f"notify-send '{message}'")
-                sys.exit()
-            finally:
-                if exit_:
-                    message = "Exiting. Download not added."
-                    os.system(f"notify-send '{message}'")
-                    sys.exit()
-
-                connection_up = testConnection()
-                if not connection_up:
-                    message = "Problem encountered. Check your aria2tui config. Download not added."
-                    os.system(f"notify-send '{message}'")
-                    exit()
-        elif not connection_up:
-            stdscr = start_curses()
-            handleAriaStartPromt(stdscr)
-            close_curses(stdscr)
-
-        uri = sys.argv[2]
-        dl_type = classify_download_string(sys.argv[2])
-        if dl_type in ["Magnet", "Metalink", "FTP", "HTTP"]:
-            return_val, gid = addDownload(uri)
-        elif dl_type == "Torrent File":
-            try:
-                js_req = addTorrent(uri)
-                sendReq(js_req)
-                message = "Torrent added successfully."
-            except Exception as e:
-                logger.exception("Error adding torrent file '%s': %s", uri, e)
-                message = "Error adding download."
-            finally:
-                os.system(f"notify-send '{message}'")
-                sys.exit(1)
-        else:
-            try:
-                message = "Error adding download."
-                os.system(f"notify-send '{message}'")
-            except Exception as e:
-                logger.exception(
-                    "Error sending notification for failed download: %s", e
-                )
-            finally:
-                sys.exit(1)
-
-        if return_val:
-            message = f"Success! download added: gid={gid}."
-        else:
-            message = "Error adding download."
-        print(message)
-        try:
-            if sys.argv[1] == "--add_download_bg":
-                os.system(f"notify-send '{message}'")
-        except:
-            pass
-        return None
+    # Handle CLI mode (download additions)
+    if handle_cli_mode(args):
+        # CLI mode handled the request, exit
+        return
 
     ## Run curses
     logger.info("Starting curses UI")
