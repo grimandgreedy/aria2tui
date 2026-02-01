@@ -165,12 +165,13 @@ class Aria2TUI:
             DownloadsPicker.get_data_startup = False
 
             try:
-                if selected_downloads and DownloadsPicker.header[0] == "Connection Error":
+                if (
+                    selected_downloads
+                    and DownloadsPicker.header[0] == "Connection Error"
+                ):
                     continue
             except:
                 pass
-
-
 
             if selected_downloads:
                 ## CHOOSE OPERATION TO APPLY TO SELECTED DOWNLOADS
@@ -342,7 +343,9 @@ class Aria2TUI:
                             tmpfile.write(json.dumps(result, indent=4))
                             tmpfile_path = tmpfile.name
                         # cmd = r"""nvim -i NONE -c 'setlocal bt=nofile' -c 'silent! %s/^\s*"function"/\0' -c 'norm ggn'""" + f" {tmpfile_path}"
-                        cmd = f"nvim {tmpfile_path}"
+                        from aria2tui.utils.aria2c import get_editor_command
+
+                        cmd = get_editor_command(tmpfile_path)
                         process = subprocess.run(
                             cmd, shell=True, stderr=subprocess.PIPE
                         )

@@ -111,7 +111,9 @@ def addUrisFull(
     with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
         tmpfile.write(s)
         tmpfile_path = tmpfile.name
-    cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
+    from .core import get_editor_command
+
+    cmd = get_editor_command(tmpfile_path, "-i NONE -c 'norm G'")
     subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
     with open(tmpfile_path, "r") as f:
@@ -170,7 +172,9 @@ def addTorrentsFull(
     with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
         tmpfile.write(s)
         tmpfile_path = tmpfile.name
-    cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
+    from .core import get_editor_command
+
+    cmd = get_editor_command(tmpfile_path, "-i NONE -c 'norm G'")
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
     with open(tmpfile_path, "r") as f:
@@ -401,7 +405,9 @@ def addDownloadsAndTorrentsFull(
     with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
         tmpfile.write(s)
         tmpfile_path = tmpfile.name
-    cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
+    from .core import get_editor_command
+
+    cmd = get_editor_command(tmpfile_path, "-i NONE -c 'norm G'")
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
     with open(tmpfile_path, "r") as f:
@@ -638,7 +644,9 @@ def applyToDownloads(
                 )
                 tmpfile.write(json.dumps(result, indent=4))
             tmpfile_path = tmpfile.name
-        cmd = rf"nvim -c 'set commentstring=#\ %s' {tmpfile_path}"
+        from .core import get_editor_command
+
+        cmd = get_editor_command(tmpfile_path, r"-c 'set commentstring=#\ %s'")
         process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
     elif operation.form_view:
         # Show structured results in the read-only form viewer
