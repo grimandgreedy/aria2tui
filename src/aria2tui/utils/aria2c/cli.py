@@ -46,7 +46,6 @@ from aria2tui.utils.logging_utils import get_logger
 logger = get_logger()
 
 
-
 def parse_args() -> argparse.Namespace:
     """
     Parse command-line arguments for aria2tui.
@@ -74,20 +73,28 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--add-download",
+        "--add_download",
         metavar="URI",
         dest="add_download",
         help="Add a download (magnet, HTTP, FTP, torrent file)",
     )
 
     parser.add_argument(
-        "--add-download-bg",
+        "--add_download_bg",
         metavar="URI",
         dest="add_download_bg",
         help="Add a download in background mode (with gui prompt if connection isn't up). Useful for scripts not run directly from the command line.",
     )
 
+    parser.add_argument(
+        "--input_file",
+        metavar="FILE",
+        dest="input_file",
+        help="Add downloads from an input file. File format is the same as aria2c input files.",
+    )
+
     return parser.parse_args()
+
 
 def handle_download_addition_bg(uri: str) -> None:
     """
@@ -110,7 +117,7 @@ def handle_download_addition_bg(uri: str) -> None:
 
             response = messagebox.askyesno(
                 "Aria2TUI", "Aria2c connection failed. Start daemon?"
-           )
+            )
 
             if not response:
                 exit_ = True
@@ -189,12 +196,13 @@ def add_download_from_uri(uri: str) -> Tuple[bool, str]:
 
     if dl_type in ["Magnet", "Metalink", "FTP", "HTTP"]:
         try:
-            url, port, token = config_manager.get_url(), config_manager.get_port(), config_manager.get_token()
+            url, port, token = (
+                config_manager.get_url(),
+                config_manager.get_port(),
+                config_manager.get_token(),
+            )
             return_val, gid = addDownloadFull(
-                uri=uri,
-                token=token,
-                url=url,
-                port=int(port)
+                uri=uri, token=token, url=url, port=int(port)
             )
             if return_val:
                 message = f"Success! download added: gid={gid}."
@@ -219,6 +227,58 @@ def add_download_from_uri(uri: str) -> Tuple[bool, str]:
     else:
         logger.error("Unrecognized download type for uri: %s", uri)
         return False, "Error: unrecognized download type."
+
+
+def handle_input_file(file_path: str) -> None:
+    """
+    Handle download addition from an input file.
+
+    Args:
+        file_path: Path to the input file containing download URIs and options
+    """
+    from aria2tui.utils.aria2c.downloads import (
+        input_file_lines_to_dict,
+        process_downloads_list,
+    )
+    from aria2tui.aria2tui_app import handleAriaStartPromt
+
+    # Check connection
+    connection_up = testConnection()
+
+    if not connection_up:
+        stdscr = start_curses()
+        handleAriaStartPromt(stdscr)
+        close_curses(stdscr)
+
+    # Read and process the input file
+    try:
+        expanded_path = os.path.expanduser(os.path.expandvars(file_path))
+
+        if not os.path.exists(expanded_path):
+            print(f"Error: File '{file_path}' not found.")
+            sys.exit(1)
+
+        with open(expanded_path, "r") as f:
+            lines = f.readlines()
+
+        dls_list, argstrs = input_file_lines_to_dict(lines)
+
+        if not dls_list:
+            print("No downloads found in input file.")
+            sys.exit(0)
+
+        gids, message = process_downloads_list(dls_list)
+
+        print(message)
+        if gids:
+            print(f"GIDs: {', '.join(gids)}")
+
+        sys.exit(0 if gids else 1)
+
+    except Exception as e:
+        logger.exception("Error processing input file '%s': %s", file_path, e)
+        print(f"Error processing input file: {str(e)}")
+        sys.exit(1)
 
 
 def handle_cli_mode(args: argparse.Namespace) -> bool:
@@ -265,6 +325,12 @@ def handle_cli_mode(args: argparse.Namespace) -> bool:
         handle_download_addition(args.add_download)
         return True
 
-    if config_set: return True
+    # Handle input file
+    if args.input_file:
+        handle_input_file(args.input_file)
+        return True
+
+    if config_set:
+        return True
     # No CLI mode specified, continue to TUI
     return False
