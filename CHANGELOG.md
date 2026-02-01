@@ -1,6 +1,9 @@
 # CHANGELOG.md
 ## [0.1.13.1] 2026-01-??
 - Fix "Modify Torrent Files" Picker title
+- Add CLI arguments and standardise them with argparse
+- Add macros for yank, open file
+- Use $EDITOR as the default editor
 
 ## [0.1.13.0] 2026-01-26
 - Multiple instance support via new listpick PickerStates
