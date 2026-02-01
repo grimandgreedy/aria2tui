@@ -95,6 +95,13 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--pause",
+        metavar="GID",
+        dest="pause_gid",
+        help="Pause a specific download by GID.",
+    )
+
+    parser.add_argument(
+        "--pause_all",
         action="store_true",
         dest="pause_all",
         help="Pause all active downloads.",
@@ -102,6 +109,13 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--resume",
+        metavar="GID",
+        dest="resume_gid",
+        help="Resume a specific paused download by GID.",
+    )
+
+    parser.add_argument(
+        "--resume_all",
         action="store_true",
         dest="resume_all",
         help="Resume all paused downloads.",
@@ -302,6 +316,41 @@ def handle_input_file(file_path: str) -> None:
         sys.exit(1)
 
 
+def handle_pause(gid: str) -> None:
+    """Pause a specific download by GID."""
+    from aria2tui.lib.aria2c_wrapper import pauseFull, sendReqFull
+    from aria2tui.aria2tui_app import handleAriaStartPromt
+
+    # Check connection
+    connection_up = testConnection()
+
+    if not connection_up:
+        stdscr = start_curses()
+        handleAriaStartPromt(stdscr)
+        close_curses(stdscr)
+
+    try:
+        url = config_manager.get_url()
+        port = int(config_manager.get_port())
+        token = config_manager.get_token()
+
+        jsonreq = pauseFull(gid=gid, token=token)
+        response = sendReqFull(jsonreq, url=url, port=port)
+
+        if "result" in response:
+            print(f"Download {gid} paused successfully.")
+            sys.exit(0)
+        else:
+            error_msg = response.get("error", {}).get("message", "Unknown error")
+            print(f"Error pausing download: {error_msg}")
+            sys.exit(1)
+
+    except Exception as e:
+        logger.exception("Error pausing download %s: %s", gid, e)
+        print(f"Error pausing download: {str(e)}")
+        sys.exit(1)
+
+
 def handle_pause_all() -> None:
     """Pause all active downloads."""
     from aria2tui.lib.aria2c_wrapper import pauseAllFull, sendReqFull
@@ -337,6 +386,41 @@ def handle_pause_all() -> None:
         sys.exit(1)
 
 
+def handle_resume(gid: str) -> None:
+    """Resume a specific paused download by GID."""
+    from aria2tui.lib.aria2c_wrapper import unpauseFull, sendReqFull
+    from aria2tui.aria2tui_app import handleAriaStartPromt
+
+    # Check connection
+    connection_up = testConnection()
+
+    if not connection_up:
+        stdscr = start_curses()
+        handleAriaStartPromt(stdscr)
+        close_curses(stdscr)
+
+    try:
+        url = config_manager.get_url()
+        port = int(config_manager.get_port())
+        token = config_manager.get_token()
+
+        jsonreq = unpauseFull(gid=gid, token=token)
+        response = sendReqFull(jsonreq, url=url, port=port)
+
+        if "result" in response:
+            print(f"Download {gid} resumed successfully.")
+            sys.exit(0)
+        else:
+            error_msg = response.get("error", {}).get("message", "Unknown error")
+            print(f"Error resuming download: {error_msg}")
+            sys.exit(1)
+
+    except Exception as e:
+        logger.exception("Error resuming download %s: %s", gid, e)
+        print(f"Error resuming download: {str(e)}")
+        sys.exit(1)
+
+
 def handle_resume_all() -> None:
     """Resume all paused downloads."""
     from aria2tui.lib.aria2c_wrapper import unpauseAllFull, sendReqFull
@@ -355,7 +439,6 @@ def handle_resume_all() -> None:
         port = int(config_manager.get_port())
         token = config_manager.get_token()
 
-        # Note: unpauseAllFull has an unused 'gid' parameter, passing None
         jsonreq = unpauseAllFull(token=token)
         response = sendReqFull(jsonreq, url=url, port=port)
 
@@ -457,9 +540,19 @@ def handle_cli_mode(args: argparse.Namespace) -> bool:
         handle_input_file(args.input_file)
         return True
 
+    # Handle pause by GID
+    if args.pause_gid:
+        handle_pause(args.pause_gid)
+        return True
+
     # Handle pause all
     if args.pause_all:
         handle_pause_all()
+        return True
+
+    # Handle resume by GID
+    if args.resume_gid:
+        handle_resume(args.resume_gid)
         return True
 
     # Handle resume all
