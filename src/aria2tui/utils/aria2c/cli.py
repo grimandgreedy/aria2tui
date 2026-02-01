@@ -93,6 +93,27 @@ def parse_args() -> argparse.Namespace:
         help="Add downloads from an input file. File format is the same as aria2c input files.",
     )
 
+    parser.add_argument(
+        "--pause",
+        action="store_true",
+        dest="pause_all",
+        help="Pause all active downloads.",
+    )
+
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        dest="resume_all",
+        help="Resume all paused downloads.",
+    )
+
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        dest="clear_completed",
+        help="Clear the list of stopped downloads and errors.",
+    )
+
     return parser.parse_args()
 
 
@@ -281,6 +302,112 @@ def handle_input_file(file_path: str) -> None:
         sys.exit(1)
 
 
+def handle_pause_all() -> None:
+    """Pause all active downloads."""
+    from aria2tui.lib.aria2c_wrapper import pauseAllFull, sendReqFull
+    from aria2tui.aria2tui_app import handleAriaStartPromt
+
+    # Check connection
+    connection_up = testConnection()
+
+    if not connection_up:
+        stdscr = start_curses()
+        handleAriaStartPromt(stdscr)
+        close_curses(stdscr)
+
+    try:
+        url = config_manager.get_url()
+        port = int(config_manager.get_port())
+        token = config_manager.get_token()
+
+        jsonreq = pauseAllFull(token=token)
+        response = sendReqFull(jsonreq, url=url, port=port)
+
+        if "result" in response:
+            print("All active downloads paused successfully.")
+            sys.exit(0)
+        else:
+            error_msg = response.get("error", {}).get("message", "Unknown error")
+            print(f"Error pausing downloads: {error_msg}")
+            sys.exit(1)
+
+    except Exception as e:
+        logger.exception("Error pausing all downloads: %s", e)
+        print(f"Error pausing downloads: {str(e)}")
+        sys.exit(1)
+
+
+def handle_resume_all() -> None:
+    """Resume all paused downloads."""
+    from aria2tui.lib.aria2c_wrapper import unpauseAllFull, sendReqFull
+    from aria2tui.aria2tui_app import handleAriaStartPromt
+
+    # Check connection
+    connection_up = testConnection()
+
+    if not connection_up:
+        stdscr = start_curses()
+        handleAriaStartPromt(stdscr)
+        close_curses(stdscr)
+
+    try:
+        url = config_manager.get_url()
+        port = int(config_manager.get_port())
+        token = config_manager.get_token()
+
+        # Note: unpauseAllFull has an unused 'gid' parameter, passing None
+        jsonreq = unpauseAllFull(token=token)
+        response = sendReqFull(jsonreq, url=url, port=port)
+
+        if "result" in response:
+            print("All paused downloads resumed successfully.")
+            sys.exit(0)
+        else:
+            error_msg = response.get("error", {}).get("message", "Unknown error")
+            print(f"Error resuming downloads: {error_msg}")
+            sys.exit(1)
+
+    except Exception as e:
+        logger.exception("Error resuming all downloads: %s", e)
+        print(f"Error resuming downloads: {str(e)}")
+        sys.exit(1)
+
+
+def handle_clear_completed() -> None:
+    """Clear the list of stopped downloads and errors."""
+    from aria2tui.lib.aria2c_wrapper import removeCompletedFull, sendReqFull
+    from aria2tui.aria2tui_app import handleAriaStartPromt
+
+    # Check connection
+    connection_up = testConnection()
+
+    if not connection_up:
+        stdscr = start_curses()
+        handleAriaStartPromt(stdscr)
+        close_curses(stdscr)
+
+    try:
+        url = config_manager.get_url()
+        port = int(config_manager.get_port())
+        token = config_manager.get_token()
+
+        jsonreq = removeCompletedFull(token=token)
+        response = sendReqFull(jsonreq, url=url, port=port)
+
+        if "result" in response:
+            print("Completed downloads and errors cleared successfully.")
+            sys.exit(0)
+        else:
+            error_msg = response.get("error", {}).get("message", "Unknown error")
+            print(f"Error clearing completed downloads: {error_msg}")
+            sys.exit(1)
+
+    except Exception as e:
+        logger.exception("Error clearing completed downloads: %s", e)
+        print(f"Error clearing completed downloads: {str(e)}")
+        sys.exit(1)
+
+
 def handle_cli_mode(args: argparse.Namespace) -> bool:
     """
     Handle CLI-only mode (non-interactive download additions).
@@ -328,6 +455,21 @@ def handle_cli_mode(args: argparse.Namespace) -> bool:
     # Handle input file
     if args.input_file:
         handle_input_file(args.input_file)
+        return True
+
+    # Handle pause all
+    if args.pause_all:
+        handle_pause_all()
+        return True
+
+    # Handle resume all
+    if args.resume_all:
+        handle_resume_all()
+        return True
+
+    # Handle clear completed
+    if args.clear_completed:
+        handle_clear_completed()
         return True
 
     if config_set:
