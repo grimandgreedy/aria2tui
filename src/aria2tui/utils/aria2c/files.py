@@ -28,17 +28,18 @@ logger = get_logger()
 
 
 def openDownloadLocation(gid: str, new_window: bool = True) -> None:
-    """ Opens the download location for a given download. """
+    """Opens the download location for a given download."""
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import getFiles, sendReq, getOption
 
     try:
-        os.system('cls' if os.name == 'nt' else 'clear')
+        os.system("cls" if os.name == "nt" else "clear")
         req = getFiles(str(gid))
         response = sendReq(req)
         val = json.loads(json.dumps(response))
         files = val["result"]
-        if len(files) == 0: return None
+        if len(files) == 0:
+            return None
         loc = files[0]["path"]
         if "/" not in loc:
             req = getOption(str(gid))
@@ -67,7 +68,8 @@ def openGidFiles(gids: list[str]) -> None:
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import getFiles, sendReq, getOption
 
-    if isinstance(gids, str): gids=[gids]
+    if isinstance(gids, str):
+        gids = [gids]
     files_list = []
 
     for gid in gids:
@@ -76,7 +78,8 @@ def openGidFiles(gids: list[str]) -> None:
             response = sendReq(req)
             val = json.loads(json.dumps(response))
             files = val["result"]
-            if len(files) == 0: continue
+            if len(files) == 0:
+                continue
             loc = files[0]["path"]
             if "/" not in loc:
                 req = getOption(str(gid))
@@ -107,7 +110,10 @@ def openFiles(files: list[str]) -> None:
 
     def command_exists(cmd: str) -> bool:
         """Return True if command exists in PATH."""
-        return subprocess.call(f"type {shlex.quote(cmd)} > /dev/null 2>&1", shell=True) == 0
+        return (
+            subprocess.call(f"type {shlex.quote(cmd)} > /dev/null 2>&1", shell=True)
+            == 0
+        )
 
     def is_android() -> bool:
         """Rudimentary Android/Termux detection."""
@@ -127,7 +133,9 @@ def openFiles(files: list[str]) -> None:
     elif command_exists("xdg-open"):
         open_cmd = "xdg-open"
     else:
-        raise EnvironmentError("No open command found (termux-open, am, gio, or xdg-open)")
+        raise EnvironmentError(
+            "No open command found (termux-open, am, gio, or xdg-open)"
+        )
 
     def get_mime_types(file_list: list[str]) -> dict[str, list[str]]:
         """Map MIME types to lists of files."""
@@ -136,10 +144,16 @@ def openFiles(files: list[str]) -> None:
             mime = None
             if command_exists("xdg-mime"):
                 try:
-                    out = subprocess.run(
-                        f"xdg-mime query filetype {shlex.quote(f)}",
-                        shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
-                    ).stdout.decode().strip()
+                    out = (
+                        subprocess.run(
+                            f"xdg-mime query filetype {shlex.quote(f)}",
+                            shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL,
+                        )
+                        .stdout.decode()
+                        .strip()
+                    )
                     if out:
                         mime = out
                 except Exception:
@@ -158,10 +172,16 @@ def openFiles(files: list[str]) -> None:
         if is_android():
             return open_cmd
         if command_exists("xdg-mime"):
-            out = subprocess.run(
-                f"xdg-mime query default {shlex.quote(mime)}",
-                shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
-            ).stdout.decode().strip()
+            out = (
+                subprocess.run(
+                    f"xdg-mime query default {shlex.quote(mime)}",
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                )
+                .stdout.decode()
+                .strip()
+            )
             return out or open_cmd
         return open_cmd
 
@@ -172,11 +192,21 @@ def openFiles(files: list[str]) -> None:
     if sys.platform == "darwin":
         for f in files:
             try:
-                out = subprocess.run(
-                    f"mdls -name kMDItemCFBundleIdentifier -raw {shlex.quote(f)}",
-                    shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
-                ).stdout.decode().strip()
-                bundle = out if out and out != "(null)" else os.path.splitext(f)[1] or "unknown"
+                out = (
+                    subprocess.run(
+                        f"mdls -name kMDItemCFBundleIdentifier -raw {shlex.quote(f)}",
+                        shell=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    .stdout.decode()
+                    .strip()
+                )
+                bundle = (
+                    out
+                    if out and out != "(null)"
+                    else os.path.splitext(f)[1] or "unknown"
+                )
             except Exception:
                 bundle = os.path.splitext(f)[1] or "unknown"
             apps_files[bundle].append(f)
@@ -206,17 +236,27 @@ def openFiles(files: list[str]) -> None:
         elif is_android():
             for f in abs_flist:
                 uri = f"file://{f}"
-                subprocess.Popen(f"am start -a android.intent.action.VIEW -d {shlex.quote(uri)}", shell=True)
+                subprocess.Popen(
+                    f"am start -a android.intent.action.VIEW -d {shlex.quote(uri)}",
+                    shell=True,
+                )
 
-        elif isinstance(app, str) and app.endswith(".desktop") and command_exists("gio"):
+        elif (
+            isinstance(app, str) and app.endswith(".desktop") and command_exists("gio")
+        ):
             app_path = None
-            for base in ("/usr/share/applications", os.path.expanduser("~/.local/share/applications")):
+            for base in (
+                "/usr/share/applications",
+                os.path.expanduser("~/.local/share/applications"),
+            ):
                 path = os.path.join(base, app)
                 if os.path.exists(path):
                     app_path = path
                     break
             if app_path:
-                subprocess.Popen(f"gio launch {shlex.quote(app_path)} {quoted}", shell=True)
+                subprocess.Popen(
+                    f"gio launch {shlex.quote(app_path)} {quoted}", shell=True
+                )
             else:
                 subprocess.Popen(f"xdg-open {quoted}", shell=True)
 
@@ -226,62 +266,5 @@ def openFiles(files: list[str]) -> None:
             subprocess.Popen(f"{open_cmd} {quoted}", shell=True)
 
 
-def open_files_macro(picker: Picker) -> None:
-    # Get files to open
-    selections = [i for i, selected in picker.selections.items() if selected]
-    if not selections:
-        if not picker.indexed_items:
-            return None
-        selections = [picker.indexed_items[picker.cursor_pos][0]]
-
-    dl_types = [picker.items[selected_index][10] for selected_index in selections]
-    dl_names = [picker.items[selected_index][2] for selected_index in selections]
-    dl_paths = [picker.items[selected_index][9] for selected_index in selections]
-
-    files_to_open = []
-
-    for i in range(len(selections)):
-        file_full_path = os.path.expanduser(os.path.join(dl_paths[i], dl_names[i]))
-        if os.path.exists(file_full_path):
-            files_to_open.append(file_full_path)
-
-    openFiles(files_to_open)
-
-
-def open_hovered_location(picker) -> None:
-    if not picker.indexed_items:
-        return None
-    gid = picker.indexed_items[picker.cursor_pos][1][-1]
-    openDownloadLocation(gid, new_window=True)
-
-
-def reload_alternate_config(picker) -> None:
-    """Reload config from alternate path."""
-    logger.info("Before reload - Token: %s", config_manager.get_token()[:20] + "...")
-    logger.info("Before reload - URL: %s", config_manager.get_url())
-    
-    config_manager.reload("/Users/noah/.config/torrents.toml")
-    
-    logger.info("After reload - Token: %s", config_manager.get_token()[:20] + "...")
-    logger.info("After reload - URL: %s", config_manager.get_url())
-    logger.info("Config reloaded from /Users/noah/.config/torrents.toml")
-
-
-aria2tui_macros = [
-    {
-        "keys": [ord("o")],
-        "description": "Open files of selected downloads.",
-        "function": open_files_macro,
-    },
-    {
-        "keys": [ord("O")],
-        "description": "Open location of hovered download in a new (gui) window.",
-        "function": open_hovered_location,
-    },
-    {
-        "keys": [ord("Z")],
-        "description": "Toggle config",
-        "function": reload_alternate_config,
-    },
-    
-]
+# Import macros from the macros module
+from .macros import aria2tui_macros
