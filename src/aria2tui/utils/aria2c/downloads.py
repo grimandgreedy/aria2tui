@@ -315,36 +315,20 @@ def addDownloadTasksForm() -> str:
     return f"Download added. GID: {gid}"
 
 
-def addDownloadsAndTorrentsFull(
-    url: str = "http://localhost", port: int = 6800, token: str = None
-) -> Tuple[list[str], str]:
-    """Add mixed downloads (URIs, magnets, torrents) via editor."""
+def process_downloads_list(dls_list: list[dict]) -> Tuple[list[str], str]:
+    """
+    Process a list of download dictionaries and add them to aria2.
+
+    This function handles both URIs (HTTP, FTP, Magnet, Metalink) and torrent files.
+
+    Args:
+        dls_list: List of download dictionaries from input_file_lines_to_dict
+
+    Returns:
+        Tuple of (gids: list of successful download GIDs, message: status message)
+    """
     # Import here to avoid circular dependency during module initialization
     from aria2tui.utils.aria2c import addTorrent, sendReq, addDownload
-
-    s = "# Add http(s) links, magnet links, metalinks, or torrent files (by path).\n"
-    s += "# URL\n"
-    s += "#    indented_option=value\n"
-    s += "\n"
-    s += "# https://docs.python.org/3/_static/py.png\n"
-    s += "# magnet:?xt=urn:btih:...\n"
-    s += "# /path/to/file.torrent\n"
-    s += "# https://docs.python.org/3/_static/py.svg\n#    out=pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n"
-    s += "#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n"
-    s += "\n"
-    s += "# The full list of DL options can be viewed here:\n"
-    s += "# https://aria2.github.io/manual/en/html/aria2c.html#input-file\n\n\n"
-
-    with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
-        tmpfile.write(s)
-        tmpfile_path = tmpfile.name
-    cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
-    process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-
-    with open(tmpfile_path, "r") as f:
-        lines = f.readlines()
-
-    dls_list, argstrs = input_file_lines_to_dict(lines)
 
     valid_keys = input_file_accepted_options
     dls = []
@@ -395,6 +379,37 @@ def addDownloadsAndTorrentsFull(
     else:
         msg = ""
     return gids, msg
+
+
+def addDownloadsAndTorrentsFull(
+    url: str = "http://localhost", port: int = 6800, token: str = None
+) -> Tuple[list[str], str]:
+    """Add mixed downloads (URIs, magnets, torrents) via editor."""
+    s = "# Add http(s) links, magnet links, metalinks, or torrent files (by path).\n"
+    s += "# URL\n"
+    s += "#    indented_option=value\n"
+    s += "\n"
+    s += "# https://docs.python.org/3/_static/py.png\n"
+    s += "# magnet:?xt=urn:btih:...\n"
+    s += "# /path/to/file.torrent\n"
+    s += "# https://docs.python.org/3/_static/py.svg\n#    out=pythonlogo.svg\n#    dir=/home/user/Downloads/\n#    pause=true\n"
+    s += "#    user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1\n"
+    s += "\n"
+    s += "# The full list of DL options can be viewed here:\n"
+    s += "# https://aria2.github.io/manual/en/html/aria2c.html#input-file\n\n\n"
+
+    with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
+        tmpfile.write(s)
+        tmpfile_path = tmpfile.name
+    cmd = f"nvim -i NONE -c 'norm G' {tmpfile_path}"
+    process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+
+    with open(tmpfile_path, "r") as f:
+        lines = f.readlines()
+
+    dls_list, argstrs = input_file_lines_to_dict(lines)
+
+    return process_downloads_list(dls_list)
 
 
 def addDownloadsAndTorrentsAndPauseFull(
@@ -521,7 +536,6 @@ def retryDownloadWithModifiedOptions(gid: str) -> str:
 
     # Run the form and get results
     result_dict, saved = run_form(form_dict)
-
 
     # If user didn't save, return early
     if not saved:
