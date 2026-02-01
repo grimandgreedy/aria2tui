@@ -23,6 +23,27 @@ from aria2tui.utils.logging_utils import get_logger
 logger = get_logger()
 
 
+def get_editor_command(filepath: str, extra_args: str = "") -> str:
+    """
+    Get the editor command to use, respecting $EDITOR environment variable.
+
+    Falls back to nvim if $EDITOR is not set.
+
+    Args:
+        filepath: Path to the file to edit
+        extra_args: Additional arguments to pass to the editor (e.g., "-i NONE -c 'norm G'")
+
+    Returns:
+        Full command string to execute
+    """
+    editor = os.environ.get("EDITOR", "nvim")
+
+    if extra_args:
+        return f"{editor} {extra_args} {filepath}"
+    else:
+        return f"{editor} {filepath}"
+
+
 class ConfigManager:
     """
     Singleton configuration manager for aria2tui.
@@ -147,7 +168,6 @@ class ConfigManager:
         """Get the aria2 RPC token for current instance."""
         instance = self.get_current_instance()
         return instance.get("token", self._shared_config.get("token", ""))
-
 
     def get_restart_commands(self) -> list:
         """Get the restart commands for current instance."""
@@ -307,11 +327,15 @@ def restartAria() -> None:
 
 
 def editConfig() -> None:
-    """Edit the config file in nvim."""
+    """Edit the aria2c config file using $EDITOR (defaults to nvim)."""
     logger.info("editConfig called")
     file = config_manager.get_aria2_config_path()
-    cmd = f"nvim {file}"
-    logger.info("Opening config file: %s", file)
+    cmd = get_editor_command(file)
+    logger.info(
+        "Opening config file: %s with editor: %s",
+        file,
+        os.environ.get("EDITOR", "nvim"),
+    )
     process = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
 
 
@@ -386,12 +410,12 @@ def editAria2TUIConfig() -> None:
             }
 
         # Shared settings from general section
-        form_data["File Management"]["Terminal File Manager"] = current_config["general"].get(
-            "terminal_file_manager", "yazi"
-        )
-        form_data["File Management"]["GUI File Manager"] = current_config["general"].get(
-            "gui_file_manager", "kitty yazi"
-        )
+        form_data["File Management"]["Terminal File Manager"] = current_config[
+            "general"
+        ].get("terminal_file_manager", "yazi")
+        form_data["File Management"]["GUI File Manager"] = current_config[
+            "general"
+        ].get("gui_file_manager", "kitty yazi")
         # Remove Aria2 Config Path from File Management section (it's per-instance)
         if "Aria2 Config Path" in form_data["File Management"]:
             del form_data["File Management"]["Aria2 Config Path"]
@@ -437,12 +461,12 @@ def editAria2TUIConfig() -> None:
             ),
             "file",
         )
-        form_data["File Management"]["Terminal File Manager"] = current_config["general"].get(
-            "terminal_file_manager", "yazi"
-        )
-        form_data["File Management"]["GUI File Manager"] = current_config["general"].get(
-            "gui_file_manager", "kitty yazi"
-        )
+        form_data["File Management"]["Terminal File Manager"] = current_config[
+            "general"
+        ].get("terminal_file_manager", "yazi")
+        form_data["File Management"]["GUI File Manager"] = current_config[
+            "general"
+        ].get("gui_file_manager", "kitty yazi")
 
         # Behavior
         form_data["Behavior"]["Refresh Timer (seconds)"] = str(
@@ -611,7 +635,9 @@ def create_config_from_form(form_data: dict) -> None:
                 "global_stats_timer": int(
                     form_data["Behavior"]["Global Stats Timer (seconds)"]
                 ),
-                "terminal_file_manager": form_data["File Management"]["Terminal File Manager"],
+                "terminal_file_manager": form_data["File Management"][
+                    "Terminal File Manager"
+                ],
                 "gui_file_manager": form_data["File Management"]["GUI File Manager"],
             },
             "appearance": {
@@ -653,7 +679,9 @@ def create_config_from_form(form_data: dict) -> None:
                 "global_stats_timer": int(
                     form_data["Behavior"]["Global Stats Timer (seconds)"]
                 ),
-                "terminal_file_manager": form_data["File Management"]["Terminal File Manager"],
+                "terminal_file_manager": form_data["File Management"][
+                    "Terminal File Manager"
+                ],
                 "gui_file_manager": form_data["File Management"]["GUI File Manager"],
             },
             "appearance": {
@@ -749,7 +777,6 @@ def create_config_from_form(form_data: dict) -> None:
         f.write(f"global_stats_timer = {config['general']['global_stats_timer']}\n")
         f.write(f"refresh_timer = {config['general']['refresh_timer']}\n")
         f.write("\n")
-
 
         # Write [appearance] section with comments
         f.write("[appearance]\n")
