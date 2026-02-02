@@ -160,3 +160,129 @@ options_keys = {
     "cancel":                           [27], # Escape key
     "col_select":                       [ord('0'), ord('1'), ord('2'), ord('3'), ord('4'), ord('5'), ord('6'), ord('7'), ord('8'), ord('9')],
 }
+
+
+# Key descriptions for downloader view
+downloader_keys_descriptions = {
+    # Navigation - downloads context
+    "cursor_down": "Move to next download",
+    "cursor_up": "Move to previous download",
+    "page_down": "Next page of downloads",
+    "page_up": "Previous page of downloads",
+    "cursor_top": "Jump to first download",
+    "cursor_bottom": "Jump to last download",
+    "half_page_down": "Scroll down half page",
+    "half_page_up": "Scroll up half page",
+    "five_down": "Move down 5 downloads",
+    "five_up": "Move up 5 downloads",
+
+    # Selection - download management
+    "toggle_select": "Select/deselect download",
+    "select_all": "Select all downloads",
+    "select_none": "Deselect all downloads",
+    "visual_selection_toggle": "Start visual selection mode",
+    "visual_deselection_toggle": "Start visual deselection mode",
+    "enter": "Confirm selection / Open operations menu",
+
+    # File operations - daemon switching
+    "mode_next": "Switch to next download daemon",
+    "mode_prev": "Switch to previous download daemon",
+
+    # Data operations - download actions
+    "delete": "Remove download from queue",
+    "refresh": "Refresh download status",
+
+    # Filter and search
+    "filter_input": "Filter downloads by name/status",
+    "search_input": "Search downloads",
+    "continue_search_forward": "Find next match",
+    "continue_search_backward": "Find previous match",
+
+    # Sorting
+    "cycle_sort_method": "Change sort method (forward)",
+    "cycle_sort_method_reverse": "Change sort method (backward)",
+    "cycle_sort_order": "Toggle sort ascending/descending",
+
+    # UI controls
+    "notification_toggle": "Toggle notifications panel",
+    "redraw_screen": "Refresh display",
+    "help": "Show keyboard shortcuts",
+    "opts_input": "Command input mode",
+    "opts_select": "Quick options menu",
+    "reset_opts": "Reset options to default",
+
+    # Column operations
+    "increase_column_width": "Increase column width",
+    "decrease_column_width": "Decrease column width",
+
+    # Exit
+    "exit": "Return to main menu",
+    "minimise": "Minimize to background",
+    "full_exit": "Force quit application",
+    "cancel": "Cancel current operation",
+
+    # Advanced
+    "edit_ipython": "Open IPython debug console",
+}
+
+# Key descriptions for menu view
+menu_keys_descriptions = {
+    "cursor_down": "Move to next menu item",
+    "cursor_up": "Move to previous menu item",
+    "page_down": "Next page of menu items",
+    "page_up": "Previous page of menu items",
+    "cursor_top": "Jump to first menu item",
+    "cursor_bottom": "Jump to last menu item",
+    "half_page_down": "Scroll down half page",
+    "half_page_up": "Scroll up half page",
+    "five_down": "Move down 5 items",
+    "five_up": "Move up 5 items",
+    "enter": "Select menu option",
+    "filter_input": "Filter menu items",
+    "search_input": "Search menu",
+    "continue_search_forward": "Find next match",
+    "continue_search_backward": "Find previous match",
+    "redraw_screen": "Refresh display",
+    "help": "Show keyboard shortcuts",
+    "opts_input": "Command input mode",
+    "mode_next": "Switch mode forward",
+    "mode_prev": "Switch mode backward",
+    "exit": "Exit application",
+    "full_exit": "Force quit application",
+    "cancel": "Cancel / Go back",
+    "edit_ipython": "Open IPython debug console",
+}
+
+# Key descriptions for download operations menu
+download_operations_keys_descriptions = {
+    "cursor_down": "Move to next operation",
+    "cursor_up": "Move to previous operation",
+    "page_down": "Next page of operations",
+    "page_up": "Previous page of operations",
+    "cursor_top": "Jump to first operation",
+    "cursor_bottom": "Jump to last operation",
+    "half_page_down": "Scroll down half page",
+    "half_page_up": "Scroll up half page",
+    "five_down": "Move down 5 operations",
+    "five_up": "Move up 5 operations",
+    "enter": "Execute operation on selected downloads",
+    "search_input": "Search operations",
+    "continue_search_forward": "Find next match",
+    "continue_search_backward": "Find previous match",
+    "redraw_screen": "Refresh display",
+    "help": "Show keyboard shortcuts",
+    "cycle_sort_method": "Change sort method (forward)",
+    "cycle_sort_method_reverse": "Change sort method (backward)",
+    "cycle_sort_order": "Toggle sort ascending/descending",
+    "increase_column_width": "Increase column width",
+    "decrease_column_width": "Decrease column width",
+    "notification_toggle": "Toggle notifications panel",
+    "mode_next": "Switch mode forward",
+    "mode_prev": "Switch mode backward",
+    "opts_input": "Command input mode",
+    "opts_select": "Quick options menu",
+    "reset_opts": "Reset options to default",
+    "exit": "Cancel / Return to downloads",
+    "full_exit": "Force quit application",
+    "cancel": "Cancel / Go back",
+}

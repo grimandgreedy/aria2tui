@@ -17,7 +17,14 @@ from aria2tui.ui.aria2_detailing import highlights, menu_highlights, modes, oper
 from aria2tui.lib.aria2c_wrapper import *
 from aria2tui.utils.aria2c_utils import *
 from aria2tui.graphing.speed_graph import graph_speeds, graph_speeds_gid
-from aria2tui.ui.aria2tui_keys import download_option_keys, menu_keys, aria2tui_keys
+from aria2tui.ui.aria2tui_keys import (
+    download_option_keys,
+    menu_keys,
+    aria2tui_keys,
+    downloader_keys_descriptions,
+    menu_keys_descriptions,
+    download_operations_keys_descriptions,
+)
 from aria2tui.graphing.pane_graph import get_dl_data, right_split_dl_graph
 from aria2tui.graphing.pane_graph_progress import get_dl_progress, right_split_dl_progress_graph
 from aria2tui.graphing.pane_pieces import right_split_piece_progress, get_dl_pieces
@@ -350,6 +357,7 @@ menu_data = {
     "centre_in_terminal_vertical": True,
     "hidden_columns": [],
     "keys_dict": menu_keys,
+    "keys_descriptions": menu_keys_descriptions,
     "show_footer": False,
     "number_columns": False,
     "cell_cursor": False,
@@ -374,6 +382,7 @@ downloads_data = {
     "centre_in_terminal_vertical": False,
     "footer_string_auto_refresh": True,
     "keys_dict": aria2tui_keys,
+    "keys_descriptions": downloader_keys_descriptions,
     "footer_string_refresh_function": getGlobalSpeed,
     "footer_timer": global_stats_timer,
     "cell_cursor": False,
@@ -438,6 +447,7 @@ dl_operations_data = {
     "header": [f"Select operation"],
     "hidden_columns": [],
     "keys_dict": download_option_keys,
+    "keys_descriptions": download_operations_keys_descriptions,
     "cancel_is_back": True,
     "number_columns": False,
     "cell_cursor": False,
