@@ -55,12 +55,10 @@ def reload_alternate_config(picker) -> None:
     """Reload config from alternate path."""
     from .core import config_manager
 
-    logger.info("Before reload - Token: %s", config_manager.get_token()[:20] + "...")
     logger.info("Before reload - URL: %s", config_manager.get_url())
 
     config_manager.reload("/Users/noah/.config/torrents.toml")
 
-    logger.info("After reload - Token: %s", config_manager.get_token()[:20] + "...")
     logger.info("After reload - URL: %s", config_manager.get_url())
     logger.info("Config reloaded from /Users/noah/.config/torrents.toml")
 
