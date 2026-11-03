@@ -14,7 +14,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
     name = "aria2tui",
-    version = "0.1.13.1",
+    version = "0.1.13.4",
     author = "Grim",
     author_email = "grimandgreedy@protonmail.com",
     description = "aria2tui: A TUI Frontend for the Aria2c Download Manager",
@@ -34,7 +34,7 @@ setuptools.setup(
     packages = setuptools.find_packages(where="src"),
     entry_points={
         'console_scripts': [
-            'aria2tui = aria2tui:main',
+            'aria2tui = aria2tui.aria2tui_app:aria2tui',
         ]
     },
     package_data={
@@ -49,7 +49,7 @@ setuptools.setup(
         "Requests",
         "tabulate",
         "toml",
-        "listpick == 0.1.18.0",
+        "listpick == 0.1.18.1",
         "numpy",
     ],
 )
