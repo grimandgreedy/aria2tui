@@ -1,5 +1,13 @@
 # CHANGELOG.md
-## [0.1.13.1] 2026-01-??
+## [0.1.13.5] 2026-11-03
+- Stop logging the aria2 RPC token prefix when reloading config
+
+## [0.1.13.4] 2026-02-04
+- Show aria2tui key descriptions in the keybinds display
+- Fix console script entry point (aria2tui.aria2tui_app:aria2tui)
+- Bump listpick to 0.1.18.1
+
+## [0.1.13.1] 2026-02-01
 - Fix "Modify Torrent Files" Picker title
 - Add CLI arguments and standardise them with argparse
 - Add macros for yank, open file
